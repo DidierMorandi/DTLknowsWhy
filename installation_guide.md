@@ -110,7 +110,7 @@ python -m expert.compare snapshotA.json snapshotB.json
 DTLknowsWhy generates the following files.
 
 ### JSON Snapshot
-`HOSTNAME_snapshot_YYYYMMDD_HHMMSS.json`
+'HOSTNAME_snapshot_YYYYMMDD_HHMMSS.json'
 
 Contains:
 
@@ -121,12 +121,12 @@ Contains:
 - remote tests
 
 ### Text Report
-`HOSTNAME_report_YYYYMMDD_HHMMSS.txt`
+'HOSTNAME_report_YYYYMMDD_HHMMSS.txt'
 
 Human-readable diagnostic summary.
 
 ### HTML Report
-`HOSTNAME_report_YYYYMMDD_HHMMSS.html`
+'HOSTNAME_report_YYYYMMDD_HHMMSS.html'
 
 Formatted diagnostic report for browser viewing.
 
