@@ -1,0 +1,34 @@
+# DTLknowsWhy
+
+Windows network diagnostic and troubleshooting utility.
+
+DTLknowsWhy helps diagnose local and remote Windows network connectivity issues with clear human-readable reports.
+Version 1.0-0 25-may-2026 DTL didier.morandi@gmail.com
+
+## Features
+
+- local machine snapshot
+- Windows system inspection
+- network configuration analysis
+- Windows service inspection
+- remote connectivity testing
+- SMB diagnostics
+- hostname resolution
+- ARP / MAC detection
+- device classification
+- expert diagnostic engine
+- comparative snapshot analysis
+- bilingual reports (French / English)
+- TXT and HTML reporting
+
+## Requirements
+
+- Windows 10 / 11
+- Python 3.10+
+
+## Usage
+
+Local snapshot:
+
+```bash
+python -m agent.agent --snapshot --lang fr
