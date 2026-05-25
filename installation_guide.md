@@ -67,6 +67,7 @@ python -m agent.agent --snapshot --lang en
 If successful, DTLknowsWhy will generate diagnostic output and create report files.
 
 ## Basic Usage
+
 ### Local Analysis
 
 French:
@@ -110,7 +111,7 @@ python -m expert.compare snapshotA.json snapshotB.json
 DTLknowsWhy generates the following files.
 
 ### JSON Snapshot
-'HOSTNAME_snapshot_YYYYMMDD_HHMMSS.json'
+`HOSTNAME_snapshot_YYYYMMDD_HHMMSS.json`
 
 Contains:
 
@@ -121,16 +122,17 @@ Contains:
 - remote tests
 
 ### Text Report
-'HOSTNAME_report_YYYYMMDD_HHMMSS.txt'
+`HOSTNAME_report_YYYYMMDD_HHMMSS.txt`
 
 Human-readable diagnostic summary.
 
 ### HTML Report
-'HOSTNAME_report_YYYYMMDD_HHMMSS.html'
+`HOSTNAME_report_YYYYMMDD_HHMMSS.html`
 
 Formatted diagnostic report for browser viewing.
 
 ## Troubleshooting
+
 ### Incomplete Diagnostics
 
 If diagnostics appear incomplete, run the terminal as Administrator.
@@ -157,6 +159,7 @@ If a remote host responds but no Windows services are detected, the device may b
 - another network appliance
 
 ## Support
+
 ### Bug Reports
 
 Please use GitHub Issues.
