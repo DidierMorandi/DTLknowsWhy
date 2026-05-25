@@ -1,6 +1,6 @@
 # DTLknowsWhy Installation Guide
 
-Version 1.0.0 25-may-2026 PRSTSC::DTL didier.morandi@gmail.com
+Version 1.0.1 25-may-2026 PRSTSC::DTL didier.morandi@gmail.com
 
 ---
 
