@@ -15,11 +15,12 @@ Version 1.0-0 25-may-2026 DTL didier.morandi@gmail.com
 - SMB diagnostics
 - hostname resolution
 - ARP / MAC detection
-- device classification
+- remote device classification
 - expert diagnostic engine
 - comparative snapshot analysis
-- bilingual reports (French / English)
-- TXT and HTML reporting
+- bilingual support (French / English)
+- localized TXT reports
+- localized HTML reports
 
 ## Requirements
 
