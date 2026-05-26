@@ -29,13 +29,13 @@ Version 1.0-0 25-may-2026 DTL didier.morandi@gmail.com
 
 ## Usage
 
-### Local snapshot:
+### Local snapshot
 
 ```cmd
 python -m agent.agent --snapshot --lang fr
 ```
 
-### Remote Analysis
+### Remote analysis
 
 ```cmd
 python -m agent.agent --target 192.168.1.12 --lang en
@@ -44,7 +44,5 @@ python -m agent.agent --target 192.168.1.12 --lang en
 ### Remote data collection
 
 Still under development
-
-EOF
 
 
