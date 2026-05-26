@@ -3,7 +3,7 @@
 Windows network diagnostic and troubleshooting utility.
 
 DTLknowsWhy helps diagnose local and remote Windows network connectivity issues with clear human-readable reports.
-Version 1.0-0 25-may-2026 DTL didier.morandi@gmail.com
+Version 1.1-0 26-may-2026 DTL didier.morandi@gmail.com
 
 ## Features
 
