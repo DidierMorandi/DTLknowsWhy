@@ -31,5 +31,12 @@ Version 1.0-0 25-may-2026 DTL didier.morandi@gmail.com
 
 Local snapshot:
 
-```bash
+```cmd
 python -m agent.agent --snapshot --lang fr
+```
+
+Remote data collection: still under development
+
+EOF
+
+
