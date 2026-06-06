@@ -1,6 +1,12 @@
 from shared.commands import run_command
-import json
 import re
+import socket
+
+PING_TIMEOUT_MS = 1000
+PING_COMMAND_TIMEOUT_SECONDS = 2
+RESOLVE_COMMAND_TIMEOUT_SECONDS = 2
+TCP_CONNECT_TIMEOUT_SECONDS = 0.8
+SMB_SHARES_TIMEOUT_SECONDS = 4
 
 PORT_LABELS = {
     80: "HTTP",
@@ -24,11 +30,17 @@ def progress_bar(current, total, label):
         print()
 
 def ping_target(target):
-    result = run_command(f"ping -n 1 {target}", timeout=2)
+    result = run_command(
+        f"ping -n 1 -w {PING_TIMEOUT_MS} {target}",
+        timeout=PING_COMMAND_TIMEOUT_SECONDS,
+    )
     return result["exit_code"] == 0
 
 def resolve_hostname(target):
-    result = run_command(f"ping -a -n 1 {target}", timeout=2)
+    result = run_command(
+        f"ping -a -n 1 -w {PING_TIMEOUT_MS} {target}",
+        timeout=RESOLVE_COMMAND_TIMEOUT_SECONDS,
+    )
 
     if not result["stdout"]:
         return None
@@ -48,20 +60,13 @@ def test_tcp_port(target, port, current, total):
     label = PORT_LABELS.get(port, "Unknown")
     progress_bar(current, total, label)
 
-    cmd = (
-        'powershell -Command "'
-        f'Test-NetConnection -ComputerName {target} -Port {port} '
-        '| Select TcpTestSucceeded '
-        '| ConvertTo-Json'
-        '"'
-    )
-
-    result = run_command(cmd, timeout=3)
-
     try:
-        data = json.loads(result["stdout"])
-        return bool(data.get("TcpTestSucceeded", False))
-    except Exception:
+        with socket.create_connection(
+            (target, port),
+            timeout=TCP_CONNECT_TIMEOUT_SECONDS,
+        ):
+            return True
+    except OSError:
         return False
 
 def get_mac_address(target):
@@ -80,7 +85,10 @@ def get_mac_address(target):
 
 
 def enumerate_accessible_shares(target):
-    result = run_command(f'net view "\\\\{target}"', timeout=10)
+    result = run_command(
+        f'net view "\\\\{target}"',
+        timeout=SMB_SHARES_TIMEOUT_SECONDS,
+    )
 
     if not result["stdout"]:
         return None

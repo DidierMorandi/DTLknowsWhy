@@ -92,6 +92,39 @@ This performs:
 - remote device classification
 - diagnostic report generation
 
+### Windows Service Agent
+
+On a remote Windows target, DTLknowsWhy-Agent can be installed as a Windows
+service. The service starts at boot, listens on port 5050, and keeps running
+after each `/snapshot` request.
+
+Run these commands on the target from an Administrator terminal:
+
+```powershell
+.\DTLknowsWhy-Agent.exe --service --startup auto install
+.\DTLknowsWhy-Agent.exe --service start
+```
+
+To allow another machine on the private network to query the agent:
+
+```powershell
+New-NetFirewallRule -DisplayName "DTLknowsWhy Agent 5050" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5050 -Profile Private
+```
+
+After that, from the machine running DTLknowsWhy:
+
+```powershell
+.\DTLknowsWhy.exe --target PC-NAME
+```
+
+Service management commands:
+
+```powershell
+.\DTLknowsWhy-Agent.exe --service stop
+.\DTLknowsWhy-Agent.exe --service restart
+.\DTLknowsWhy-Agent.exe --service remove
+```
+
 ### Expert Diagnosis
 
 Analyse the latest snapshot:

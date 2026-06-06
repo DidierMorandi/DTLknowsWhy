@@ -9,6 +9,51 @@ def format_timestamp(lang):
         return now.strftime("%d/%m/%Y %H:%M:%S")
 
     return now.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def machine_label(snapshot, fallback="Inconnu"):
+    system = snapshot.get("system", {})
+    network = snapshot.get("network", {})
+    name = system.get("hostname") or fallback
+    ip = network.get("ipv4")
+
+    if ip:
+        return f"{name} ({ip})"
+
+    return str(name)
+
+
+def target_label(snapshot):
+    remote = snapshot.get("remote_tests", {})
+    remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
+    remote_system = remote_snapshot.get("system", {})
+    remote_network = remote_snapshot.get("network", {})
+    name = (
+        remote_system.get("hostname")
+        or remote.get("resolved_name")
+        or remote.get("target")
+        or "cible"
+    )
+    ip = remote_network.get("ipv4") or remote.get("target")
+
+    if ip and ip != name:
+        return f"{name} ({ip})"
+
+    return str(name)
+
+
+def causal_comparison_label(snapshot):
+    local_name = snapshot.get("system", {}).get("hostname") or "Machine locale"
+    remote = snapshot.get("remote_tests", {})
+    remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
+    remote_name = (
+        remote_snapshot.get("system", {}).get("hostname")
+        or remote.get("resolved_name")
+        or remote.get("target")
+        or "Machine distante"
+    )
+
+    return f"Comparaison causale : {local_name} ↔ {remote_name}"
     
 def yn(value, lang):
     if value is True:
@@ -142,17 +187,17 @@ def build_executive_summary(snapshot):
     )
 
     lines = [
-        f"{summary_marker(local_ok)} Reseau local fonctionnel"
+        f"{summary_marker(local_ok)} Réseau local fonctionnel"
         if local_ok else
-        f"{summary_marker(False)} Reseau local a verifier",
+        f"{summary_marker(False)} Réseau local à vérifier",
 
-        f"{summary_marker(dns_ok)} DNS correctement configure"
+        f"{summary_marker(dns_ok)} DNS correctement configuré"
         if dns_ok else
-        f"{summary_marker(False)} DNS non renseigne ou incomplet",
+        f"{summary_marker(False)} DNS non renseigné ou incomplet",
 
-        f"{summary_marker(smb_ok)} SMB operationnel"
+        f"{summary_marker(smb_ok)} SMB opérationnel"
         if smb_ok else
-        f"{summary_marker(False)} SMB local a verifier",
+        f"{summary_marker(False)} SMB local à vérifier",
     ]
 
     if target_ok is not None:
@@ -164,7 +209,7 @@ def build_executive_summary(snapshot):
 
     if missing_comparison:
         lines.append(
-            "⚠ Comparaison complete impossible sans snapshot local sur la cible"
+            "⚠ Comparaison complète impossible sans snapshot local sur la cible"
         )
 
     return lines
@@ -181,24 +226,40 @@ def generate_text_report(snapshot, lang="fr"):
     diagnosis = snapshot.get("diagnosis", [])
     causal_comparison = snapshot.get("causal_comparison", [])
     security = system.get("security", {})
+    metadata = snapshot.get("metadata", {})
+    remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
+    remote_metadata = remote_snapshot.get("metadata", {})
+    remote_system = remote_snapshot.get("system", {})
+    remote_network = remote_snapshot.get("network", {})
 
     lines = []
 
-    lines.append(T("report_title"))
+    title = T("report_title")
+
+    if remote:
+        title = f"{title} - Cible {target_label(snapshot)}"
+
+    lines.append(title)
     lines.append("=" * 50)
     lines.append(f"{T('generated')} : {format_timestamp(lang)}")
+    if metadata.get("generated_at_local"):
+        lines.append(f"Snapshot local : {metadata.get('generated_at_local')}")
     lines.append("")
 
     lines.append("=" * 50)
-    lines.append("Resume executif")
+    lines.append("Résumé exécutif")
     lines.append("=" * 50)
     lines.extend(build_executive_summary(snapshot))
     lines.append("")
 
     lines.append("=" * 50)
-    lines.append(T("local_machine"))
+    lines.append(f"{T('local_machine')} : {machine_label(snapshot)}")
     lines.append("=" * 50)
     lines.append("")
+
+    if remote:
+        lines.append("Rôle : machine locale exécutant DTLknowsWhy")
+        lines.append("")
 
     lines.append(T("identity"))
     lines.append("-" * 50)
@@ -258,11 +319,11 @@ def generate_text_report(snapshot, lang="fr"):
 
     lines.append("")
 
-    lines.append("Securite")
+    lines.append("Sécurité")
     lines.append("-" * 50)
     append_block(
         lines,
-        "Antivirus detectes :",
+        "Antivirus détectés :",
         format_antivirus(security.get("antivirus_products"), lang)
     )
     append_block(
@@ -304,9 +365,37 @@ def generate_text_report(snapshot, lang="fr"):
 
     if remote:
         lines.append("=" * 50)
-        lines.append(T("remote_target"))
+        lines.append(f"{T('remote_target')} : {target_label(snapshot)}")
         lines.append("=" * 50)
         lines.append("")
+
+        lines.append("Rôle : machine distante analysée")
+        lines.append("")
+
+        if remote_snapshot:
+            lines.append("Métadonnées du snapshot distant")
+            lines.append("-" * 50)
+            lines.append(
+                f"{'Date/heure snapshot':<28} : "
+                f"{remote_metadata.get('generated_at_local') or remote_metadata.get('generated_at') or T('unknown')}"
+            )
+            lines.append(
+                f"{'Nom machine distante':<28} : "
+                f"{remote_system.get('hostname') or T('unknown')}"
+            )
+            lines.append(
+                f"{'IPv4 machine distante':<28} : "
+                f"{remote_network.get('ipv4') or remote.get('target') or T('unknown')}"
+            )
+            lines.append(
+                f"{'Compte SMB distant':<28} : "
+                f"{remote_system.get('smb_recommended_account') or T('unknown')}"
+            )
+            lines.append(
+                f"{'Fichier snapshot distant':<28} : "
+                f"{snapshot.get('remote_agent_snapshot_file') or 'JSON intégré au rapport'}"
+            )
+            lines.append("")
 
         lines.append(T("identification"))
         lines.append("-" * 50)
@@ -361,7 +450,7 @@ def generate_text_report(snapshot, lang="fr"):
 
     if causal_comparison:
         lines.append("=" * 50)
-        lines.append("Comparaison causale BEN-001 <-> cible")
+        lines.append(causal_comparison_label(snapshot))
         lines.append("=" * 50)
         lines.append("")
 

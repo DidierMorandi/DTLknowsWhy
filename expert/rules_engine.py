@@ -83,7 +83,7 @@ def analyze(snapshot):
         findings.append({
             "level": "OK",
             "message": (
-                "LanmanServer actif : le partage Windows est operationnel "
+                "LanmanServer actif : le partage Windows est opérationnel "
                 "sur la machine locale."
             ),
             "remediation": None
@@ -104,7 +104,7 @@ def analyze(snapshot):
         findings.append({
             "level": "OK",
             "message": (
-                "LanmanWorkstation actif : le client SMB est operationnel."
+                "LanmanWorkstation actif : le client SMB est opérationnel."
             ),
             "remediation": None
         })
@@ -113,8 +113,8 @@ def analyze(snapshot):
         findings.append({
             "level": "OK",
             "message": (
-                "FDResPub actif : la machine devrait etre visible dans "
-                "le voisinage reseau, sous reserve du profil reseau et "
+                "FDResPub actif : la machine devrait être visible dans "
+                "le voisinage réseau, sous réserve du profil réseau et "
                 "du pare-feu."
             ),
             "remediation": None
@@ -131,15 +131,15 @@ def analyze(snapshot):
             "case": "SMB-001",
             "level": "INFO",
             "message": (
-                "CAS SMB-001 - La machine peut etre invisible dans "
-                "Reseau alors que les acces SMB fonctionnent. Le "
-                "voisinage reseau depend de services de decouverte "
+                "CAS SMB-001 - La machine peut être invisible dans "
+                "Réseau alors que les accès SMB fonctionnent. Le "
+                "voisinage réseau dépend de services de découverte "
                 "distincts de SMB."
             ),
             "remediation": (
-                "Verifier avec ping <machine>, \\\\machine et "
+                "Vérifier avec ping <machine>, \\\\machine et "
                 "net view \\\\machine. Puis controler FDResPub avec "
-                "sc query fdrespub. Resolution observee : "
+                "sc query fdrespub. Résolution observée : "
                 "sc config fdrespub start= delayed-auto puis "
                 "net start fdrespub."
             )
@@ -163,15 +163,15 @@ def analyze(snapshot):
             "level": "INFO",
             "message": (
                 "CAS SMB-002 - Si \\\\192.168.x.x fonctionne mais "
-                "\\\\NOM_MACHINE echoue, SMB fonctionne ; seule la "
-                "resolution du nom est defaillante."
+                "\\\\NOM_MACHINE échoue, SMB fonctionne ; seule la "
+                "résolution du nom est défaillante."
             ),
             "remediation": (
                 "Tester ping NOM_MACHINE, nbtstat -A IP et "
                 "nslookup NOM_MACHINE. Causes possibles : NetBIOS "
-                "desactive, DNS incomplet, LLMNR defaillant ou "
-                "FDResPub arrete. Tester l'acces par IP puis corriger "
-                "la resolution de noms."
+                "désactivé, DNS incomplet, LLMNR défaillant ou "
+                "FDResPub arrêté. Tester l'accès par IP puis corriger "
+                "la résolution de noms."
             )
         })
 

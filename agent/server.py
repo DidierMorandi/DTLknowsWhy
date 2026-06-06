@@ -1,16 +1,25 @@
+import contextlib
+import io
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse, parse_qs
+import threading
+from urllib.parse import parse_qs, urlparse
 
 from agent.agent import create_snapshot
 from shared.logger import logger
 
-API_KEY = "DTLSECRET"
 HOST = "0.0.0.0"
 PORT = 5050
 
 
 class SnapshotHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        try:
+            message = format % args
+        except Exception:
+            message = format
+
+        logger.info("%s - %s", self.client_address[0], message)
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -20,19 +29,22 @@ class SnapshotHandler(BaseHTTPRequestHandler):
             return
 
         params = parse_qs(parsed.query)
-        key = params.get("key", [""])[0]
         lang = params.get("lang", ["fr"])[0]
-
-        if key != API_KEY:
-            self.send_error(403, "Forbidden")
-            return
 
         logger.info(
             f"Remote snapshot requested from {self.client_address[0]}"
         )
 
         try:
-            snapshot = create_snapshot(lang=lang)
+            output = io.StringIO()
+
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                snapshot = create_snapshot(lang=lang, save_outputs=False)
+
+            captured = output.getvalue().strip()
+
+            if captured:
+                logger.info("Snapshot output:\n%s", captured)
 
             payload = json.dumps(
                 snapshot,
@@ -56,13 +68,27 @@ class SnapshotHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             logger.exception("Remote snapshot failed")
             self.send_error(500, str(exc))
+        finally:
+            if getattr(self.server, "once", False):
+                self.server.stop_event.set()
 
 
-def run():
-    logger.info(f"DTLknowsWhy server listening on {HOST}:{PORT}")
+def run(once=False, stop_event=None):
+    mode = "once" if once else "continuous"
+    logger.info(f"DTLknowsWhy server listening on {HOST}:{PORT} ({mode})")
 
+    stop_event = stop_event or threading.Event()
     server = HTTPServer((HOST, PORT), SnapshotHandler)
-    server.serve_forever()
+    server.once = once
+    server.stop_event = stop_event
+    server.timeout = 1
+
+    try:
+        while not stop_event.is_set():
+            server.handle_request()
+    finally:
+        server.server_close()
+        logger.info("DTLknowsWhy server stopped")
 
 
 if __name__ == "__main__":

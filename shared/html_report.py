@@ -13,6 +13,51 @@ def format_timestamp(lang):
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def machine_label(snapshot, fallback="Inconnu"):
+    system = snapshot.get("system", {})
+    network = snapshot.get("network", {})
+    name = system.get("hostname") or fallback
+    ip = network.get("ipv4")
+
+    if ip:
+        return f"{name} ({ip})"
+
+    return str(name)
+
+
+def target_label(snapshot):
+    remote = snapshot.get("remote_tests", {})
+    remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
+    remote_system = remote_snapshot.get("system", {})
+    remote_network = remote_snapshot.get("network", {})
+    name = (
+        remote_system.get("hostname")
+        or remote.get("resolved_name")
+        or remote.get("target")
+        or "cible"
+    )
+    ip = remote_network.get("ipv4") or remote.get("target")
+
+    if ip and ip != name:
+        return f"{name} ({ip})"
+
+    return str(name)
+
+
+def causal_comparison_label(snapshot):
+    local_name = snapshot.get("system", {}).get("hostname") or "Machine locale"
+    remote = snapshot.get("remote_tests", {})
+    remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
+    remote_name = (
+        remote_snapshot.get("system", {}).get("hostname")
+        or remote.get("resolved_name")
+        or remote.get("target")
+        or "Machine distante"
+    )
+
+    return f"Comparaison causale : {local_name} ↔ {remote_name}"
+
+
 def yn(value, lang):
     if value is True:
         return f'<span class="val-yes">{tr("yes", lang)}</span>'
@@ -47,7 +92,12 @@ def finding_class(level):
         "OK": "finding-ok",
         "WARN": "finding-warn",
         "FAIL": "finding-fail",
-        "INFO": "finding-info"
+        "INFO": "finding-info",
+        "CAUSE PROBABLE": "finding-cause-probable",
+        "CAUSE POSSIBLE": "finding-cause-possible",
+        "À VÉRIFIER": "finding-to-check",
+        "A VÉRIFIER": "finding-to-check",
+        "OBSERVE": "finding-ok"
     }
 
     return mapping.get(level, "finding-info")
@@ -174,9 +224,9 @@ def build_executive_summary(snapshot):
     )
 
     lines = [
-        (local_ok, "Reseau local fonctionnel" if local_ok else "Reseau local a verifier"),
-        (dns_ok, "DNS correctement configure" if dns_ok else "DNS non renseigne ou incomplet"),
-        (smb_ok, "SMB operationnel" if smb_ok else "SMB local a verifier"),
+        (local_ok, "Réseau local fonctionnel" if local_ok else "Réseau local à vérifier"),
+        (dns_ok, "DNS correctement configuré" if dns_ok else "DNS non renseigné ou incomplet"),
+        (smb_ok, "SMB opérationnel" if smb_ok else "SMB local à vérifier"),
     ]
 
     if target_ok is not None:
@@ -186,7 +236,7 @@ def build_executive_summary(snapshot):
 
     if missing_comparison:
         lines.append(
-            (False, "Comparaison complete impossible sans snapshot local sur la cible")
+            (False, "Comparaison complète impossible sans snapshot local sur la cible")
         )
 
     return lines
@@ -216,8 +266,22 @@ def generate_html_report(snapshot, lang="fr"):
     diagnosis = snapshot.get("diagnosis", [])
     causal_comparison = snapshot.get("causal_comparison", [])
     security = system.get("security", {})
+    metadata = snapshot.get("metadata", {})
+    remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
+    remote_metadata = remote_snapshot.get("metadata", {})
+    remote_system = remote_snapshot.get("system", {})
+    remote_network = remote_snapshot.get("network", {})
+    remote_snapshot_time = (
+        remote_metadata.get("generated_at_local")
+        or remote_metadata.get("generated_at")
+        or remote_metadata.get("received_at_local")
+    )
 
     target_type = remote.get("target_type", "unknown")
+    report_title = T("report_title")
+
+    if remote:
+        report_title = f"{report_title} - Cible {target_label(snapshot)}"
 
     mac = None
 
@@ -238,7 +302,7 @@ def generate_html_report(snapshot, lang="fr"):
 <html lang="{lang}">
 <head>
 <meta charset="utf-8">
-<title>{T('report_title')}</title>
+<title>{escape(report_title)}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@500;700&display=swap');
 
@@ -249,15 +313,19 @@ def generate_html_report(snapshot, lang="fr"):
     --border:    #30363d;
     --accent:    #00b4d8;
     --accent2:   #0077b6;
+    --local:     #0066cc;
+    --local-bg:  #eaf3ff;
+    --remote:    #ffb000;
+    --remote-bg: #fff7df;
     --text:      #c9d1d9;
     --text-dim:  #6e7681;
     --text-head: #e6edf3;
-    --ok:        #238636;
-    --ok-fg:     #3fb950;
+    --ok:        #2e8b57;
+    --ok-fg:     #2e8b57;
     --fail:      #c62828;
-    --fail-fg:   #f85149;
+    --fail-fg:   #d9534f;
     --warn:      #9e6a03;
-    --warn-fg:   #e3b341;
+    --warn-fg:   #ffb000;
     --unknown:   #3d444d;
     --unknown-fg:#8b949e;
 }}
@@ -335,6 +403,44 @@ h3 {{
     padding: 20px 24px;
     margin-bottom: 16px;
     border: 1px solid var(--border);
+}}
+
+.section-local {{
+    background: var(--surface);
+    border-color: rgba(0, 102, 204, 0.55);
+    border-left: 3px solid var(--local);
+}}
+
+.section-local h2 {{
+    background: rgba(0, 102, 204, 0.14);
+    color: var(--local);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-bottom-color: rgba(0, 102, 204, 0.35);
+}}
+
+.section-local h3,
+.section-local strong {{
+    color: var(--local);
+}}
+
+.section-remote {{
+    background: var(--surface);
+    border-color: rgba(255, 176, 0, 0.65);
+    border-left: 3px solid var(--remote);
+}}
+
+.section-remote h2 {{
+    background: rgba(255, 176, 0, 0.16);
+    color: #b87800;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-bottom-color: rgba(255, 176, 0, 0.45);
+}}
+
+.section-remote h3,
+.section-remote strong {{
+    color: #b87800;
 }}
 
 .subsection {{
@@ -519,25 +625,59 @@ summary:hover {{
     border: 1px solid var(--accent2);
     background: rgba(0,119,182,0.25);
 }}
+
+.finding-cause-probable {{
+    border-left-color: var(--fail-fg);
+}}
+
+.finding-cause-probable .finding-level {{
+    color: #ffffff;
+    border: 1px solid var(--fail-fg);
+    background: var(--fail-fg);
+}}
+
+.finding-cause-possible {{
+    border-left-color: var(--remote);
+}}
+
+.finding-cause-possible .finding-level {{
+    color: #1f2937;
+    border: 1px solid var(--remote);
+    background: var(--remote);
+}}
+
+.finding-to-check {{
+    border-left-color: var(--local);
+}}
+
+.finding-to-check .finding-level {{
+    color: #ffffff;
+    border: 1px solid var(--local);
+    background: var(--local);
+}}
 </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <h1>DTLknowsWhy - un utilitaire NetDTL</h1>
+        <h1>{escape(report_title)}</h1>
         <p>{T('generated')} : {format_timestamp(lang)}</p>
+        <p>Machine locale : {escape(machine_label(snapshot))}</p>
+        {f'<p>Machine distante : {escape(target_label(snapshot))}</p>' if remote else ''}
+        {f'<p>Snapshot distant : {escape(str(remote_snapshot_time))}</p>' if remote_snapshot_time else ''}
     </div>
     <img src="netdtl_logo.png" alt="NetDTL Logo">
 </div>
 
 <div class="section">
-<h2>Resume executif</h2>
+<h2>Résumé exécutif</h2>
 {format_executive_summary_html(snapshot)}
 </div>
 
-<div class="section">
-<h2>{T('local_machine')}</h2>
+<div class="section section-local">
+<h2>{T('local_machine')} : {escape(machine_label(snapshot))}</h2>
+<p><strong>Rôle :</strong> machine locale exécutant DTLknowsWhy</p>
 
 <div class="subsection">
 <h3>{T('identity')}</h3>
@@ -581,7 +721,7 @@ summary:hover {{
 </div>
 
 <div class="subsection">
-<h3>Securite</h3>
+<h3>Sécurité</h3>
 <table>
 <tr><td>Antivirus</td>
 <td>{format_antivirus_html(security.get('antivirus_products'), lang)}</td></tr>
@@ -626,8 +766,26 @@ summary:hover {{
 
     if remote:
         html += f"""
-<div class="section">
-<h2>{T('remote_target')}</h2>
+<div class="section section-remote">
+<h2>{T('remote_target')} : {escape(target_label(snapshot))}</h2>
+<p><strong>Rôle :</strong> machine distante analysée</p>
+"""
+
+        if remote_snapshot:
+            html += f"""
+<div class="subsection">
+<h3>Métadonnées du snapshot distant</h3>
+<table>
+<tr><td>Date/heure snapshot</td><td>{escape(str(remote_snapshot_time or T('unknown')))}</td></tr>
+<tr><td>Nom machine distante</td><td>{escape(str(remote_system.get('hostname') or T('unknown')))}</td></tr>
+<tr><td>IPv4 machine distante</td><td>{escape(str(remote_network.get('ipv4') or remote.get('target') or T('unknown')))}</td></tr>
+<tr><td>Compte SMB distant</td><td>{escape(str(remote_system.get('smb_recommended_account') or T('unknown')))}</td></tr>
+<tr><td>Fichier snapshot distant</td><td>{escape(str(snapshot.get('remote_agent_snapshot_file') or 'JSON intégré au rapport'))}</td></tr>
+</table>
+</div>
+"""
+
+        html += f"""
 
 <div class="subsection">
 <h3>{T('identification')}</h3>
@@ -656,9 +814,9 @@ summary:hover {{
 """
 
     if causal_comparison:
-        html += """
+        html += f"""
 <div class="section">
-<h2>Comparaison causale BEN-001 &lt;-&gt; cible</h2>
+<h2>{escape(causal_comparison_label(snapshot))}</h2>
 """
 
         for item in causal_comparison:
@@ -677,7 +835,7 @@ summary:hover {{
             )
 
             html += f"""
-<div class="finding finding-info">
+<div class="finding {finding_class(level)}">
     <div class="finding-meta">
         <span class="finding-level">{escape(level)}</span>
         <span class="finding-case">{title}</span>

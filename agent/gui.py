@@ -40,28 +40,37 @@ LEVEL_COLORS = {
 SITUATIONS = [
     {
         "id": "SMB-001",
-        "title": "Le poste n'apparait pas dans Reseau",
+        "title": "Le poste n'apparaît pas dans Réseau",
         "description": (
-            "La machine peut etre invisible dans le voisinage reseau alors "
-            "que les acces SMB fonctionnent."
+            "La machine peut être invisible dans le voisinage réseau alors "
+            "que les accès SMB fonctionnent."
         ),
         "requires_target": False,
     },
     {
         "id": "SMB-002",
-        "title": "\\\\IP fonctionne mais \\\\NOM_MACHINE echoue",
+        "title": "\\\\IP fonctionne mais \\\\NOM_MACHINE échoue",
         "description": (
-            "SMB peut fonctionner tandis que la resolution du nom de la "
-            "machine est defaillante."
+            "SMB peut fonctionner tandis que la résolution du nom de la "
+            "machine est défaillante."
+        ),
+        "requires_target": True,
+    },
+    {
+        "id": "SMB-003",
+        "title": "Les partages sont visibles mais l'accès est refusé",
+        "description": (
+            "Vérifier si le compte SMB utilisé correspond au compte réel "
+            "retourné par WHOAMI sur la cible."
         ),
         "requires_target": True,
     },
     {
         "id": "LOCAL-NETWORK",
-        "title": "Le reseau local ne repond pas",
+        "title": "Le réseau local ne répond pas",
         "description": (
-            "Verifier la passerelle, l'adresse IP, le DHCP et la "
-            "configuration reseau locale."
+            "Vérifier la passerelle, l'adresse IP, le DHCP et la "
+            "configuration réseau locale."
         ),
         "requires_target": False,
     },
@@ -69,8 +78,8 @@ SITUATIONS = [
         "id": "LOCAL-SMB",
         "title": "Le partage Windows local ne fonctionne pas",
         "description": (
-            "Verifier les services LanmanServer et LanmanWorkstation, "
-            "le profil reseau et les partages visibles."
+            "Vérifier les services LanmanServer et LanmanWorkstation, "
+            "le profil réseau et les partages visibles."
         ),
         "requires_target": False,
     },
@@ -85,10 +94,10 @@ SITUATIONS = [
     },
     {
         "id": "REMOTE-DEVICE",
-        "title": "Identifier une cible du reseau",
+        "title": "Identifier une cible du réseau",
         "description": (
-            "Classer la cible : poste Windows probable, mobile, equipement "
-            "reseau ou hote inconnu."
+            "Classer la cible : poste Windows probable, mobile, équipement "
+            "réseau ou hôte inconnu."
         ),
         "requires_target": True,
     },
@@ -109,8 +118,10 @@ class QueueWriter(io.TextIOBase):
 
 
 class DTLknowsWhyGui:
-    def __init__(self, create_snapshot):
+    def __init__(self, create_snapshot, initial_target=None, auto_start=False):
         self.create_snapshot = create_snapshot
+        self.initial_target = initial_target
+        self.auto_start = auto_start
         self.output_queue = queue.Queue()
         self.latest_snapshot = None
         self.selected_vars = {}
@@ -123,6 +134,7 @@ class DTLknowsWhyGui:
 
         self._build_styles()
         self._build_layout()
+        self._apply_startup_options()
         self.root.after(100, self._poll_queue)
 
     def _build_styles(self):
@@ -232,7 +244,7 @@ class DTLknowsWhyGui:
 
         ttk.Label(
             banner,
-            text="Assistant de diagnostic reseau Windows",
+            text="Assistant de diagnostic réseau Windows",
             style="BannerSubtitle.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
 
@@ -245,7 +257,7 @@ class DTLknowsWhyGui:
         ttk.Label(
             container,
             text=(
-                "Selectionnez la ou les situations rencontrees, indiquez la "
+                "Sélectionnez la ou les situations rencontrées, indiquez la "
                 "cible si besoin, puis lancez le diagnostic."
             ),
             background=COLORS["bg"],
@@ -316,7 +328,7 @@ class DTLknowsWhyGui:
 
         ttk.Label(
             target_frame,
-            text="Nom ou adresse IP de la machine a tester",
+            text="Nom ou adresse IP de la machine à tester",
             background=COLORS["surface"],
             foreground=COLORS["text"],
         ).grid(row=0, column=0, sticky="w")
@@ -337,7 +349,7 @@ class DTLknowsWhyGui:
 
         self.summary_frame = ttk.LabelFrame(
             target_frame,
-            text="Resume du diagnostic",
+            text="Résumé du diagnostic",
             padding=10,
             style="Section.TLabelframe",
         )
@@ -345,7 +357,7 @@ class DTLknowsWhyGui:
         self.summary_frame.columnconfigure(0, weight=1)
 
         self.summary_items = {
-            "local": self._build_summary_row(0, "Reseau local", "En attente"),
+            "local": self._build_summary_row(0, "Réseau local", "En attente"),
             "dns": self._build_summary_row(1, "DNS", "En attente"),
             "smb": self._build_summary_row(2, "SMB local", "En attente"),
             "target": self._build_summary_row(3, "Cible", "Non testee"),
@@ -391,7 +403,7 @@ class DTLknowsWhyGui:
 
         findings_frame = ttk.LabelFrame(
             results,
-            text="Solutions proposees",
+            text="Constats et vérifications",
             padding=8,
             style="Section.TLabelframe",
         )
@@ -463,6 +475,21 @@ class DTLknowsWhyGui:
     def run(self):
         self.root.mainloop()
 
+    def _apply_startup_options(self):
+        if not self.initial_target:
+            return
+
+        self.target_var.set(self.initial_target)
+
+        for situation in SITUATIONS:
+            if situation["requires_target"]:
+                self.selected_vars[situation["id"]].set(True)
+
+        self._refresh_target_hint()
+
+        if self.auto_start:
+            self.root.after(300, self._start_diagnosis)
+
     def _selected_situations(self):
         return [
             situation
@@ -477,7 +504,7 @@ class DTLknowsWhyGui:
         )
 
         if requires_target:
-            text = "Une cible est necessaire pour les situations selectionnees."
+            text = "Une cible est nécessaire pour les situations sélectionnées."
         else:
             text = "Optionnel pour un diagnostic local."
 
@@ -489,7 +516,7 @@ class DTLknowsWhyGui:
         if not selected:
             messagebox.showwarning(
                 "Situation manquante",
-                "Selectionnez au moins une situation a diagnostiquer.",
+                "Sélectionnez au moins une situation à diagnostiquer.",
             )
             return
 
@@ -506,9 +533,9 @@ class DTLknowsWhyGui:
             continue_without_admin = messagebox.askyesno(
                 "Droits administrateur",
                 (
-                    "DTLknowsWhy n'est pas lance en administrateur. "
-                    "Certaines verifications peuvent etre incompletes.\n\n"
-                    "Voulez-vous continuer quand meme ?"
+                    "DTLknowsWhy n'est pas lancé en administrateur. "
+                    "Certaines vérifications peuvent être incomplètes.\n\n"
+                    "Voulez-vous continuer quand même ?"
                 ),
             )
 
@@ -547,8 +574,7 @@ class DTLknowsWhyGui:
                 kind = item[0]
 
                 if kind == "log":
-                    self.log_text.insert("end", item[1])
-                    self.log_text.see("end")
+                    self._append_log(item[1])
                 elif kind == "done":
                     self.latest_snapshot = item[1]
                     self._show_findings(item[1], item[2])
@@ -561,6 +587,16 @@ class DTLknowsWhyGui:
             pass
 
         self.root.after(100, self._poll_queue)
+
+    def _append_log(self, text):
+        for part in text.splitlines(keepends=True):
+            if part.startswith("\r"):
+                self.log_text.delete("end-1c linestart", "end-1c lineend")
+                part = part[1:]
+
+            self.log_text.insert("end", part.replace("\r", "\n"))
+
+        self.log_text.see("end")
 
     def _show_findings(self, snapshot, selected_ids):
         diagnosis = snapshot.get("diagnosis", [])
@@ -577,14 +613,14 @@ class DTLknowsWhyGui:
             focused = diagnosis
 
         self.findings_text.delete("1.0", "end")
-        self.findings_text.insert("end", "Situations selectionnees : ", "heading")
+        self.findings_text.insert("end", "Situations sélectionnées : ", "heading")
         self.findings_text.insert("end", ", ".join(selected_ids), "heading")
         self.findings_text.insert("end", "\n\n")
 
         if not focused:
             self.findings_text.insert(
                 "end",
-                "Aucune anomalie significative detectee.\n",
+                "Aucune anomalie significative détectée.\n",
                 "message",
             )
             return
@@ -606,7 +642,7 @@ class DTLknowsWhyGui:
             if item.get("remediation"):
                 self.findings_text.insert(
                     "end",
-                    f"Action : {item.get('remediation')}\n",
+                    f"Vérification / action : {item.get('remediation')}\n",
                     "remediation",
                 )
 
@@ -626,7 +662,7 @@ class DTLknowsWhyGui:
 
         self._set_summary(
             "local",
-            "OK" if tests.get("ping_gateway") else "A verifier",
+            "OK" if tests.get("ping_gateway") else "À vérifier",
             "OK" if tests.get("ping_gateway") else "WARN",
         )
         self._set_summary(
@@ -641,7 +677,7 @@ class DTLknowsWhyGui:
         )
         self._set_summary(
             "smb",
-            "Operationnel" if smb_ok else "A verifier",
+            "Opérationnel" if smb_ok else "À vérifier",
             "OK" if smb_ok else "FAIL",
         )
 
@@ -676,6 +712,10 @@ class DTLknowsWhyGui:
         os.startfile(os.path.abspath(reports[0]))
 
 
-def run_gui(create_snapshot):
-    app = DTLknowsWhyGui(create_snapshot)
+def run_gui(create_snapshot, initial_target=None, auto_start=False):
+    app = DTLknowsWhyGui(
+        create_snapshot,
+        initial_target=initial_target,
+        auto_start=auto_start,
+    )
     app.run()

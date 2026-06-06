@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "snapshot",
-        nargs="?",
+        nargs="é",
         help="Snapshot JSON file"
     )
 

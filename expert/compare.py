@@ -183,7 +183,7 @@ def compare_field(reference, target, path):
 def compare_causal(reference, target):
     findings = []
 
-    ref_name = get_path(reference, "system.hostname", "Reference")
+    ref_name = get_path(reference, "system.hostname", "Référence")
     target_name = get_path(target, "system.hostname", "Cible")
 
     profile_ref, profile_target = compare_field(
@@ -194,28 +194,28 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE PROBABLE",
-            "Profil reseau plus restrictif",
+            "Profil réseau plus restrictif",
             [
-                f"{ref_name} : profil reseau {profile_ref}",
-                f"{target_name} : profil reseau {profile_target}"
+                f"{ref_name} : profil réseau {profile_ref}",
+                f"{target_name} : profil réseau {profile_target}"
             ],
             (
-                "Le profil Public peut bloquer SMB, la decouverte reseau "
-                "et certaines reponses entrantes."
+                "Le profil Public peut bloquer SMB, la découverte réseau "
+                "et certaines réponses entrantes."
             ),
-            "Passer le profil reseau de la cible en Prive si le reseau est fiable."
+            "Passer le profil réseau de la cible en Privé si le réseau est fiable."
         )
 
     for service, cause, remediation in (
         (
             "LanmanServer",
-            "Le service de partage Windows est arrete sur la cible.",
-            "Demarrer LanmanServer ou reactiver le partage de fichiers."
+            "Le service de partage Windows est arrêté sur la cible.",
+            "Démarrer LanmanServer ou réactiver le partage de fichiers."
         ),
         (
             "LanmanWorkstation",
-            "Le client SMB est arrete sur la cible.",
-            "Demarrer LanmanWorkstation."
+            "Le client SMB est arrêté sur la cible.",
+            "Démarrer LanmanWorkstation."
         ),
     ):
         ref_status, target_status = compare_field(
@@ -226,7 +226,7 @@ def compare_causal(reference, target):
             add_cause(
                 findings,
                 "CAUSE CERTAINE",
-                f"Service {service} arrete",
+                f"Service {service} arrêté",
                 [
                     f"{ref_name} : {service} = {ref_status}",
                     f"{target_name} : {service} = {target_status}"
@@ -244,16 +244,16 @@ def compare_causal(reference, target):
             add_cause(
                 findings,
                 "CAUSE POSSIBLE",
-                f"Decouverte reseau degradee ({service})",
+                f"Découverte réseau dégradée ({service})",
                 [
                     f"{ref_name} : {service} = {ref_status}",
                     f"{target_name} : {service} = {target_status}"
                 ],
                 (
                     "SMB peut fonctionner par chemin direct, mais la machine "
-                    "peut ne pas apparaitre dans le voisinage reseau."
+                    "peut ne pas apparaître dans le voisinage réseau."
                 ),
-                "Demarrer FDResPub/fdPHost et verifier la decouverte reseau."
+                "Démarrer FDResPub/fdPHost et vérifier la découverte réseau."
             )
 
     ping_ref, ping_target = compare_field(reference, target, "tests.ping_gateway")
@@ -262,16 +262,16 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE PROBABLE",
-            "Connectivite locale defaillante",
+            "Connectivité locale défaillante",
             [
                 f"{ref_name} : passerelle joignable",
                 f"{target_name} : passerelle non joignable"
             ],
             (
-                "La cible a probablement un probleme IP local avant meme "
+                "La cible a probablement un problème IP local avant même "
                 "les couches SMB ou authentification."
             ),
-            "Verifier cable/Wi-Fi, DHCP, adresse IP, masque et passerelle."
+            "Vérifier câble/Wi-Fi, DHCP, adresse IP, masque et passerelle."
         )
 
     netbios_ref, netbios_target = compare_field(
@@ -282,14 +282,14 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Resolution NetBIOS differente",
+            "Résolution NetBIOS différente",
             [
                 f"{ref_name} : NetBIOS active",
-                f"{target_name} : NetBIOS desactive"
+                f"{target_name} : NetBIOS désactivé"
             ],
             (
-                "Un acces par IP peut fonctionner alors que l'acces par nom "
-                "echoue ou devient aleatoire."
+                "Un accès par IP peut fonctionner alors que l'accès par nom "
+                "échoue ou devient aléatoire."
             ),
             "Tester \\\\IP puis \\\\NOM_MACHINE, nbtstat -A IP et la configuration DNS."
         )
@@ -300,14 +300,14 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Serveurs DNS differents",
+            "Serveurs DNS différents",
             [
                 f"{ref_name} : DNS = {dns_ref}",
                 f"{target_name} : DNS = {dns_target}"
             ],
             (
-                "La resolution de noms peut diverger entre les deux machines, "
-                "meme si SMB fonctionne par adresse IP."
+                "La résolution de noms peut diverger entre les deux machines, "
+                "même si SMB fonctionne par adresse IP."
             ),
             "Comparer nslookup NOM_MACHINE et ping NOM_MACHINE sur les deux postes."
         )
@@ -321,16 +321,16 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Topologie IP differente",
+            "Topologie IP différente",
             [
                 f"{ref_name} : passerelle={gateway_ref}, masque={subnet_ref}",
                 f"{target_name} : passerelle={gateway_target}, masque={subnet_target}"
             ],
             (
-                "Les deux machines ne sont peut-etre pas dans le meme contexte "
-                "reseau, VLAN, sous-reseau ou route de sortie."
+                "Les deux machines ne sont peut-être pas dans le même contexte "
+                "réseau, VLAN, sous-réseau ou route de sortie."
             ),
-            "Verifier le plan IP, le VLAN, le DHCP et les routes."
+            "Vérifier le plan IP, le VLAN, le DHCP et les routes."
         )
 
     ref_445, target_445 = compare_field(reference, target, "remote_tests.tcp_445")
@@ -346,9 +346,9 @@ def compare_causal(reference, target):
             ],
             (
                 "Le port SMB est filtre, ferme ou le service de partage "
-                "n'ecoute pas sur la cible."
+                "n'écoute pas sur la cible."
             ),
-            "Verifier pare-feu, antivirus, LanmanServer et partage de fichiers."
+            "Vérifier pare-feu, antivirus, LanmanServer et partage de fichiers."
         )
 
     ref_bitdefender = detect_security_product(reference, "bitdefender")
@@ -358,13 +358,13 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Filtre de securite different",
+            "Filtre de sécurité différent",
             [
-                f"{ref_name} : Bitdefender absent ou non detecte",
+                f"{ref_name} : Bitdefender absent ou non détecté",
                 f"{target_name} : Bitdefender present"
             ],
-            "Un filtre Bitdefender peut intercepter ou bloquer les acces SMB.",
-            "Tester temporairement avec les modules pare-feu/filtrage Bitdefender desactives."
+            "Un filtre Bitdefender peut intercepter ou bloquer les accès SMB.",
+            "Tester temporairement avec les modules pare-feu/filtrage Bitdefender désactivés."
         )
 
     ref_bitdefender_filters = find_filter_matching(reference, "bdf")
@@ -374,17 +374,17 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Filtre fltmc Bitdefender different",
+            "Filtre fltmc Bitdefender différent",
             [
-                f"{ref_name} : aucun filtre Bitdefender detecte",
+                f"{ref_name} : aucun filtre Bitdefender détecté",
                 (
-                    f"{target_name} : filtres detectes = "
+                    f"{target_name} : filtres détectés = "
                     f"{', '.join(target_bitdefender_filters)}"
                 )
             ],
             (
-                "Un filtre de fichiers Bitdefender peut intercepter les acces "
-                "au systeme de fichiers et modifier le comportement SMB."
+                "Un filtre de fichiers Bitdefender peut intercepter les accès "
+                "au système de fichiers et modifier le comportement SMB."
             ),
             "Comparer fltmc filters et tester avec les protections Bitdefender adaptees."
         )
@@ -395,12 +395,12 @@ def compare_causal(reference, target):
             "Signature SMB client obligatoire",
             (
                 "La signature SMB obligatoire cote client peut changer la "
-                "negociation avec certains serveurs."
+                "négociation avec certains serveurs."
             )
         ),
         (
             "network.smb_client_configuration.EnableInsecureGuestLogons",
-            "Acces invite SMB client",
+            "Accès invité SMB client",
             (
                 "Une difference sur les connexions invite peut expliquer "
                 "qu'un partage public soit accessible depuis un poste et pas l'autre."
@@ -410,16 +410,16 @@ def compare_causal(reference, target):
             "network.smb_server_configuration.RequireSecuritySignature",
             "Signature SMB serveur obligatoire",
             (
-                "La signature SMB obligatoire cote serveur peut refuser "
+                "La signature SMB obligatoire côté serveur peut refuser "
                 "certains clients ou changer l'authentification."
             )
         ),
         (
             "network.smb_server_configuration.RejectUnencryptedAccess",
-            "Rejet SMB non chiffre",
+            "Rejet SMB non chiffré",
             (
-                "Le rejet des acces non chiffres peut bloquer des clients "
-                "ou partages qui ne negocient pas le chiffrement SMB."
+                "Le rejet des accès non chiffrés peut bloquer des clients "
+                "ou partages qui ne négocient pas le chiffrement SMB."
             )
         )
     )
@@ -441,7 +441,10 @@ def compare_causal(reference, target):
             )
 
     ref_shares = share_names(get_path(reference, "remote_tests.accessible_smb_shares"))
-    target_shares = share_names(get_path(target, "remote_tests.accessible_smb_shares"))
+    target_shares = (
+        share_names(get_path(target, "remote_tests.accessible_smb_shares"))
+        or share_names(get_path(target, "network.accessible_smb_shares"))
+    )
 
     if ref_shares and not target_shares:
         add_cause(
@@ -450,13 +453,28 @@ def compare_causal(reference, target):
             "Aucun partage accessible sur la cible",
             [
                 f"{ref_name} : partages accessibles = {', '.join(ref_shares)}",
-                f"{target_name} : aucun partage accessible detecte"
+                f"{target_name} : aucun partage accessible détecté"
             ],
             (
-                "SMB peut repondre au niveau port, mais l'enumeration des "
-                "partages echoue ou ne retourne rien."
+                "SMB peut répondre au niveau port, mais l'énumération des "
+                "partages échoue ou ne retourne rien."
             ),
             "Tester net view \\\\CIBLE puis net use \\\\CIBLE\\PARTAGE avec un compte explicite."
+        )
+
+    elif target_shares:
+        add_cause(
+            findings,
+            "OBSERVE",
+            "Partages accessibles sur la cible",
+            [
+                f"{target_name} : partages accessibles = {', '.join(target_shares)}"
+            ],
+            (
+                "Le snapshot complet de la cible confirme que des partages "
+                "SMB sont énumérables."
+            ),
+            "Tester l'ouverture effective du partage concerné si l'accès utilisateur reste refusé."
         )
 
     local_ref_shares = share_names(get_path(reference, "network.accessible_smb_shares"))
@@ -466,14 +484,14 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Partages locaux non enumerables",
+            "Partages locaux non énumérables",
             [
                 f"{ref_name} : partages locaux accessibles = {', '.join(local_ref_shares)}",
-                f"{target_name} : aucun partage local accessible detecte"
+                f"{target_name} : aucun partage local accessible détecté"
             ],
             (
                 "La machine cible peut publier des partages differemment, "
-                "ou refuser l'enumeration locale."
+                "ou refuser l'énumération locale."
             ),
             "Comparer Get-SmbShare, net view \\\\localhost et les droits de partage."
         )
@@ -485,13 +503,13 @@ def compare_causal(reference, target):
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "Contexte d'identite different",
+            "Contexte d'identité différent",
             [
                 f"{ref_name} : {join_ref}",
                 f"{target_name} : {join_target}"
             ],
             (
-                "La negociation d'identite SMB peut differer entre compte local, "
+                "La négociation d'identité SMB peut différer entre compte local, "
                 "domaine et AzureAD Joined."
             ),
             (
@@ -516,7 +534,7 @@ def compare_remote_target(snapshot):
     if not remote:
         return findings
 
-    ref_name = system.get("hostname", "Reference")
+    ref_name = system.get("hostname", "Référence")
     target_name = remote.get("resolved_name") or remote.get("target") or "Cible"
     local_shares = share_names(network.get("accessible_smb_shares"))
     remote_shares = share_names(remote.get("accessible_smb_shares"))
@@ -531,25 +549,25 @@ def compare_remote_target(snapshot):
                 f"{target_name} : partages accessibles = {', '.join(remote_shares)}"
             ],
             (
-                "La cible repond sur TCP 445 et l'enumeration SMB retourne "
+                "La cible répond sur TCP 445 et l'énumération SMB retourne "
                 "des partages. Il ne s'agit pas d'un test d'authentification "
-                "utilisateur, seulement d'un test d'enumeration."
+                "utilisateur, seulement d'un test d'énumération."
             ),
-            "Tester ensuite l'ouverture effective d'un partage precis si necessaire."
+            "Tester ensuite l'ouverture effective d'un partage précis si nécessaire."
         )
 
     elif remote.get("tcp_445") and not remote_shares:
         add_cause(
             findings,
             "CAUSE POSSIBLE",
-            "SMB ouvert mais aucun partage enumere",
+            "SMB ouvert mais aucun partage énuméré",
             [
                 f"{target_name} : TCP 445 accessible",
                 f"{target_name} : net view ne retourne pas de partage exploitable"
             ],
             (
-                "Le port SMB repond, mais l'enumeration des partages est "
-                "bloquee, vide ou refusee."
+                "Le port SMB répond, mais l'énumération des partages est "
+                "bloquée, vide ou refusée."
             ),
             "Tester net view \\\\CIBLE et net use \\\\CIBLE\\PARTAGE avec un compte explicite."
         )
@@ -562,8 +580,8 @@ def compare_remote_target(snapshot):
             [
                 f"{target_name} : TCP 445 ferme ou filtre"
             ],
-            "La cible ne presente pas de service SMB accessible depuis la reference.",
-            "Verifier pare-feu, antivirus, profil reseau et LanmanServer sur la cible."
+            "La cible ne présente pas de service SMB accessible depuis la référence.",
+            "Vérifier pare-feu, antivirus, profil réseau et LanmanServer sur la cible."
         )
 
     client_config = network.get("smb_client_configuration") or {}
@@ -593,18 +611,18 @@ def compare_remote_target(snapshot):
     if discussable:
         add_cause(
             findings,
-            "A VERIFIER",
-            "Parametrages SMB remarquables sur la reference",
+            "À VÉRIFIER",
+            "Paramétrages SMB remarquables sur la référence",
             discussable + [
                 (
-                    f"{target_name} : configuration SMB cible non collectee "
-                    "dans ce snapshot distant leger"
+                    f"{target_name} : configuration SMB cible non collectée "
+                        "dans ce snapshot distant léger"
                 )
             ],
             (
-                "Ces reglages peuvent influencer les acces SMB. Pour une vraie "
-                "comparaison de parametrage, il faut aussi un snapshot complet "
-                "genere sur la cible."
+                "Ces réglages peuvent influencer les accès SMB. Pour une vraie "
+                "comparaison de paramétrage, il faut aussi un snapshot complet "
+                "généré sur la cible."
             ),
             (
                 "Generer un snapshot local sur la cible, puis lancer "
@@ -621,38 +639,38 @@ def compare_remote_target(snapshot):
         add_cause(
             findings,
             "INFORMATION MANQUANTE",
-            "Identite et securite de la cible non collectees",
+            "Identité et sécurité de la cible non collectées",
             [
                 f"{ref_name} : AzureAD={system.get('azure_ad_joined')}, Domain={system.get('domain_joined')}",
                 (
                     f"{target_name} : AzureAD, antivirus, filtres fltmc et "
-                    "configuration SMB non disponibles via le test distant leger"
+                    "configuration SMB non disponibles via le test distant léger"
                 )
             ],
             (
                 "Le comparateur ne peut pas conclure sur Bitdefender, AzureAD "
-                "ou les filtres de la cible sans snapshot execute sur cette cible."
+                "ou les filtres de la cible sans snapshot exécuté sur cette cible."
             ),
-            "Executer DTLknowsWhy sur la cible ou interroger son agent distant."
+            "Exécuter DTLknowsWhy sur la cible ou interroger son agent distant."
         )
 
     return findings
 
 
 def format_findings(reference, target, findings):
-    ref_name = get_path(reference, "system.hostname", "Reference")
+    ref_name = get_path(reference, "system.hostname", "Référence")
     target_name = get_path(target, "system.hostname", "Cible")
     lines = []
 
     lines.append("=== DTLknowsWhy Causal Comparator ===")
     lines.append("")
-    lines.append(f"Reference : {ref_name}")
+    lines.append(f"Référence : {ref_name}")
     lines.append(f"Cible     : {target_name}")
     lines.append("")
 
     if not findings:
         lines.append("[AUCUNE CAUSE DIFFERENTIANTE]")
-        lines.append("Aucune difference causale connue n'a ete detectee.")
+        lines.append("Aucune différence causale connue n'a été détectée.")
         lines.append("")
         return lines
 
@@ -695,7 +713,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "snapshot_reference",
         help=(
-            "Reference snapshot, or target snapshot when --ben-reference "
+            "Snapshot de référence, ou snapshot cible quand --ben-reference "
             "is used"
         )
     )
@@ -703,7 +721,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ben-reference",
         action="store_true",
-        help="Use latest PC-BEN-001_snapshot_*.json as reference"
+        help="Utiliser le dernier PC-BEN-001_snapshot_*.json comme référence"
     )
 
     args = parser.parse_args()
@@ -715,7 +733,7 @@ if __name__ == "__main__":
         latest = find_latest_reference_snapshot()
 
         if not latest:
-            print("Aucun snapshot de reference PC-BEN-001 trouve.")
+            print("Aucun snapshot de référence PC-BEN-001 trouvé.")
             raise SystemExit(1)
 
         reference_file = latest
