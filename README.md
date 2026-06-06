@@ -140,6 +140,58 @@ DTLknowsWhy-Agent.exe --listen
 DTLknowsWhy-Agent.exe install
 DTLknowsWhy-Agent.exe start
 ```
+## Remote Agent Troubleshooting
+
+### Opening TCP Port 5050
+
+By default, DTLknowsWhy-Agent listens on TCP port 5050.
+
+To allow an administration workstation to retrieve a remote snapshot, this port must be allowed through the Windows Firewall on the target machine.
+
+During validation testing of version 2.0.0, opening port 5050 on PC-BEN-002 was required to enable communication with DTLknowsWhy-Agent.
+
+Example command to create the firewall rule from an elevated command prompt:
+
+```cmd
+netsh advfirewall firewall add rule name="DTLknowsWhy Agent" dir=in action=allow protocol=TCP localport=5050
+```
+
+You can also create the rule through:
+
+```text
+Windows Defender Firewall
+→ Advanced Settings
+→ Inbound Rules
+→ New Rule
+→ TCP Port 5050
+→ Allow the connection
+```
+
+### Windows Security Warning
+
+Depending on the system security configuration, Windows may display a message similar to:
+
+```text
+Windows protected your PC.
+
+Microsoft Defender SmartScreen prevented an unrecognized app from starting.
+```
+
+or:
+
+```text
+Your organization's security policy prevents this application from being installed or executed.
+```
+
+This behavior is normal when the executable is not digitally signed or when restrictive security policies are in place.
+
+To proceed with the installation:
+
+1. Verify that the executable originates from the official DTLknowsWhy repository.
+2. Click **More info** if this option is available.
+3. Click **Run anyway**, or explicitly authorize the installation according to your organization's security policy.
+
+In corporate environments, it may be necessary to have the executable approved or digitally signed before large-scale deployment.
 
 ---
 
