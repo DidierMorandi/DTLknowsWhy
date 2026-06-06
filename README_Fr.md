@@ -141,6 +141,59 @@ DTLknowsWhy-Agent.exe install
 DTLknowsWhy-Agent.exe start
 ```
 
+## Dépannage de l'agent distant
+
+### Ouverture du port TCP 5050
+
+Par défaut, DTLknowsWhy-Agent écoute sur le port TCP 5050.
+
+Pour permettre à un poste d'administration de récupérer un snapshot distant, ce port doit être autorisé dans le pare-feu Windows de la machine cible.
+
+Lors des tests de validation de la version 2.0.0, l'ouverture du port 5050 a été nécessaire sur PC-BEN-002 afin de permettre la communication avec DTLknowsWhy-Agent.
+
+Exemple de création de la règle depuis une invite de commandes administrateur :
+
+```cmd
+netsh advfirewall firewall add rule name="DTLknowsWhy Agent" dir=in action=allow protocol=TCP localport=5050
+```
+
+Vous pouvez également créer cette règle depuis :
+
+```text
+Pare-feu Windows Defender
+→ Paramètres avancés
+→ Règles de trafic entrant
+→ Nouvelle règle
+→ Port TCP 5050
+→ Autoriser la connexion
+```
+
+### Avertissement de sécurité Windows
+
+Selon la configuration de sécurité du poste, Windows peut afficher un message similaire à :
+
+```text
+Windows a protégé votre ordinateur.
+
+Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.
+```
+
+ou :
+
+```text
+La stratégie de sécurité de votre organisation empêche l'exécution ou l'installation de cette application.
+```
+
+Ce comportement est normal lorsque l'exécutable n'est pas signé numériquement ou lorsqu'une politique de sécurité restrictive est appliquée.
+
+Pour poursuivre l'installation :
+
+1. Vérifier que l'exécutable provient bien du dépôt officiel DTLknowsWhy.
+2. Cliquer sur « Informations complémentaires » si cette option est proposée.
+3. Cliquer sur « Exécuter quand même » ou autoriser explicitement l'installation selon la politique de sécurité en vigueur.
+
+Dans un environnement d'entreprise, il peut être nécessaire de faire approuver ou signer l'exécutable avant son déploiement à grande échelle.
+
 ---
 
 ## Historique des versions
