@@ -6,7 +6,7 @@ DTLknowsWhy is a Windows diagnostic and causal analysis engine designed to ident
 
 Unlike traditional diagnostic tools that only collect information, DTLknowsWhy compares environments, detects significant differences, and proposes likely causes together with corrective actions.
 
-Version: 2.0.0 Didier DTL Morandi www.didiermorandi.com/netdtl
+Version: 2.0.0 6-jun-2026 Didier DTL Morandi www.didiermorandi.com/netdtl
 
 ---
 
