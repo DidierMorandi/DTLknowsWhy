@@ -24,11 +24,11 @@ def progress_bar(current, total, label):
         print()
 
 def ping_target(target):
-    result = run_command(f"ping -n 1 {target}", timeout=10)
+    result = run_command(f"ping -n 1 {target}", timeout=2)
     return result["exit_code"] == 0
 
 def resolve_hostname(target):
-    result = run_command(f"ping -a -n 1 {target}", timeout=10)
+    result = run_command(f"ping -a -n 1 {target}", timeout=2)
 
     if not result["stdout"]:
         return None
@@ -56,7 +56,7 @@ def test_tcp_port(target, port, current, total):
         '"'
     )
 
-    result = run_command(cmd, timeout=15)
+    result = run_command(cmd, timeout=3)
 
     try:
         data = json.loads(result["stdout"])
@@ -77,6 +77,43 @@ def get_mac_address(target):
         return match.group(1).upper()
 
     return None
+
+
+def enumerate_accessible_shares(target):
+    result = run_command(f'net view "\\\\{target}"', timeout=10)
+
+    if not result["stdout"]:
+        return None
+
+    shares = []
+
+    for line in result["stdout"].splitlines():
+        stripped = line.strip()
+
+        if (
+            not stripped
+            or stripped.startswith("\\\\")
+            or stripped.startswith("---")
+            or "commande" in stripped.lower()
+            or "command" in stripped.lower()
+            or "Nom du partage" in stripped
+            or "Share name" in stripped
+            or "Ressources partag" in stripped
+            or "Shared resources" in stripped
+        ):
+            continue
+
+        parts = re.split(r"\s{2,}", stripped)
+
+        if parts and parts[0]:
+            shares.append({
+                "name": parts[0],
+                "type": parts[1] if len(parts) > 1 else None,
+                "comment": parts[2] if len(parts) > 2 else None
+            })
+
+    return shares
+
 
 def classify_target(results):
     hostname = (results.get("resolved_name") or "").lower()
@@ -113,7 +150,8 @@ def collect_remote_tests(target):
         "tcp_139": False,
         "tcp_443": False,
         "tcp_445": False,
-        "mac_address": None
+        "mac_address": None,
+        "accessible_smb_shares": None
     }
 
     if results["ping_target"]:
@@ -128,6 +166,9 @@ def collect_remote_tests(target):
         results["tcp_445"] = test_tcp_port(target, 445, 4, total)
 
         results["mac_address"] = get_mac_address(target)
+
+        if results["tcp_445"] or results["tcp_139"]:
+            results["accessible_smb_shares"] = enumerate_accessible_shares(target)
 
     results["target_type"] = classify_target(results)
 

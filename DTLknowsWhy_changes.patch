@@ -1,0 +1,411 @@
+--- a/agent/agent.py
++++ b/agent/agent.py
+@@ -36,13 +36,15 @@
+         print(f"Tests distants vers {target}...")
+         snapshot["remote_tests"] = collect_remote_tests(target)
+ 
+-    output = export_snapshot(snapshot, system["hostname"])
++    output_name = target or system["hostname"]
++
++    output = export_snapshot(snapshot, output_name)
+ 
+     report = generate_text_report(snapshot, lang)
+-    report_file = save_text_report(report, system["hostname"])
++    report_file = save_text_report(report, output_name)
+ 
+     html = generate_html_report(snapshot, lang)
+-    html_file = save_html_report(html, system["hostname"])
++    html_file = save_html_report(html, output_name)
+ 
+     print(f"Snapshot exporté : {output}")
+     print(f"Rapport TXT      : {report_file}")
+@@ -89,4 +91,4 @@
+         create_snapshot(args.target, args.lang)
+ 
+     else:
+-        parser.print_help()+        parser.print_help()
+
+--- a/agent/collectors/system.py
++++ b/agent/collectors/system.py
+@@ -4,6 +4,7 @@
+ import json
+ 
+ from shared.commands import run_command
++from shared.version import DTLKNOWSWHY_VERSION
+ 
+ 
+ def is_admin() -> bool:
+@@ -49,12 +50,16 @@
+ 
+     raw_name = windows_info.get("ProductName", "Unknown")
+     build = windows_info.get("CurrentBuild", "Unknown")
++    whoami = run_command("whoami")
++    smb_account = whoami["stdout"].strip() or getpass.getuser()
+ 
+     return {
++        "dtlknowswhy_version": DTLKNOWSWHY_VERSION,
+         "hostname": socket.gethostname(),
+         "username": getpass.getuser(),
++        "smb_recommended_account": smb_account,
+         "windows_product_name": normalize_windows_name(raw_name, build),
+         "windows_version": windows_info.get("DisplayVersion", "Unknown"),
+         "windows_build": build,
+         "is_admin": is_admin()
+-    }+    }
+
+--- a/agent/collectors/network.py
++++ b/agent/collectors/network.py
+@@ -59,8 +59,44 @@
+         "default_gateway": gateway,
+         "dns_servers": dns,
+         "dhcp_enabled": dhcp,
+-        "netbios_enabled": netbios
++        "netbios_enabled": netbios,
++        "smb_shares": collect_smb_shares()
+     }
++
++
++def collect_smb_shares():
++    result = run_command(
++        'powershell -Command "'
++        'Get-SmbShare '
++        '| Select-Object Name,Path,Description,Special '
++        '| ConvertTo-Json'
++        '"'
++    )
++
++    if not result["stdout"]:
++        return None
++
++    try:
++        shares = json.loads(result["stdout"])
++    except Exception:
++        return None
++
++    if isinstance(shares, dict):
++        shares = [shares]
++
++    if not isinstance(shares, list):
++        return None
++
++    return [
++        {
++            "name": share.get("Name"),
++            "path": share.get("Path"),
++            "description": share.get("Description"),
++            "special": bool(share.get("Special", False))
++        }
++        for share in shares
++        if share.get("Name")
++    ]
+ 
+ 
+ def extract_value(text, pattern):
+@@ -107,4 +143,4 @@
+             if capture and line.strip() == "":
+                 break
+ 
+-    return dns_servers+    return dns_servers
+
+--- /dev/null
++++ b/shared/filenames.py
+@@ -0,0 +1,7 @@
++import re
++
++
++def safe_filename_component(value: str) -> str:
++    cleaned = re.sub(r'[<>:"/\\|?*\s]+', "_", str(value or "").strip())
++    cleaned = cleaned.strip("._")
++    return cleaned or "Unknown"
+
+--- /dev/null
++++ b/shared/version.py
+@@ -0,0 +1 @@
++DTLKNOWSWHY_VERSION = "1.0.1"
+
+--- a/shared/serializer.py
++++ b/shared/serializer.py
+@@ -1,15 +1,16 @@
+ import json
+ from pathlib import Path
+ from datetime import datetime
++from shared.filenames import safe_filename_component
+ 
+ 
+ def export_snapshot(data: dict, hostname: str) -> Path:
+     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+-    filename = f"{hostname}_snapshot_{timestamp}.json"
++    filename = f"{safe_filename_component(hostname)}_snapshot_{timestamp}.json"
+ 
+     output = Path(filename)
+ 
+     with output.open("w", encoding="utf-8") as f:
+         json.dump(data, f, indent=2, ensure_ascii=False)
+ 
+-    return output+    return output
+
+--- a/shared/report_writer.py
++++ b/shared/report_writer.py
+@@ -1,11 +1,12 @@
+ from datetime import datetime
++from shared.filenames import safe_filename_component
+ 
+ 
+ def save_text_report(report_text, hostname):
+     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+-    filename = f"{hostname}_report_{timestamp}.txt"
++    filename = f"{safe_filename_component(hostname)}_report_{timestamp}.txt"
+ 
+     with open(filename, "w", encoding="utf-8") as f:
+         f.write(report_text)
+ 
+-    return filename+    return filename
+
+--- a/shared/html_writer.py
++++ b/shared/html_writer.py
+@@ -1,11 +1,12 @@
+ from datetime import datetime
++from shared.filenames import safe_filename_component
+ 
+ 
+ def save_html_report(html, hostname):
+     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+-    filename = f"{hostname}_report_{timestamp}.html"
++    filename = f"{safe_filename_component(hostname)}_report_{timestamp}.html"
+ 
+     with open(filename, "w", encoding="utf-8") as f:
+         f.write(html)
+ 
+-    return filename+    return filename
+
+--- a/shared/i18n.py
++++ b/shared/i18n.py
+@@ -16,6 +16,12 @@
+ 
+         "hostname": "Nom d'hôte",
+         "username": "Utilisateur",
++        "dtl_version": "Version DTLknowsWhy",
++        "smb_recommended_account": "Compte SMB recommande",
++        "smb_shares": "Partages SMB exportes",
++        "no_smb_shares": "Aucun partage SMB exporte",
++        "special_share": "partage special",
++        "normal_share": "partage standard",
+         "administrator": "Administrateur",
+         "operating_system": "Système d'exploitation",
+         "build": "Build",
+@@ -85,6 +91,12 @@
+ 
+         "hostname": "Hostname",
+         "username": "Username",
++        "dtl_version": "DTLknowsWhy version",
++        "smb_recommended_account": "Recommended SMB account",
++        "smb_shares": "Exported SMB shares",
++        "no_smb_shares": "No exported SMB share",
++        "special_share": "special share",
++        "normal_share": "standard share",
+         "administrator": "Administrator",
+         "operating_system": "Operating System",
+         "build": "Build",
+@@ -140,4 +152,4 @@
+ 
+ 
+ def tr(key, lang="fr"):
+-    return TRANSLATIONS.get(lang, TRANSLATIONS["fr"]).get(key, key)+    return TRANSLATIONS.get(lang, TRANSLATIONS["fr"]).get(key, key)
+
+--- a/shared/report.py
++++ b/shared/report.py
+@@ -1,5 +1,6 @@
+ from datetime import datetime
+ from shared.i18n import tr
++from shared.version import DTLKNOWSWHY_VERSION
+ 
+ def format_timestamp(lang):
+     now = datetime.now()
+@@ -23,6 +24,27 @@
+     if value is False:
+         return tr("closed", lang)
+     return tr("unknown", lang)
++
++
++def format_smb_shares(shares, lang):
++    if shares is None:
++        return [tr("unknown", lang)]
++
++    if not shares:
++        return [tr("no_smb_shares", lang)]
++
++    lines = []
++
++    for share in shares:
++        share_type = (
++            tr("special_share", lang)
++            if share.get("special")
++            else tr("normal_share", lang)
++        )
++        path = share.get("path") or tr("unknown", lang)
++        lines.append(f"- {share.get('name')} -> {path} ({share_type})")
++
++    return lines
+ 
+ 
+ def generate_text_report(snapshot, lang="fr"):
+@@ -51,6 +73,10 @@
+     lines.append("-" * 50)
+     lines.append(f"{T('hostname'):<18} : {system.get('hostname')}")
+     lines.append(f"{T('username'):<18} : {system.get('username')}")
++    lines.append(
++        f"{T('smb_recommended_account'):<18} : "
++        f"{system.get('smb_recommended_account') or T('unknown')}"
++    )
+     lines.append(f"{T('administrator'):<18} : {yn(system.get('is_admin'), lang)}")
+     lines.append("")
+ 
+@@ -62,6 +88,10 @@
+         f"{system.get('windows_version')}"
+     )
+     lines.append(f"{T('build'):<18} : {system.get('windows_build')}")
++    lines.append(
++        f"{T('dtl_version'):<18} : "
++        f"{system.get('dtlknowswhy_version') or DTLKNOWSWHY_VERSION}"
++    )
+     lines.append("")
+ 
+     lines.append(T("network"))
+@@ -75,6 +105,14 @@
+     )
+     lines.append(f"{T('dhcp'):<18} : {yn(network.get('dhcp_enabled'), lang)}")
+     lines.append(f"{T('netbios'):<18} : {yn(network.get('netbios_enabled'), lang)}")
++    smb_share_lines = format_smb_shares(network.get("smb_shares"), lang)
++
++    if len(smb_share_lines) == 1:
++        lines.append(f"{T('smb_shares'):<18} : {smb_share_lines[0]}")
++    else:
++        lines.append(f"{T('smb_shares'):<18} :")
++        lines.extend(f"  {line}" for line in smb_share_lines)
++
+     lines.append("")
+ 
+     lines.append(T("windows_services"))
+@@ -144,4 +182,4 @@
+         lines.append(T(key))
+         lines.append("")
+ 
+-    return "\n".join(lines)+    return "\n".join(lines)
+
+--- a/shared/html_report.py
++++ b/shared/html_report.py
+@@ -1,5 +1,7 @@
+ from datetime import datetime
++from html import escape
+ from shared.i18n import tr
++from shared.version import DTLKNOWSWHY_VERSION
+ 
+ 
+ def format_timestamp(lang):
+@@ -38,6 +40,31 @@
+     }
+ 
+     return mapping.get(target_type, "gray")
++
++
++def format_smb_shares_html(shares, lang):
++    if shares is None:
++        return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
++
++    if not shares:
++        return escape(tr("no_smb_shares", lang))
++
++    items = []
++
++    for share in shares:
++        share_type = (
++            tr("special_share", lang)
++            if share.get("special")
++            else tr("normal_share", lang)
++        )
++        name = escape(str(share.get("name") or tr("unknown", lang)))
++        path = escape(str(share.get("path") or tr("unknown", lang)))
++        items.append(
++            f"<li><strong>{name}</strong> -> {path} "
++            f"({escape(share_type)})</li>"
++        )
++
++    return '<ul class="share-list">' + "".join(items) + "</ul>"
+ 
+ 
+ def generate_html_report(snapshot, lang="fr"):
+@@ -265,6 +292,11 @@
+ summary:hover {{
+     color: var(--accent);
+ }}
++
++.share-list {{
++    margin: 0;
++    padding-left: 18px;
++}}
+ </style>
+ </head>
+ <body>
+@@ -285,6 +317,8 @@
+ <table>
+ <tr><td>{T('hostname')}</td><td>{system.get('hostname')}</td></tr>
+ <tr><td>{T('username')}</td><td>{system.get('username')}</td></tr>
++<tr><td>{T('smb_recommended_account')}</td>
++<td>{system.get('smb_recommended_account') or T('unknown')}</td></tr>
+ <tr><td>{T('administrator')}</td><td>{yn(system.get('is_admin'), lang)}</td></tr>
+ </table>
+ </div>
+@@ -295,6 +329,8 @@
+ <tr><td>{T('operating_system')}</td>
+ <td>{system.get('windows_product_name')} {system.get('windows_version')}</td></tr>
+ <tr><td>{T('build')}</td><td>{system.get('windows_build')}</td></tr>
++<tr><td>{T('dtl_version')}</td>
++<td>{system.get('dtlknowswhy_version') or DTLKNOWSWHY_VERSION}</td></tr>
+ </table>
+ </div>
+ 
+@@ -308,6 +344,8 @@
+ <tr><td>{T('dns_servers')}</td><td>{', '.join(network.get('dns_servers', []))}</td></tr>
+ <tr><td>{T('dhcp')}</td><td>{yn(network.get('dhcp_enabled'), lang)}</td></tr>
+ <tr><td>{T('netbios')}</td><td>{yn(network.get('netbios_enabled'), lang)}</td></tr>
++<tr><td>{T('smb_shares')}</td>
++<td>{format_smb_shares_html(network.get('smb_shares'), lang)}</td></tr>
+ </table>
+ </div>
+ 
+@@ -371,4 +409,4 @@
+ </html>
+ """
+ 
+-    return html+    return html
+
+--- a/expert/rules_engine.py
++++ b/expert/rules_engine.py
+@@ -74,6 +74,22 @@
+             "remediation": (
+                 "Démarrer le service : "
+                 "sc start LanmanWorkstation"
++            )
++        })
++
++    smb_account = system.get("smb_recommended_account")
++
++    if smb_account:
++        findings.append({
++            "case": "SMB-005",
++            "level": "INFO",
++            "message": (
++                "CAS SMB-005 - Le nom de connexion SMB doit etre "
++                "le nom reel du compte retourne par whoami, et non "
++                "le nom affiche sur l'ecran de connexion."
++            ),
++            "remediation": (
++                f"Utiliser {smb_account} comme nom de compte SMB."
+             )
+         })
+ 
+@@ -164,4 +180,4 @@
+                 )
+             })
+ 
+-    return findings+    return findings

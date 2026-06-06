@@ -1,3 +1,18 @@
+def looks_like_ipv4(value):
+    if not value:
+        return False
+
+    parts = str(value).split(".")
+
+    if len(parts) != 4:
+        return False
+
+    try:
+        return all(0 <= int(part) <= 255 for part in parts)
+    except ValueError:
+        return False
+
+
 def analyze(snapshot):
     findings = []
 
@@ -64,6 +79,15 @@ def analyze(snapshot):
                 "sc start LanmanServer"
             )
         })
+    else:
+        findings.append({
+            "level": "OK",
+            "message": (
+                "LanmanServer actif : le partage Windows est operationnel "
+                "sur la machine locale."
+            ),
+            "remediation": None
+        })
 
     if services.get("LanmanWorkstation") != "Running":
         findings.append({
@@ -74,6 +98,80 @@ def analyze(snapshot):
             "remediation": (
                 "Démarrer le service : "
                 "sc start LanmanWorkstation"
+            )
+        })
+    else:
+        findings.append({
+            "level": "OK",
+            "message": (
+                "LanmanWorkstation actif : le client SMB est operationnel."
+            ),
+            "remediation": None
+        })
+
+    if services.get("FDResPub") == "Running":
+        findings.append({
+            "level": "OK",
+            "message": (
+                "FDResPub actif : la machine devrait etre visible dans "
+                "le voisinage reseau, sous reserve du profil reseau et "
+                "du pare-feu."
+            ),
+            "remediation": None
+        })
+
+    smb_available = (
+        services.get("LanmanServer") == "Running"
+        or bool(remote.get("tcp_445"))
+        or bool(remote.get("tcp_139"))
+    )
+
+    if services.get("FDResPub") != "Running" and smb_available:
+        findings.append({
+            "case": "SMB-001",
+            "level": "INFO",
+            "message": (
+                "CAS SMB-001 - La machine peut etre invisible dans "
+                "Reseau alors que les acces SMB fonctionnent. Le "
+                "voisinage reseau depend de services de decouverte "
+                "distincts de SMB."
+            ),
+            "remediation": (
+                "Verifier avec ping <machine>, \\\\machine et "
+                "net view \\\\machine. Puis controler FDResPub avec "
+                "sc query fdrespub. Resolution observee : "
+                "sc config fdrespub start= delayed-auto puis "
+                "net start fdrespub."
+            )
+        })
+
+    name_resolution_risk = (
+        remote
+        and looks_like_ipv4(remote.get("target"))
+        and bool(remote.get("tcp_445") or remote.get("tcp_139"))
+        and not remote.get("resolved_name")
+    )
+
+    if (
+        name_resolution_risk
+        or network.get("netbios_enabled") is False
+        or not network.get("dns_servers")
+        or services.get("FDResPub") != "Running"
+    ):
+        findings.append({
+            "case": "SMB-002",
+            "level": "INFO",
+            "message": (
+                "CAS SMB-002 - Si \\\\192.168.x.x fonctionne mais "
+                "\\\\NOM_MACHINE echoue, SMB fonctionne ; seule la "
+                "resolution du nom est defaillante."
+            ),
+            "remediation": (
+                "Tester ping NOM_MACHINE, nbtstat -A IP et "
+                "nslookup NOM_MACHINE. Causes possibles : NetBIOS "
+                "desactive, DNS incomplet, LLMNR defaillant ou "
+                "FDResPub arrete. Tester l'acces par IP puis corriger "
+                "la resolution de noms."
             )
         })
 

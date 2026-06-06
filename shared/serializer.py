@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
 from datetime import datetime
+from shared.filenames import safe_filename_component
 
 
 def export_snapshot(data: dict, hostname: str) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{hostname}_snapshot_{timestamp}.json"
+    filename = f"{safe_filename_component(hostname)}_snapshot_{timestamp}.json"
 
     output = Path(filename)
 

@@ -59,8 +59,131 @@ def collect_network_info() -> dict:
         "default_gateway": gateway,
         "dns_servers": dns,
         "dhcp_enabled": dhcp,
-        "netbios_enabled": netbios
+        "netbios_enabled": netbios,
+        "smb_shares": collect_smb_shares(),
+        "smb_client_configuration": collect_smb_configuration(
+            "Get-SmbClientConfiguration"
+        ),
+        "smb_server_configuration": collect_smb_configuration(
+            "Get-SmbServerConfiguration"
+        ),
+        "accessible_smb_shares": collect_accessible_smb_shares("localhost")
     }
+
+
+def powershell_json(command, timeout=10):
+    result = run_command(
+        'powershell -Command "'
+        f'{command} '
+        '| ConvertTo-Json -Depth 4'
+        '"',
+        timeout=timeout
+    )
+
+    if not result["stdout"]:
+        return None
+
+    try:
+        return json.loads(result["stdout"])
+    except Exception:
+        return None
+
+
+def collect_smb_configuration(command):
+    wanted = (
+        "EnableSMB1Protocol",
+        "EnableSMB2Protocol",
+        "EnableSecuritySignature",
+        "RequireSecuritySignature",
+        "EncryptData",
+        "RejectUnencryptedAccess",
+        "EnableInsecureGuestLogons",
+        "AuditSmb1Access"
+    )
+
+    data = powershell_json(
+        f"{command} | Select-Object {','.join(wanted)}"
+    )
+
+    if not isinstance(data, dict):
+        return data
+
+    return {
+        key: data.get(key)
+        for key in wanted
+        if key in data
+    }
+
+
+def collect_smb_shares():
+    result = run_command(
+        'powershell -Command "'
+        'Get-SmbShare '
+        '| Select-Object Name,Path,Description,Special '
+        '| ConvertTo-Json'
+        '"'
+    )
+
+    if not result["stdout"]:
+        return None
+
+    try:
+        shares = json.loads(result["stdout"])
+    except Exception:
+        return None
+
+    if isinstance(shares, dict):
+        shares = [shares]
+
+    if not isinstance(shares, list):
+        return None
+
+    return [
+        {
+            "name": share.get("Name"),
+            "path": share.get("Path"),
+            "description": share.get("Description"),
+            "special": bool(share.get("Special", False))
+        }
+        for share in shares
+        if share.get("Name")
+    ]
+
+
+def collect_accessible_smb_shares(target):
+    result = run_command(f'net view "\\\\{target}"', timeout=10)
+
+    if not result["stdout"]:
+        return None
+
+    shares = []
+
+    for line in result["stdout"].splitlines():
+        stripped = line.strip()
+
+        if (
+            not stripped
+            or stripped.startswith("\\\\")
+            or stripped.startswith("---")
+            or "commande" in stripped.lower()
+            or "command" in stripped.lower()
+            or "Nom du partage" in stripped
+            or "Share name" in stripped
+            or "Ressources partag" in stripped
+            or "Shared resources" in stripped
+        ):
+            continue
+
+        parts = re.split(r"\s{2,}", stripped)
+
+        if parts and parts[0]:
+            shares.append({
+                "name": parts[0],
+                "type": parts[1] if len(parts) > 1 else None,
+                "comment": parts[2] if len(parts) > 2 else None
+            })
+
+    return shares
 
 
 def extract_value(text, pattern):
@@ -78,13 +201,39 @@ def extract_yes_no(text, pattern):
 
 
 def extract_gateway(text):
-    match = re.search(
-        r"Passerelle par défaut.*?:.*?\n\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)",
-        text,
-        re.DOTALL
+    lines = text.splitlines()
+    gateway_labels = (
+        "Passerelle par défaut",
+        "Default Gateway"
     )
 
-    return match.group(1) if match else None
+    for index, line in enumerate(lines):
+        if not any(label in line for label in gateway_labels):
+            continue
+
+        same_line_ips = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", line)
+
+        if same_line_ips:
+            return same_line_ips[0]
+
+        for next_line in lines[index + 1:index + 4]:
+            stripped = next_line.strip()
+
+            if not stripped:
+                continue
+
+            if re.search(r"[A-Za-zÀ-ÿ].*:", stripped):
+                break
+
+            continuation_ips = re.findall(
+                r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+                stripped
+            )
+
+            if continuation_ips:
+                return continuation_ips[0]
+
+    return None
 
 
 def extract_dns_servers(text):

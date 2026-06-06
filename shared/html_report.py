@@ -1,5 +1,7 @@
 from datetime import datetime
+from html import escape
 from shared.i18n import tr
+from shared.version import DTLKNOWSWHY_VERSION
 
 
 def format_timestamp(lang):
@@ -40,6 +42,169 @@ def badge_class(target_type):
     return mapping.get(target_type, "gray")
 
 
+def finding_class(level):
+    mapping = {
+        "OK": "finding-ok",
+        "WARN": "finding-warn",
+        "FAIL": "finding-fail",
+        "INFO": "finding-info"
+    }
+
+    return mapping.get(level, "finding-info")
+
+
+def format_smb_shares_html(shares, lang):
+    if shares is None:
+        return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
+
+    if not shares:
+        return escape(tr("no_smb_shares", lang))
+
+    items = []
+
+    for share in shares:
+        share_type = (
+            tr("special_share", lang)
+            if share.get("special")
+            else tr("normal_share", lang)
+        )
+        name = escape(str(share.get("name") or tr("unknown", lang)))
+        path = escape(str(share.get("path") or tr("unknown", lang)))
+        items.append(
+            f"<li><strong>{name}</strong> -> {path} "
+            f"({escape(share_type)})</li>"
+        )
+
+    return '<ul class="share-list">' + "".join(items) + "</ul>"
+
+
+def format_accessible_shares_html(shares, lang):
+    if shares is None:
+        return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
+
+    if not shares:
+        return escape(tr("no_smb_shares", lang))
+
+    items = []
+
+    for share in shares:
+        name = escape(str(share.get("name") or tr("unknown", lang)))
+        details = " / ".join(
+            escape(str(value))
+            for value in (share.get("type"), share.get("comment"))
+            if value
+        )
+        items.append(
+            f"<li><strong>{name}</strong>"
+            f"{' (' + details + ')' if details else ''}</li>"
+        )
+
+    return '<ul class="share-list">' + "".join(items) + "</ul>"
+
+
+def format_antivirus_html(products, lang):
+    if products is None:
+        return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
+
+    if not products:
+        return escape(tr("none", lang))
+
+    items = []
+
+    for product in products:
+        name = escape(str(product.get("name") or tr("unknown", lang)))
+        state = escape(str(product.get("state")))
+        items.append(f"<li><strong>{name}</strong> state={state}</li>")
+
+    return '<ul class="share-list">' + "".join(items) + "</ul>"
+
+
+def format_filters_html(filters, lang):
+    if filters is None:
+        return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
+
+    if not filters:
+        return escape(tr("none", lang))
+
+    items = []
+
+    for item in filters:
+        name = escape(str(item.get("name") or tr("unknown", lang)))
+        altitude = escape(str(item.get("altitude") or tr("unknown", lang)))
+        items.append(f"<li><strong>{name}</strong> altitude={altitude}</li>")
+
+    return '<ul class="share-list">' + "".join(items) + "</ul>"
+
+
+def format_config_rows(config):
+    if not config:
+        return '<tr><td>Inconnu</td><td></td></tr>'
+
+    rows = []
+
+    for key, value in config.items():
+        rows.append(
+            f"<tr><td>{escape(str(key))}</td><td>{escape(str(value))}</td></tr>"
+        )
+
+    return "".join(rows)
+
+
+def summary_marker(ok):
+    return "✓" if ok else "⚠"
+
+
+def build_executive_summary(snapshot):
+    network = snapshot.get("network", {})
+    services = snapshot.get("services", {})
+    tests = snapshot.get("tests", {})
+    remote = snapshot.get("remote_tests", {})
+    causal_comparison = snapshot.get("causal_comparison", [])
+
+    local_ok = bool(tests.get("ping_gateway"))
+    dns_ok = bool(network.get("dns_servers"))
+    smb_ok = (
+        services.get("LanmanServer") == "Running"
+        and services.get("LanmanWorkstation") == "Running"
+    )
+    target_ok = bool(remote.get("ping_target")) if remote else None
+    missing_comparison = any(
+        item.get("level") == "INFORMATION MANQUANTE"
+        for item in causal_comparison
+    )
+
+    lines = [
+        (local_ok, "Reseau local fonctionnel" if local_ok else "Reseau local a verifier"),
+        (dns_ok, "DNS correctement configure" if dns_ok else "DNS non renseigne ou incomplet"),
+        (smb_ok, "SMB operationnel" if smb_ok else "SMB local a verifier"),
+    ]
+
+    if target_ok is not None:
+        lines.append(
+            (target_ok, "Cible joignable" if target_ok else "Cible non joignable")
+        )
+
+    if missing_comparison:
+        lines.append(
+            (False, "Comparaison complete impossible sans snapshot local sur la cible")
+        )
+
+    return lines
+
+
+def format_executive_summary_html(snapshot):
+    items = []
+
+    for ok, text in build_executive_summary(snapshot):
+        css_class = "val-ok" if ok else "val-closed"
+        items.append(
+            f'<li><span class="{css_class}">{summary_marker(ok)}</span> '
+            f'{escape(text)}</li>'
+        )
+
+    return '<ul class="share-list">' + "".join(items) + "</ul>"
+
+
 def generate_html_report(snapshot, lang="fr"):
     T = lambda key: tr(key, lang)
 
@@ -48,6 +213,9 @@ def generate_html_report(snapshot, lang="fr"):
     services = snapshot.get("services", {})
     tests = snapshot.get("tests", {})
     remote = snapshot.get("remote_tests", {})
+    diagnosis = snapshot.get("diagnosis", [])
+    causal_comparison = snapshot.get("causal_comparison", [])
+    security = system.get("security", {})
 
     target_type = remote.get("target_type", "unknown")
 
@@ -265,6 +433,92 @@ summary {{
 summary:hover {{
     color: var(--accent);
 }}
+
+.share-list {{
+    margin: 0;
+    padding-left: 18px;
+}}
+
+.finding {{
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    background: var(--surface2);
+}}
+
+.finding-meta {{
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+}}
+
+.finding-level {{
+    display: inline-block;
+    min-width: 46px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 10px;
+    text-align: center;
+}}
+
+.finding-case {{
+    color: var(--text-dim);
+    font-size: 11px;
+}}
+
+.finding-message {{
+    margin: 0;
+    color: var(--text-head);
+}}
+
+.finding-remediation {{
+    margin: 7px 0 0 0;
+    color: var(--text);
+}}
+
+.finding-ok {{
+    border-left-color: var(--ok-fg);
+}}
+
+.finding-ok .finding-level {{
+    color: var(--ok-fg);
+    border: 1px solid var(--ok);
+    background: rgba(35,134,54,0.25);
+}}
+
+.finding-warn {{
+    border-left-color: var(--warn-fg);
+}}
+
+.finding-warn .finding-level {{
+    color: var(--warn-fg);
+    border: 1px solid var(--warn);
+    background: rgba(158,106,3,0.25);
+}}
+
+.finding-fail {{
+    border-left-color: var(--fail-fg);
+}}
+
+.finding-fail .finding-level {{
+    color: var(--fail-fg);
+    border: 1px solid var(--fail);
+    background: rgba(198,40,40,0.25);
+}}
+
+.finding-info {{
+    border-left-color: var(--accent);
+}}
+
+.finding-info .finding-level {{
+    color: #79b8ff;
+    border: 1px solid var(--accent2);
+    background: rgba(0,119,182,0.25);
+}}
 </style>
 </head>
 <body>
@@ -278,6 +532,11 @@ summary:hover {{
 </div>
 
 <div class="section">
+<h2>Resume executif</h2>
+{format_executive_summary_html(snapshot)}
+</div>
+
+<div class="section">
 <h2>{T('local_machine')}</h2>
 
 <div class="subsection">
@@ -285,7 +544,11 @@ summary:hover {{
 <table>
 <tr><td>{T('hostname')}</td><td>{system.get('hostname')}</td></tr>
 <tr><td>{T('username')}</td><td>{system.get('username')}</td></tr>
+<tr><td>{T('smb_recommended_account')}</td>
+<td>{system.get('smb_recommended_account') or T('unknown')}</td></tr>
 <tr><td>{T('administrator')}</td><td>{yn(system.get('is_admin'), lang)}</td></tr>
+<tr><td>AzureAD joined</td><td>{yn(system.get('azure_ad_joined'), lang)}</td></tr>
+<tr><td>Domain joined</td><td>{yn(system.get('domain_joined'), lang)}</td></tr>
 </table>
 </div>
 
@@ -295,6 +558,8 @@ summary:hover {{
 <tr><td>{T('operating_system')}</td>
 <td>{system.get('windows_product_name')} {system.get('windows_version')}</td></tr>
 <tr><td>{T('build')}</td><td>{system.get('windows_build')}</td></tr>
+<tr><td>{T('dtl_version')}</td>
+<td>{system.get('dtlknowswhy_version') or DTLKNOWSWHY_VERSION}</td></tr>
 </table>
 </div>
 
@@ -308,8 +573,30 @@ summary:hover {{
 <tr><td>{T('dns_servers')}</td><td>{', '.join(network.get('dns_servers', []))}</td></tr>
 <tr><td>{T('dhcp')}</td><td>{yn(network.get('dhcp_enabled'), lang)}</td></tr>
 <tr><td>{T('netbios')}</td><td>{yn(network.get('netbios_enabled'), lang)}</td></tr>
+<tr><td>{T('smb_shares')}</td>
+<td>{format_smb_shares_html(network.get('smb_shares'), lang)}</td></tr>
+<tr><td>Partages accessibles</td>
+<td>{format_accessible_shares_html(network.get('accessible_smb_shares'), lang)}</td></tr>
 </table>
 </div>
+
+<div class="subsection">
+<h3>Securite</h3>
+<table>
+<tr><td>Antivirus</td>
+<td>{format_antivirus_html(security.get('antivirus_products'), lang)}</td></tr>
+<tr><td>Filtres fltmc</td>
+<td>{format_filters_html(security.get('fltmc_filters'), lang)}</td></tr>
+</table>
+</div>
+
+<details>
+<summary>Configuration SMB</summary>
+<h3>Client SMB</h3>
+<table>{format_config_rows(network.get('smb_client_configuration'))}</table>
+<h3>Serveur SMB</h3>
+<table>{format_config_rows(network.get('smb_server_configuration'))}</table>
+</details>
 
 <details>
 <summary>{T('windows_services')}</summary>
@@ -361,8 +648,84 @@ summary:hover {{
 <tr><td>TCP 139</td><td>{state(remote.get('tcp_139'), lang)}</td></tr>
 <tr><td>TCP 443</td><td>{state(remote.get('tcp_443'), lang)}</td></tr>
 <tr><td>TCP 445</td><td>{state(remote.get('tcp_445'), lang)}</td></tr>
+<tr><td>Partages accessibles</td>
+<td>{format_accessible_shares_html(remote.get('accessible_smb_shares'), lang)}</td></tr>
 </table>
 </div>
+</div>
+"""
+
+    if causal_comparison:
+        html += """
+<div class="section">
+<h2>Comparaison causale BEN-001 &lt;-&gt; cible</h2>
+"""
+
+        for item in causal_comparison:
+            level = str(item.get("level") or T("unknown"))
+            title = escape(str(item.get("title") or ""))
+            cause = escape(str(item.get("cause") or ""))
+            remediation = item.get("remediation")
+            evidence_html = "".join(
+                f"<li>{escape(str(evidence))}</li>"
+                for evidence in item.get("evidence", [])
+            )
+            remediation_html = (
+                f'<p class="finding-remediation"><strong>Action :</strong> '
+                f'{escape(str(remediation))}</p>'
+                if remediation else ""
+            )
+
+            html += f"""
+<div class="finding finding-info">
+    <div class="finding-meta">
+        <span class="finding-level">{escape(level)}</span>
+        <span class="finding-case">{title}</span>
+    </div>
+    <ul class="share-list">{evidence_html}</ul>
+    <p class="finding-message"><strong>Cause :</strong> {cause}</p>
+    {remediation_html}
+</div>
+"""
+
+        html += """
+</div>
+"""
+
+    if diagnosis:
+        html += f"""
+<div class="section">
+<h2>{T('expert_diagnosis')}</h2>
+"""
+
+        for item in diagnosis:
+            level = str(item.get("level") or T("unknown"))
+            case = item.get("case")
+            message = escape(str(item.get("message") or ""))
+            remediation = item.get("remediation")
+            css_class = finding_class(level)
+            case_html = (
+                f'<span class="finding-case">{escape(str(case))}</span>'
+                if case else ""
+            )
+            remediation_html = (
+                f'<p class="finding-remediation"><strong>Action :</strong> '
+                f'{escape(str(remediation))}</p>'
+                if remediation else ""
+            )
+
+            html += f"""
+<div class="finding {css_class}">
+    <div class="finding-meta">
+        <span class="finding-level">{escape(level)}</span>
+        {case_html}
+    </div>
+    <p class="finding-message">{message}</p>
+    {remediation_html}
+</div>
+"""
+
+        html += """
 </div>
 """
 
