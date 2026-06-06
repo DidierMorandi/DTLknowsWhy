@@ -8,3 +8,23 @@ __pycache__/
 *.pyc
 
 *.log
+
+# Snapshots DTLknowsWhy
+*_snapshot*.json
+
+# Rapports générés
+*_report_*.html
+*_report_*.txt
+
+# Tests
+TEST*.TXT
+
+# Python
+__pycache__/
+*.pyc
+
+# PyInstaller
+build/
+dist/
+agent/build/
+agent/dist/
