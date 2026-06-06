@@ -28,3 +28,6 @@ build/
 dist/
 agent/build/
 agent/dist/
+
+# Generated executables
+*.exe
