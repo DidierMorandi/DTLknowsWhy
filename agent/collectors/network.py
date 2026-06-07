@@ -1,65 +1,62 @@
+import base64
 import json
-import re
 
 from shared.commands import run_command
 
 
 def parse_network_category(value):
+    if isinstance(value, str):
+        return value
+
     mapping = {
         0: "Public",
         1: "Private",
-        2: "Domain"
+        2: "Domain",
     }
+
     return mapping.get(value, "Unknown")
 
 
+def as_list(value):
+    if value is None:
+        return []
+
+    if isinstance(value, list):
+        return value
+
+    return [value]
+
+
+def first_value(value):
+    values = as_list(value)
+    return values[0] if values else None
+
+
+def netbios_enabled(value):
+    if value == 1:
+        return True
+
+    if value == 2:
+        return False
+
+    return None
+
+
 def collect_network_info() -> dict:
-    ipconfig = run_command("ipconfig /all")
-
-    profiles = run_command(
-        'powershell -Command "'
-        'Get-NetConnectionProfile '
-        '| Select Name, NetworkCategory '
-        '| ConvertTo-Json'
-        '"'
-    )
-
-    raw = ipconfig["stdout"]
-
-    ipv4 = extract_value(raw, r"Adresse IPv4.*?:\s+([0-9\.]+)")
-    mask = extract_value(raw, r"Masque de sous-réseau.*?:\s+([0-9\.]+)")
-    gateway = extract_gateway(raw)
-    dhcp = extract_yes_no(raw, r"DHCP activé.*?:\s+(Oui|Non)")
-    netbios = extract_yes_no(raw, r"NetBIOS sur Tcpip.*?:\s+(Activé|Désactivé)")
-    dns = extract_dns_servers(raw)
-
-    profile_name = "Unknown"
-    network_category = "Unknown"
-
-    if profiles["stdout"]:
-        try:
-            profile_data = json.loads(profiles["stdout"])
-
-            if isinstance(profile_data, list):
-                profile_data = profile_data[0]
-
-            profile_name = profile_data.get("Name", "Unknown")
-            network_category = parse_network_category(
-                profile_data.get("NetworkCategory")
-            )
-
-        except Exception:
-            pass
+    structured = collect_structured_network_info()
 
     return {
-        "active_adapter_profile": profile_name,
-        "network_category": network_category,
-        "ipv4": ipv4,
-        "subnet_mask": mask,
-        "default_gateway": gateway,
-        "dns_servers": dns,
-        "dhcp_enabled": dhcp,
-        "netbios_enabled": netbios,
+        "active_adapter_profile": structured.get("active_adapter_profile"),
+        "network_category": structured.get("network_category"),
+        "ipv4": structured.get("ipv4"),
+        "subnet_mask": structured.get("subnet_mask"),
+        "default_gateway": structured.get("default_gateway"),
+        "dns_servers": structured.get("dns_servers"),
+        "dhcp_enabled": structured.get("dhcp_enabled"),
+        "netbios_enabled": structured.get("netbios_enabled"),
+        "adapter_description": structured.get("adapter_description"),
+        "adapter_interface_index": structured.get("adapter_interface_index"),
+        "netbios_option": structured.get("netbios_option"),
         "smb_shares": collect_smb_shares(),
         "smb_client_configuration": collect_smb_configuration(
             "Get-SmbClientConfiguration"
@@ -67,17 +64,188 @@ def collect_network_info() -> dict:
         "smb_server_configuration": collect_smb_configuration(
             "Get-SmbServerConfiguration"
         ),
-        "accessible_smb_shares": collect_accessible_smb_shares("localhost")
+        "accessible_smb_shares": collect_accessible_smb_shares("localhost"),
     }
 
 
-def powershell_json(command, timeout=10):
+def collect_structured_network_info():
+    data = powershell_json_script(
+        r"""
+$ErrorActionPreference = 'SilentlyContinue'
+$ipv4Regex = '^(?:\d{1,3}\.){3}\d{1,3}$'
+
+$adapters = @(
+    Get-CimInstance Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True' |
+    ForEach-Object {
+        [pscustomobject]@{
+            Description = $_.Description
+            Index = $_.Index
+            InterfaceIndex = $_.InterfaceIndex
+            IPv4 = @($_.IPAddress | Where-Object { $_ -match $ipv4Regex })
+            SubnetMask = @($_.IPSubnet | Where-Object { $_ -match $ipv4Regex })
+            DefaultGateway = @($_.DefaultIPGateway | Where-Object { $_ -match $ipv4Regex })
+            DnsServers = @($_.DNSServerSearchOrder | Where-Object { $_ })
+            DhcpEnabled = $_.DHCPEnabled
+            TcpipNetbiosOptions = $_.TcpipNetbiosOptions
+        }
+    }
+)
+
+if (-not $adapters -or $adapters.Count -eq 0) {
+    $adapters = @(
+        [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
+        Where-Object {
+            $_.OperationalStatus -eq 'Up' -and
+            $_.NetworkInterfaceType -ne 'Loopback'
+        } |
+        ForEach-Object {
+            $properties = $_.GetIPProperties()
+            $ipv4Properties = $properties.GetIPv4Properties()
+
+            if (-not $ipv4Properties) {
+                return
+            }
+
+            [pscustomobject]@{
+                Description = $_.Description
+                Index = $ipv4Properties.Index
+                InterfaceIndex = $ipv4Properties.Index
+                IPv4 = @(
+                    $properties.UnicastAddresses |
+                    Where-Object { $_.Address.AddressFamily -eq 'InterNetwork' } |
+                    ForEach-Object { $_.Address.IPAddressToString }
+                )
+                SubnetMask = @(
+                    $properties.UnicastAddresses |
+                    Where-Object { $_.Address.AddressFamily -eq 'InterNetwork' -and $_.IPv4Mask } |
+                    ForEach-Object { $_.IPv4Mask.IPAddressToString }
+                )
+                DefaultGateway = @(
+                    $properties.GatewayAddresses |
+                    Where-Object { $_.Address.AddressFamily -eq 'InterNetwork' } |
+                    ForEach-Object { $_.Address.IPAddressToString }
+                )
+                DnsServers = @(
+                    $properties.DnsAddresses |
+                    Where-Object { $_.AddressFamily -eq 'InterNetwork' } |
+                    ForEach-Object { $_.IPAddressToString }
+                )
+                DhcpEnabled = $ipv4Properties.IsDhcpEnabled
+                TcpipNetbiosOptions = $null
+            }
+        }
+    )
+}
+
+$profiles = @(
+    Get-NetConnectionProfile |
+    Select-Object InterfaceIndex, Name, NetworkCategory
+)
+
+[pscustomobject]@{
+    Adapters = $adapters
+    Profiles = $profiles
+} | ConvertTo-Json -Depth 6
+""",
+        timeout=15,
+    )
+
+    if not isinstance(data, dict):
+        return empty_network_info()
+
+    adapters = as_list(data.get("Adapters"))
+    profiles = as_list(data.get("Profiles"))
+    adapter = select_active_adapter(adapters)
+    profile = select_profile_for_adapter(profiles, adapter)
+
+    if not adapter:
+        return empty_network_info(profile)
+
+    return {
+        "active_adapter_profile": (
+            profile.get("Name")
+            if isinstance(profile, dict)
+            else "Unknown"
+        ),
+        "network_category": (
+            parse_network_category(profile.get("NetworkCategory"))
+            if isinstance(profile, dict)
+            else "Unknown"
+        ),
+        "ipv4": first_value(adapter.get("IPv4")),
+        "subnet_mask": first_value(adapter.get("SubnetMask")),
+        "default_gateway": first_value(adapter.get("DefaultGateway")),
+        "dns_servers": as_list(adapter.get("DnsServers")),
+        "dhcp_enabled": adapter.get("DhcpEnabled"),
+        "netbios_enabled": netbios_enabled(adapter.get("TcpipNetbiosOptions")),
+        "adapter_description": adapter.get("Description"),
+        "adapter_interface_index": adapter.get("InterfaceIndex"),
+        "netbios_option": adapter.get("TcpipNetbiosOptions"),
+    }
+
+
+def empty_network_info(profile=None):
+    return {
+        "active_adapter_profile": (
+            profile.get("Name")
+            if isinstance(profile, dict)
+            else "Unknown"
+        ),
+        "network_category": (
+            parse_network_category(profile.get("NetworkCategory"))
+            if isinstance(profile, dict)
+            else "Unknown"
+        ),
+        "ipv4": None,
+        "subnet_mask": None,
+        "default_gateway": None,
+        "dns_servers": [],
+        "dhcp_enabled": None,
+        "netbios_enabled": None,
+        "adapter_description": None,
+        "adapter_interface_index": None,
+        "netbios_option": None,
+    }
+
+
+def select_active_adapter(adapters):
+    candidates = [
+        adapter
+        for adapter in adapters
+        if isinstance(adapter, dict) and as_list(adapter.get("IPv4"))
+    ]
+
+    for adapter in candidates:
+        if as_list(adapter.get("DefaultGateway")):
+            return adapter
+
+    return candidates[0] if candidates else None
+
+
+def select_profile_for_adapter(profiles, adapter):
+    profile_candidates = [
+        profile
+        for profile in profiles
+        if isinstance(profile, dict)
+    ]
+
+    if not profile_candidates:
+        return None
+
+    interface_index = adapter.get("InterfaceIndex") if adapter else None
+
+    for profile in profile_candidates:
+        if profile.get("InterfaceIndex") == interface_index:
+            return profile
+
+    return profile_candidates[0]
+
+
+def powershell_json_script(script, timeout=10):
+    encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
     result = run_command(
-        'powershell -Command "'
-        f'{command} '
-        '| ConvertTo-Json -Depth 4'
-        '"',
-        timeout=timeout
+        f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}",
+        timeout=timeout,
     )
 
     if not result["stdout"]:
@@ -89,6 +257,13 @@ def powershell_json(command, timeout=10):
         return None
 
 
+def powershell_json(command, timeout=10, depth=4):
+    return powershell_json_script(
+        f"{command} | ConvertTo-Json -Depth {depth}",
+        timeout=timeout,
+    )
+
+
 def collect_smb_configuration(command):
     wanted = (
         "EnableSMB1Protocol",
@@ -98,11 +273,12 @@ def collect_smb_configuration(command):
         "EncryptData",
         "RejectUnencryptedAccess",
         "EnableInsecureGuestLogons",
-        "AuditSmb1Access"
+        "AuditSmb1Access",
     )
 
     data = powershell_json(
-        f"{command} | Select-Object {','.join(wanted)}"
+        f"{command} | Select-Object {','.join(wanted)}",
+        depth=4,
     )
 
     if not isinstance(data, dict):
@@ -116,21 +292,10 @@ def collect_smb_configuration(command):
 
 
 def collect_smb_shares():
-    result = run_command(
-        'powershell -Command "'
-        'Get-SmbShare '
-        '| Select-Object Name,Path,Description,Special '
-        '| ConvertTo-Json'
-        '"'
+    shares = powershell_json(
+        "Get-SmbShare | Select-Object Name,Path,Description,Special",
+        depth=4,
     )
-
-    if not result["stdout"]:
-        return None
-
-    try:
-        shares = json.loads(result["stdout"])
-    except Exception:
-        return None
 
     if isinstance(shares, dict):
         shares = [shares]
@@ -143,7 +308,7 @@ def collect_smb_shares():
             "name": share.get("Name"),
             "path": share.get("Path"),
             "description": share.get("Description"),
-            "special": bool(share.get("Special", False))
+            "special": bool(share.get("Special", False)),
         }
         for share in shares
         if share.get("Name")
@@ -151,109 +316,20 @@ def collect_smb_shares():
 
 
 def collect_accessible_smb_shares(target):
-    result = run_command(f'net view "\\\\{target}"', timeout=10)
-
-    if not result["stdout"]:
+    if target.lower() not in {"localhost", "127.0.0.1", "::1"}:
         return None
 
-    shares = []
+    shares = collect_smb_shares()
 
-    for line in result["stdout"].splitlines():
-        stripped = line.strip()
-
-        if (
-            not stripped
-            or stripped.startswith("\\\\")
-            or stripped.startswith("---")
-            or "commande" in stripped.lower()
-            or "command" in stripped.lower()
-            or "Nom du partage" in stripped
-            or "Share name" in stripped
-            or "Ressources partag" in stripped
-            or "Shared resources" in stripped
-        ):
-            continue
-
-        parts = re.split(r"\s{2,}", stripped)
-
-        if parts and parts[0]:
-            shares.append({
-                "name": parts[0],
-                "type": parts[1] if len(parts) > 1 else None,
-                "comment": parts[2] if len(parts) > 2 else None
-            })
-
-    return shares
-
-
-def extract_value(text, pattern):
-    match = re.search(pattern, text)
-    return match.group(1) if match else None
-
-
-def extract_yes_no(text, pattern):
-    match = re.search(pattern, text)
-
-    if not match:
+    if not shares:
         return None
 
-    return match.group(1) in ("Oui", "Activé")
-
-
-def extract_gateway(text):
-    lines = text.splitlines()
-    gateway_labels = (
-        "Passerelle par défaut",
-        "Default Gateway"
-    )
-
-    for index, line in enumerate(lines):
-        if not any(label in line for label in gateway_labels):
-            continue
-
-        same_line_ips = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", line)
-
-        if same_line_ips:
-            return same_line_ips[0]
-
-        for next_line in lines[index + 1:index + 4]:
-            stripped = next_line.strip()
-
-            if not stripped:
-                continue
-
-            if re.search(r"[A-Za-zÀ-ÿ].*:", stripped):
-                break
-
-            continuation_ips = re.findall(
-                r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
-                stripped
-            )
-
-            if continuation_ips:
-                return continuation_ips[0]
-
-    return None
-
-
-def extract_dns_servers(text):
-    lines = text.splitlines()
-
-    dns_servers = []
-    capture = False
-
-    for line in lines:
-        if "Serveurs DNS" in line:
-            capture = True
-
-        if capture:
-            ips = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", line)
-
-            for ip in ips:
-                if ip not in dns_servers:
-                    dns_servers.append(ip)
-
-            if capture and line.strip() == "":
-                break
-
-    return dns_servers
+    return [
+        {
+            "name": share.get("name"),
+            "type": "Disque" if share.get("path") else None,
+            "comment": share.get("description"),
+        }
+        for share in shares
+        if share.get("name") and not share.get("special")
+    ]

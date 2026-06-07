@@ -2,6 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
+from expert.rule_translation import translate_findings
+
 
 UNKNOWN_VALUES = (None, "", "(unknown)", "Unknown", "unknown")
 
@@ -180,7 +182,7 @@ def compare_field(reference, target, path):
     return get_path(reference, path), get_path(target, path)
 
 
-def compare_causal(reference, target):
+def compare_causal(reference, target, lang="fr"):
     findings = []
 
     ref_name = get_path(reference, "system.hostname", "Référence")
@@ -518,14 +520,14 @@ def compare_causal(reference, target):
             )
         )
 
-    return findings
+    return translate_findings(findings, lang)
 
 
-def compare(reference, target):
-    return compare_causal(reference, target)
+def compare(reference, target, lang="fr"):
+    return compare_causal(reference, target, lang)
 
 
-def compare_remote_target(snapshot):
+def compare_remote_target(snapshot, lang="fr"):
     findings = []
     system = snapshot.get("system", {})
     network = snapshot.get("network", {})
@@ -625,8 +627,8 @@ def compare_remote_target(snapshot):
                 "généré sur la cible."
             ),
             (
-                "Generer un snapshot local sur la cible, puis lancer "
-                "py -m expert.compare PC-BEN-001_snapshot.json cible_snapshot.json."
+                "Générer un snapshot local sur la cible, puis lancer "
+                "python -m expert.compare PC-BEN-001_snapshot.json cible_snapshot.json."
             )
         )
 
@@ -654,7 +656,7 @@ def compare_remote_target(snapshot):
             "Exécuter DTLknowsWhy sur la cible ou interroger son agent distant."
         )
 
-    return findings
+    return translate_findings(findings, lang)
 
 
 def format_findings(reference, target, findings):
@@ -696,8 +698,8 @@ def format_findings(reference, target, findings):
     return lines
 
 
-def analyze_difference(a, b):
-    return format_findings(a, b, compare_causal(a, b))
+def analyze_difference(a, b, lang="fr"):
+    return format_findings(a, b, compare_causal(a, b, lang))
 
 
 def print_findings(findings):
@@ -723,6 +725,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Utiliser le dernier PC-BEN-001_snapshot_*.json comme référence"
     )
+    parser.add_argument(
+        "--lang",
+        choices=["fr", "en"],
+        default="fr",
+        help="Output language"
+    )
 
     args = parser.parse_args()
 
@@ -742,5 +750,5 @@ if __name__ == "__main__":
     reference = load_snapshot(reference_file)
     target = load_snapshot(target_file)
 
-    findings = analyze_difference(reference, target)
+    findings = analyze_difference(reference, target, args.lang)
     print_findings(findings)

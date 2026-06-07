@@ -61,8 +61,14 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "snapshot",
-        nargs="é",
+        nargs="?",
         help="Snapshot JSON file"
+    )
+    parser.add_argument(
+        "--lang",
+        choices=("fr", "en"),
+        default="fr",
+        help="Diagnosis language"
     )
 
     args = parser.parse_args()
@@ -80,6 +86,6 @@ if __name__ == "__main__":
         print(f"Analyse du dernier snapshot : {snapshot_file}")
 
     snapshot = load_snapshot(snapshot_file)
-    findings = analyze(snapshot)
+    findings = analyze(snapshot, args.lang)
 
     print_report(snapshot, findings)

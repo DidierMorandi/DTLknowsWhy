@@ -10,6 +10,7 @@ from tkinter import messagebox
 from tkinter import ttk
 
 from agent.collectors.system import is_admin
+from shared.i18n import tr
 from shared.version import DTLKNOWSWHY_VERSION
 
 
@@ -34,71 +35,62 @@ LEVEL_COLORS = {
     "WARN": COLORS["warn"],
     "FAIL": COLORS["fail"],
     "INFO": COLORS["info"],
+    "CAUSE CERTAINE": COLORS["fail"],
+    "CAUSE PROBABLE": COLORS["fail"],
+    "CAUSE POSSIBLE": COLORS["warn"],
+    "À VÉRIFIER": COLORS["info"],
+    "A VÉRIFIER": COLORS["info"],
+    "OBSERVE": COLORS["ok"],
+    "CONFIRMED CAUSE": COLORS["fail"],
+    "PROBABLE CAUSE": COLORS["fail"],
+    "POSSIBLE CAUSE": COLORS["warn"],
+    "TO CHECK": COLORS["info"],
+    "OBSERVED": COLORS["ok"],
+    "MISSING INFORMATION": COLORS["warn"],
 }
 
 
 SITUATIONS = [
     {
         "id": "SMB-001",
-        "title": "Le poste n'apparaît pas dans Réseau",
-        "description": (
-            "La machine peut être invisible dans le voisinage réseau alors "
-            "que les accès SMB fonctionnent."
-        ),
+        "title_key": "gui_smb_001_title",
+        "description_key": "gui_smb_001_desc",
         "requires_target": False,
     },
     {
         "id": "SMB-002",
-        "title": "\\\\IP fonctionne mais \\\\NOM_MACHINE échoue",
-        "description": (
-            "SMB peut fonctionner tandis que la résolution du nom de la "
-            "machine est défaillante."
-        ),
+        "title_key": "gui_smb_002_title",
+        "description_key": "gui_smb_002_desc",
         "requires_target": True,
     },
     {
         "id": "SMB-003",
-        "title": "Les partages sont visibles mais l'accès est refusé",
-        "description": (
-            "Vérifier si le compte SMB utilisé correspond au compte réel "
-            "retourné par WHOAMI sur la cible."
-        ),
+        "title_key": "gui_smb_003_title",
+        "description_key": "gui_smb_003_desc",
         "requires_target": True,
     },
     {
         "id": "LOCAL-NETWORK",
-        "title": "Le réseau local ne répond pas",
-        "description": (
-            "Vérifier la passerelle, l'adresse IP, le DHCP et la "
-            "configuration réseau locale."
-        ),
+        "title_key": "gui_local_network_title",
+        "description_key": "gui_local_network_desc",
         "requires_target": False,
     },
     {
         "id": "LOCAL-SMB",
-        "title": "Le partage Windows local ne fonctionne pas",
-        "description": (
-            "Vérifier les services LanmanServer et LanmanWorkstation, "
-            "le profil réseau et les partages visibles."
-        ),
+        "title_key": "gui_local_smb_title",
+        "description_key": "gui_local_smb_desc",
         "requires_target": False,
     },
     {
         "id": "REMOTE-WINDOWS",
-        "title": "Une cible Windows est inaccessible",
-        "description": (
-            "Tester ping, ports SMB 139/445, pare-feu et service de partage "
-            "sur la cible."
-        ),
+        "title_key": "gui_remote_windows_title",
+        "description_key": "gui_remote_windows_desc",
         "requires_target": True,
     },
     {
         "id": "REMOTE-DEVICE",
-        "title": "Identifier une cible du réseau",
-        "description": (
-            "Classer la cible : poste Windows probable, mobile, équipement "
-            "réseau ou hôte inconnu."
-        ),
+        "title_key": "gui_remote_device_title",
+        "description_key": "gui_remote_device_desc",
         "requires_target": True,
     },
 ]
@@ -118,13 +110,16 @@ class QueueWriter(io.TextIOBase):
 
 
 class DTLknowsWhyGui:
-    def __init__(self, create_snapshot, initial_target=None, auto_start=False):
+    def __init__(self, create_snapshot, initial_target=None, auto_start=False, lang="en"):
         self.create_snapshot = create_snapshot
         self.initial_target = initial_target
         self.auto_start = auto_start
+        self.lang = lang if lang in ("fr", "en") else "en"
         self.output_queue = queue.Queue()
         self.latest_snapshot = None
         self.selected_vars = {}
+        self.situation_widgets = []
+        self.summary_rows = {}
 
         self.root = tk.Tk()
         self.root.title("DTLknowsWhy")
@@ -134,8 +129,21 @@ class DTLknowsWhyGui:
 
         self._build_styles()
         self._build_layout()
+        self._apply_language()
         self._apply_startup_options()
         self.root.after(100, self._poll_queue)
+
+    def _t(self, key):
+        return tr(key, self.lang)
+
+    def _format(self, key, **values):
+        return self._t(key).format(**values)
+
+    def _language_label_to_code(self, label):
+        return "fr" if label == self._t("gui_lang_fr") else "en"
+
+    def _language_code_to_label(self, lang):
+        return tr("gui_lang_fr", lang) if lang == "fr" else tr("gui_lang_en", lang)
 
     def _build_styles(self):
         style = ttk.Style(self.root)
@@ -236,160 +244,172 @@ class DTLknowsWhyGui:
         banner.grid(row=0, column=0, sticky="ew")
         banner.columnconfigure(0, weight=1)
 
-        ttk.Label(
+        self.banner_title_label = ttk.Label(
             banner,
             text="DTLknowsWhy",
             style="BannerTitle.TLabel",
-        ).grid(row=0, column=0, sticky="w")
+        )
+        self.banner_title_label.grid(row=0, column=0, sticky="w")
 
-        ttk.Label(
+        self.banner_subtitle_label = ttk.Label(
             banner,
-            text="Assistant de diagnostic réseau Windows",
             style="BannerSubtitle.TLabel",
-        ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+        )
+        self.banner_subtitle_label.grid(row=1, column=0, sticky="w", pady=(2, 0))
 
-        ttk.Label(
+        self.version_label = ttk.Label(
             banner,
             text=f"Version {DTLKNOWSWHY_VERSION}",
             style="BannerVersion.TLabel",
-        ).grid(row=0, column=1, rowspan=2, sticky="e")
+        )
+        self.version_label.grid(row=0, column=1, rowspan=2, sticky="e")
 
-        ttk.Label(
+        self.intro_label = ttk.Label(
             container,
-            text=(
-                "Sélectionnez la ou les situations rencontrées, indiquez la "
-                "cible si besoin, puis lancez le diagnostic."
-            ),
             background=COLORS["bg"],
             foreground=COLORS["muted"],
             wraplength=920,
-        ).grid(row=1, column=0, sticky="w", pady=(12, 14))
+        )
+        self.intro_label.grid(row=1, column=0, sticky="w", pady=(12, 14))
 
         top = ttk.Frame(container, style="App.TFrame")
         top.grid(row=2, column=0, sticky="nsew")
         top.columnconfigure(0, weight=2)
         top.columnconfigure(1, weight=1)
 
-        situations_frame = ttk.LabelFrame(
+        self.situations_frame = ttk.LabelFrame(
             top,
-            text="Situations connues dans la KB",
             padding=12,
             style="Section.TLabelframe",
         )
-        situations_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-        situations_frame.columnconfigure(0, weight=1)
+        self.situations_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.situations_frame.columnconfigure(0, weight=1)
 
         for row, situation in enumerate(SITUATIONS):
             var = tk.BooleanVar(value=False)
             self.selected_vars[situation["id"]] = var
-            label = situation["title"]
-
-            if situation["requires_target"]:
-                label += "  (cible requise)"
-
             card = ttk.Frame(
-                situations_frame,
+                self.situations_frame,
                 padding=(10, 8),
                 style="Card.TFrame",
             )
             card.grid(row=row, column=0, sticky="ew", pady=(0, 8))
             card.columnconfigure(0, weight=1)
 
-            ttk.Checkbutton(
+            title = ttk.Checkbutton(
                 card,
-                text=label,
                 variable=var,
                 command=self._refresh_target_hint,
                 style="CardTitle.TCheckbutton",
-            ).grid(row=0, column=0, sticky="w")
+            )
+            title.grid(row=0, column=0, sticky="w")
 
-            ttk.Label(
+            description = ttk.Label(
                 card,
-                text=situation["description"],
                 wraplength=560,
                 style="CardText.TLabel",
-            ).grid(row=1, column=0, sticky="w", padx=(24, 0), pady=(3, 0))
+            )
+            description.grid(row=1, column=0, sticky="w", padx=(24, 0), pady=(3, 0))
 
+            badge = None
             if situation["requires_target"]:
-                ttk.Label(
+                badge = ttk.Label(
                     card,
-                    text="CIBLE",
                     style="Badge.TLabel",
-                ).grid(row=0, column=1, sticky="ne", padx=(8, 0))
+                )
+                badge.grid(row=0, column=1, sticky="ne", padx=(8, 0))
 
-        target_frame = ttk.LabelFrame(
+            self.situation_widgets.append({
+                "situation": situation,
+                "title": title,
+                "description": description,
+                "badge": badge,
+            })
+
+        self.target_frame = ttk.LabelFrame(
             top,
-            text="Cible",
             padding=12,
             style="Section.TLabelframe",
         )
-        target_frame.grid(row=0, column=1, sticky="nsew")
-        target_frame.columnconfigure(0, weight=1)
+        self.target_frame.grid(row=0, column=1, sticky="nsew")
+        self.target_frame.columnconfigure(0, weight=1)
 
-        ttk.Label(
-            target_frame,
-            text="Nom ou adresse IP de la machine à tester",
+        self.language_label = ttk.Label(
+            self.target_frame,
             background=COLORS["surface"],
             foreground=COLORS["text"],
-        ).grid(row=0, column=0, sticky="w")
+        )
+        self.language_label.grid(row=0, column=0, sticky="w")
+
+        self.language_var = tk.StringVar()
+        self.language_combo = ttk.Combobox(
+            self.target_frame,
+            textvariable=self.language_var,
+            state="readonly",
+            values=("English", "Français"),
+        )
+        self.language_combo.grid(row=1, column=0, sticky="ew", pady=(4, 10))
+        self.language_combo.bind("<<ComboboxSelected>>", self._on_language_changed)
+
+        self.target_label = ttk.Label(
+            self.target_frame,
+            background=COLORS["surface"],
+            foreground=COLORS["text"],
+        )
+        self.target_label.grid(row=2, column=0, sticky="w")
 
         self.target_var = tk.StringVar()
         ttk.Entry(
-            target_frame,
+            self.target_frame,
             textvariable=self.target_var,
-        ).grid(row=1, column=0, sticky="ew", pady=(4, 8))
+        ).grid(row=3, column=0, sticky="ew", pady=(4, 8))
 
         self.target_hint = ttk.Label(
-            target_frame,
-            text="Optionnel pour un diagnostic local.",
+            self.target_frame,
             wraplength=260,
             style="Hint.TLabel",
         )
-        self.target_hint.grid(row=2, column=0, sticky="w")
+        self.target_hint.grid(row=4, column=0, sticky="w")
 
         self.summary_frame = ttk.LabelFrame(
-            target_frame,
-            text="Résumé du diagnostic",
+            self.target_frame,
             padding=10,
             style="Section.TLabelframe",
         )
-        self.summary_frame.grid(row=3, column=0, sticky="ew", pady=(14, 0))
+        self.summary_frame.grid(row=5, column=0, sticky="ew", pady=(14, 0))
         self.summary_frame.columnconfigure(0, weight=1)
 
         self.summary_items = {
-            "local": self._build_summary_row(0, "Réseau local", "En attente"),
-            "dns": self._build_summary_row(1, "DNS", "En attente"),
-            "smb": self._build_summary_row(2, "SMB local", "En attente"),
-            "target": self._build_summary_row(3, "Cible", "Non testee"),
+            "local": self._build_summary_row(0, "gui_summary_local", "gui_status_waiting"),
+            "dns": self._build_summary_row(1, "gui_summary_dns", "gui_status_waiting"),
+            "smb": self._build_summary_row(2, "gui_summary_smb", "gui_status_waiting"),
+            "target": self._build_summary_row(3, "gui_summary_target", "gui_status_not_tested"),
         }
 
         self.run_button = ttk.Button(
-            target_frame,
-            text="Lancer le diagnostic",
+            self.target_frame,
             style="Run.TButton",
             command=self._start_diagnosis,
         )
-        self.run_button.grid(row=4, column=0, sticky="ew", pady=(14, 6))
+        self.run_button.grid(row=6, column=0, sticky="ew", pady=(14, 6))
 
         self.open_report_button = ttk.Button(
-            target_frame,
-            text="Ouvrir le rapport HTML",
+            self.target_frame,
             command=self._open_latest_html_report,
             state="disabled",
         )
-        self.open_report_button.grid(row=5, column=0, sticky="ew")
+        self.open_report_button.grid(row=7, column=0, sticky="ew")
 
         results = ttk.PanedWindow(container, orient="horizontal")
         results.grid(row=3, column=0, sticky="nsew", pady=(14, 0))
 
-        log_frame = ttk.LabelFrame(
+        self.log_frame = ttk.LabelFrame(
             results,
-            text="Avancement",
             padding=8,
             style="Section.TLabelframe",
         )
         self.log_text = tk.Text(
-            log_frame,
+            self.log_frame,
             height=10,
             wrap="word",
             bg="#0f1720",
@@ -399,16 +419,15 @@ class DTLknowsWhyGui:
             font=("Cascadia Mono", 9),
         )
         self.log_text.pack(fill="both", expand=True)
-        results.add(log_frame, weight=1)
+        results.add(self.log_frame, weight=1)
 
-        findings_frame = ttk.LabelFrame(
+        self.findings_frame = ttk.LabelFrame(
             results,
-            text="Constats et vérifications",
             padding=8,
             style="Section.TLabelframe",
         )
         self.findings_text = tk.Text(
-            findings_frame,
+            self.findings_frame,
             height=10,
             wrap="word",
             bg=COLORS["surface"],
@@ -420,25 +439,26 @@ class DTLknowsWhyGui:
         )
         self._configure_finding_tags()
         self.findings_text.pack(fill="both", expand=True)
-        results.add(findings_frame, weight=2)
+        results.add(self.findings_frame, weight=2)
 
-    def _build_summary_row(self, row, label, value):
-        ttk.Label(
+    def _build_summary_row(self, row, label_key, value_key):
+        label = ttk.Label(
             self.summary_frame,
-            text=label,
             background=COLORS["surface"],
             foreground=COLORS["muted"],
             font=("Segoe UI Semibold", 9),
-        ).grid(row=row, column=0, sticky="w", pady=2)
+        )
+        label.grid(row=row, column=0, sticky="w", pady=2)
 
         value_label = ttk.Label(
             self.summary_frame,
-            text=value,
             background=COLORS["surface"],
             foreground=COLORS["muted"],
             font=("Segoe UI", 9),
         )
         value_label.grid(row=row, column=1, sticky="e", pady=2)
+        self.summary_rows[label_key] = label
+        value_label.value_key = value_key
 
         return value_label
 
@@ -472,6 +492,67 @@ class DTLknowsWhyGui:
                 spacing1=8,
             )
 
+    def _apply_language(self):
+        self.banner_subtitle_label.configure(text=self._t("gui_subtitle"))
+        self.version_label.configure(text=f"Version {DTLKNOWSWHY_VERSION}")
+        self.intro_label.configure(text=self._t("gui_intro"))
+        self.situations_frame.configure(text=self._t("gui_known_situations"))
+        self.target_frame.configure(text=self._t("gui_target"))
+        self.language_label.configure(text=self._t("gui_preferred_language"))
+        self.target_label.configure(text=self._t("gui_target_label"))
+        self.summary_frame.configure(text=self._t("gui_summary"))
+        self.run_button.configure(text=self._t("gui_run"))
+        self.open_report_button.configure(text=self._t("gui_open_html"))
+        self.log_frame.configure(text=self._t("gui_progress"))
+        self.findings_frame.configure(text=self._t("gui_findings"))
+
+        language_values = (
+            self._t("gui_lang_en"),
+            self._t("gui_lang_fr"),
+        )
+        self.language_combo.configure(values=language_values)
+        self.language_var.set(self._language_code_to_label(self.lang))
+
+        for item in self.situation_widgets:
+            situation = item["situation"]
+            label = self._t(situation["title_key"])
+
+            if situation["requires_target"]:
+                label += self._t("gui_target_required_suffix")
+
+            item["title"].configure(text=label)
+            item["description"].configure(text=self._t(situation["description_key"]))
+
+            if item["badge"] is not None:
+                item["badge"].configure(text=self._t("gui_target_badge"))
+
+        summary_label_keys = (
+            "gui_summary_local",
+            "gui_summary_dns",
+            "gui_summary_smb",
+            "gui_summary_target",
+        )
+        for key in summary_label_keys:
+            self.summary_rows[key].configure(text=self._t(key))
+
+        for label in self.summary_items.values():
+            value_key = getattr(label, "value_key", None)
+            if value_key:
+                label.configure(text=self._t(value_key))
+
+        self._refresh_target_hint()
+
+        if self.latest_snapshot:
+            self._show_findings(
+                self.latest_snapshot,
+                getattr(self, "latest_selected_ids", []),
+            )
+
+    def _on_language_changed(self, _event=None):
+        selected = self.language_var.get()
+        self.lang = "fr" if selected == self._t("gui_lang_fr") else "en"
+        self._apply_language()
+
     def run(self):
         self.root.mainloop()
 
@@ -504,9 +585,9 @@ class DTLknowsWhyGui:
         )
 
         if requires_target:
-            text = "Une cible est nécessaire pour les situations sélectionnées."
+            text = self._t("gui_target_required_hint")
         else:
-            text = "Optionnel pour un diagnostic local."
+            text = self._t("gui_target_optional")
 
         self.target_hint.configure(text=text)
 
@@ -515,8 +596,8 @@ class DTLknowsWhyGui:
 
         if not selected:
             messagebox.showwarning(
-                "Situation manquante",
-                "Sélectionnez au moins une situation à diagnostiquer.",
+                self._t("gui_missing_situation_title"),
+                self._t("gui_missing_situation_message"),
             )
             return
 
@@ -524,19 +605,15 @@ class DTLknowsWhyGui:
 
         if any(situation["requires_target"] for situation in selected) and not target:
             messagebox.showwarning(
-                "Cible manquante",
-                "Indiquez le nom ou l'adresse IP de la cible.",
+                self._t("gui_missing_target_title"),
+                self._t("gui_missing_target_message"),
             )
             return
 
         if not is_admin():
             continue_without_admin = messagebox.askyesno(
-                "Droits administrateur",
-                (
-                    "DTLknowsWhy n'est pas lancé en administrateur. "
-                    "Certaines vérifications peuvent être incomplètes.\n\n"
-                    "Voulez-vous continuer quand même ?"
-                ),
+                self._t("gui_admin_title"),
+                self._t("gui_admin_message"),
             )
 
             if not continue_without_admin:
@@ -547,21 +624,21 @@ class DTLknowsWhyGui:
         self.log_text.delete("1.0", "end")
         self.findings_text.delete("1.0", "end")
         self._reset_summary()
-        self.output_queue.put(("log", "Diagnostic en cours...\n"))
+        self.output_queue.put(("log", f"{self._t('gui_diagnosis_running')}\n"))
 
         worker = threading.Thread(
             target=self._run_diagnosis,
-            args=(target, [situation["id"] for situation in selected]),
+            args=(target, [situation["id"] for situation in selected], self.lang),
             daemon=True,
         )
         worker.start()
 
-    def _run_diagnosis(self, target, selected_ids):
+    def _run_diagnosis(self, target, selected_ids, lang):
         writer = QueueWriter(self.output_queue)
 
         try:
             with contextlib.redirect_stdout(writer), contextlib.redirect_stderr(writer):
-                snapshot = self.create_snapshot(target=target, lang="fr")
+                snapshot = self.create_snapshot(target=target, lang=lang)
 
             self.output_queue.put(("done", snapshot, selected_ids))
         except Exception as exc:
@@ -577,12 +654,13 @@ class DTLknowsWhyGui:
                     self._append_log(item[1])
                 elif kind == "done":
                     self.latest_snapshot = item[1]
+                    self.latest_selected_ids = item[2]
                     self._show_findings(item[1], item[2])
                     self.run_button.configure(state="normal")
                     self.open_report_button.configure(state="normal")
                 elif kind == "error":
                     self.run_button.configure(state="normal")
-                    messagebox.showerror("Diagnostic impossible", item[1])
+                    messagebox.showerror(self._t("gui_diagnosis_failed"), item[1])
         except queue.Empty:
             pass
 
@@ -613,14 +691,14 @@ class DTLknowsWhyGui:
             focused = diagnosis
 
         self.findings_text.delete("1.0", "end")
-        self.findings_text.insert("end", "Situations sélectionnées : ", "heading")
+        self.findings_text.insert("end", self._t("gui_selected_situations"), "heading")
         self.findings_text.insert("end", ", ".join(selected_ids), "heading")
         self.findings_text.insert("end", "\n\n")
 
         if not focused:
             self.findings_text.insert(
                 "end",
-                "Aucune anomalie significative détectée.\n",
+                f"{self._t('gui_no_significant_issue')}\n",
                 "message",
             )
             return
@@ -642,17 +720,17 @@ class DTLknowsWhyGui:
             if item.get("remediation"):
                 self.findings_text.insert(
                     "end",
-                    f"Vérification / action : {item.get('remediation')}\n",
+                    f"{self._t('gui_check_action')} : {item.get('remediation')}\n",
                     "remediation",
                 )
 
             self.findings_text.insert("end", "\n")
 
     def _reset_summary(self):
-        self._set_summary("local", "En cours", "INFO")
-        self._set_summary("dns", "En cours", "INFO")
-        self._set_summary("smb", "En cours", "INFO")
-        self._set_summary("target", "En cours", "INFO")
+        self._set_summary("local", self._t("gui_status_running"), "INFO")
+        self._set_summary("dns", self._t("gui_status_running"), "INFO")
+        self._set_summary("smb", self._t("gui_status_running"), "INFO")
+        self._set_summary("target", self._t("gui_status_running"), "INFO")
 
     def _show_summary(self, snapshot):
         network = snapshot.get("network", {})
@@ -662,12 +740,12 @@ class DTLknowsWhyGui:
 
         self._set_summary(
             "local",
-            "OK" if tests.get("ping_gateway") else "À vérifier",
+            "OK" if tests.get("ping_gateway") else self._t("gui_status_check"),
             "OK" if tests.get("ping_gateway") else "WARN",
         )
         self._set_summary(
             "dns",
-            "Configure" if network.get("dns_servers") else "Incomplet",
+            self._t("gui_status_configured") if network.get("dns_servers") else self._t("gui_status_incomplete"),
             "OK" if network.get("dns_servers") else "WARN",
         )
 
@@ -677,21 +755,22 @@ class DTLknowsWhyGui:
         )
         self._set_summary(
             "smb",
-            "Opérationnel" if smb_ok else "À vérifier",
+            self._t("gui_status_operational") if smb_ok else self._t("gui_status_check"),
             "OK" if smb_ok else "FAIL",
         )
 
         if remote:
             self._set_summary(
                 "target",
-                "Joignable" if remote.get("ping_target") else "Injoignable",
+                self._t("gui_status_reachable") if remote.get("ping_target") else self._t("gui_status_unreachable"),
                 "OK" if remote.get("ping_target") else "FAIL",
             )
         else:
-            self._set_summary("target", "Non testee", "INFO")
+            self._set_summary("target", self._t("gui_status_not_tested"), "INFO")
 
     def _set_summary(self, key, text, level):
         color = LEVEL_COLORS.get(level, COLORS["muted"])
+        self.summary_items[key].value_key = None
         self.summary_items[key].configure(text=text, foreground=color)
 
     def _open_latest_html_report(self):
@@ -706,16 +785,20 @@ class DTLknowsWhyGui:
         )
 
         if not reports:
-            messagebox.showinfo("Rapport introuvable", "Aucun rapport HTML trouve.")
+            messagebox.showinfo(
+                self._t("gui_report_missing_title"),
+                self._t("gui_report_missing_message"),
+            )
             return
 
         os.startfile(os.path.abspath(reports[0]))
 
 
-def run_gui(create_snapshot, initial_target=None, auto_start=False):
+def run_gui(create_snapshot, initial_target=None, auto_start=False, lang="en"):
     app = DTLknowsWhyGui(
         create_snapshot,
         initial_target=initial_target,
         auto_start=auto_start,
+        lang=lang,
     )
     app.run()

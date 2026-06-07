@@ -23,7 +23,7 @@ def machine_label(snapshot, fallback="Inconnu"):
     return str(name)
 
 
-def target_label(snapshot):
+def target_label(snapshot, lang="fr"):
     remote = snapshot.get("remote_tests", {})
     remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
     remote_system = remote_snapshot.get("system", {})
@@ -32,7 +32,7 @@ def target_label(snapshot):
         remote_system.get("hostname")
         or remote.get("resolved_name")
         or remote.get("target")
-        or "cible"
+        or tr("remote_target", lang)
     )
     ip = remote_network.get("ipv4") or remote.get("target")
 
@@ -42,18 +42,18 @@ def target_label(snapshot):
     return str(name)
 
 
-def causal_comparison_label(snapshot):
-    local_name = snapshot.get("system", {}).get("hostname") or "Machine locale"
+def causal_comparison_label(snapshot, lang="fr"):
+    local_name = snapshot.get("system", {}).get("hostname") or tr("local_machine", lang)
     remote = snapshot.get("remote_tests", {})
     remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
     remote_name = (
         remote_snapshot.get("system", {}).get("hostname")
         or remote.get("resolved_name")
         or remote.get("target")
-        or "Machine distante"
+        or tr("remote_target", lang)
     )
 
-    return f"Comparaison causale : {local_name} ↔ {remote_name}"
+    return f"{tr('causal_comparison', lang)} : {local_name} ↔ {remote_name}"
     
 def yn(value, lang):
     if value is True:
@@ -69,6 +69,20 @@ def state(value, lang):
     if value is False:
         return tr("closed", lang)
     return tr("unknown", lang)
+
+
+def translate_share_detail(value, lang):
+    if not value or lang != "en":
+        return value
+
+    translations = {
+        "Disque": "Disk",
+        "Pilotes d'imprimantes": "Printer drivers",
+        "Imprimante": "Printer",
+        "IPC distant": "Remote IPC",
+    }
+
+    return translations.get(str(value), value)
 
 
 def format_smb_shares(shares, lang):
@@ -103,8 +117,8 @@ def format_accessible_shares(shares, lang):
 
     for share in shares:
         name = share.get("name") or tr("unknown", lang)
-        share_type = share.get("type")
-        comment = share.get("comment")
+        share_type = translate_share_detail(share.get("type"), lang)
+        comment = translate_share_detail(share.get("comment"), lang)
         suffix = " / ".join(
             str(value)
             for value in (share_type, comment)
@@ -152,11 +166,11 @@ def append_block(lines, title, values):
         lines.extend(f"  {value}" for value in values)
 
 
-def append_key_values(lines, title, values):
+def append_key_values(lines, title, values, lang="fr"):
     lines.append(title)
 
     if not values:
-        lines.append("  Inconnu")
+        lines.append(f"  {tr('unknown', lang)}")
         return
 
     for key, value in values.items():
@@ -167,7 +181,7 @@ def summary_marker(ok):
     return "✓" if ok else "⚠"
 
 
-def build_executive_summary(snapshot):
+def build_executive_summary(snapshot, lang="fr"):
     network = snapshot.get("network", {})
     services = snapshot.get("services", {})
     tests = snapshot.get("tests", {})
@@ -182,34 +196,34 @@ def build_executive_summary(snapshot):
     )
     target_ok = bool(remote.get("ping_target")) if remote else None
     missing_comparison = any(
-        item.get("level") == "INFORMATION MANQUANTE"
+        item.get("level") in ("INFORMATION MANQUANTE", "MISSING INFORMATION")
         for item in causal_comparison
     )
 
     lines = [
-        f"{summary_marker(local_ok)} Réseau local fonctionnel"
+        f"{summary_marker(local_ok)} {tr('summary_local_ok', lang)}"
         if local_ok else
-        f"{summary_marker(False)} Réseau local à vérifier",
+        f"{summary_marker(False)} {tr('summary_local_warn', lang)}",
 
-        f"{summary_marker(dns_ok)} DNS correctement configuré"
+        f"{summary_marker(dns_ok)} {tr('summary_dns_ok', lang)}"
         if dns_ok else
-        f"{summary_marker(False)} DNS non renseigné ou incomplet",
+        f"{summary_marker(False)} {tr('summary_dns_warn', lang)}",
 
-        f"{summary_marker(smb_ok)} SMB opérationnel"
+        f"{summary_marker(smb_ok)} {tr('summary_smb_ok', lang)}"
         if smb_ok else
-        f"{summary_marker(False)} SMB local à vérifier",
+        f"{summary_marker(False)} {tr('summary_smb_warn', lang)}",
     ]
 
     if target_ok is not None:
         lines.append(
-            f"{summary_marker(target_ok)} Cible joignable"
+            f"{summary_marker(target_ok)} {tr('summary_target_ok', lang)}"
             if target_ok else
-            f"{summary_marker(False)} Cible non joignable"
+            f"{summary_marker(False)} {tr('summary_target_warn', lang)}"
         )
 
     if missing_comparison:
         lines.append(
-            "⚠ Comparaison complète impossible sans snapshot local sur la cible"
+            f"⚠ {tr('summary_missing_comparison', lang)}"
         )
 
     return lines
@@ -237,19 +251,19 @@ def generate_text_report(snapshot, lang="fr"):
     title = T("report_title")
 
     if remote:
-        title = f"{title} - Cible {target_label(snapshot)}"
+        title = f"{title} - {T('remote_target')} {target_label(snapshot, lang)}"
 
     lines.append(title)
     lines.append("=" * 50)
     lines.append(f"{T('generated')} : {format_timestamp(lang)}")
     if metadata.get("generated_at_local"):
-        lines.append(f"Snapshot local : {metadata.get('generated_at_local')}")
+        lines.append(f"{T('local_snapshot')} : {metadata.get('generated_at_local')}")
     lines.append("")
 
     lines.append("=" * 50)
-    lines.append("Résumé exécutif")
+    lines.append(T("executive_summary"))
     lines.append("=" * 50)
-    lines.extend(build_executive_summary(snapshot))
+    lines.extend(build_executive_summary(snapshot, lang))
     lines.append("")
 
     lines.append("=" * 50)
@@ -258,7 +272,7 @@ def generate_text_report(snapshot, lang="fr"):
     lines.append("")
 
     if remote:
-        lines.append("Rôle : machine locale exécutant DTLknowsWhy")
+        lines.append(f"{T('role')} : {T('local_role')}")
         lines.append("")
 
     lines.append(T("identity"))
@@ -314,36 +328,38 @@ def generate_text_report(snapshot, lang="fr"):
         network.get("accessible_smb_shares"),
         lang
     )
-    lines.append(f"{'Partages accessibles':<18} :")
+    lines.append(f"{T('accessible_shares'):<18} :")
     lines.extend(f"  {line}" for line in accessible_local)
 
     lines.append("")
 
-    lines.append("Sécurité")
+    lines.append(T("security"))
     lines.append("-" * 50)
     append_block(
         lines,
-        "Antivirus détectés :",
+        f"{T('detected_antivirus')} :",
         format_antivirus(security.get("antivirus_products"), lang)
     )
     append_block(
         lines,
-        "Filtres fltmc :",
+        f"{T('fltmc_filters')} :",
         format_filters(security.get("fltmc_filters"), lang)
     )
     lines.append("")
 
-    lines.append("Configuration SMB")
+    lines.append(T("smb_configuration"))
     lines.append("-" * 50)
     append_key_values(
         lines,
-        "Client SMB :",
-        network.get("smb_client_configuration")
+        f"{T('smb_client')} :",
+        network.get("smb_client_configuration"),
+        lang
     )
     append_key_values(
         lines,
-        "Serveur SMB :",
-        network.get("smb_server_configuration")
+        f"{T('smb_server')} :",
+        network.get("smb_server_configuration"),
+        lang
     )
     lines.append("")
 
@@ -365,35 +381,35 @@ def generate_text_report(snapshot, lang="fr"):
 
     if remote:
         lines.append("=" * 50)
-        lines.append(f"{T('remote_target')} : {target_label(snapshot)}")
+        lines.append(f"{T('remote_target')} : {target_label(snapshot, lang)}")
         lines.append("=" * 50)
         lines.append("")
 
-        lines.append("Rôle : machine distante analysée")
+        lines.append(f"{T('role')} : {T('remote_role')}")
         lines.append("")
 
         if remote_snapshot:
-            lines.append("Métadonnées du snapshot distant")
+            lines.append(T("remote_snapshot_metadata"))
             lines.append("-" * 50)
             lines.append(
-                f"{'Date/heure snapshot':<28} : "
+                f"{T('snapshot_datetime'):<28} : "
                 f"{remote_metadata.get('generated_at_local') or remote_metadata.get('generated_at') or T('unknown')}"
             )
             lines.append(
-                f"{'Nom machine distante':<28} : "
+                f"{T('remote_machine_name'):<28} : "
                 f"{remote_system.get('hostname') or T('unknown')}"
             )
             lines.append(
-                f"{'IPv4 machine distante':<28} : "
+                f"{T('remote_machine_ipv4'):<28} : "
                 f"{remote_network.get('ipv4') or remote.get('target') or T('unknown')}"
             )
             lines.append(
-                f"{'Compte SMB distant':<28} : "
+                f"{T('remote_smb_account'):<28} : "
                 f"{remote_system.get('smb_recommended_account') or T('unknown')}"
             )
             lines.append(
-                f"{'Fichier snapshot distant':<28} : "
-                f"{snapshot.get('remote_agent_snapshot_file') or 'JSON intégré au rapport'}"
+                f"{T('remote_snapshot_file'):<28} : "
+                f"{snapshot.get('remote_agent_snapshot_file') or T('embedded_json')}"
             )
             lines.append("")
 
@@ -408,7 +424,11 @@ def generate_text_report(snapshot, lang="fr"):
         mac = remote.get("mac_address")
 
         if not mac and remote.get("target") == network.get("ipv4"):
-            mac = "Machine locale (auto-test, MAC distante non applicable)"
+            mac = (
+                "Machine locale (auto-test, MAC distante non applicable)"
+                if lang == "fr"
+                else "Local machine (self-test, remote MAC not applicable)"
+            )
 
         elif not mac:
             mac = T("unknown")
@@ -428,7 +448,7 @@ def generate_text_report(snapshot, lang="fr"):
             remote.get("accessible_smb_shares"),
             lang
         )
-        lines.append(f"{'Partages accessibles':<18} :")
+        lines.append(f"{T('accessible_shares'):<18} :")
         lines.extend(f"  {line}" for line in remote_shares)
         lines.append("")
 
@@ -450,7 +470,7 @@ def generate_text_report(snapshot, lang="fr"):
 
     if causal_comparison:
         lines.append("=" * 50)
-        lines.append(causal_comparison_label(snapshot))
+        lines.append(causal_comparison_label(snapshot, lang))
         lines.append("=" * 50)
         lines.append("")
 
@@ -460,10 +480,10 @@ def generate_text_report(snapshot, lang="fr"):
             for evidence in item.get("evidence", []):
                 lines.append(f"  {evidence}")
 
-            lines.append(f"CAUSE : {item.get('cause')}")
+            lines.append(f"{T('cause').upper()} : {item.get('cause')}")
 
             if item.get("remediation"):
-                lines.append(f"ACTION : {item.get('remediation')}")
+                lines.append(f"{T('action').upper()} : {item.get('remediation')}")
 
             lines.append("")
 
@@ -483,7 +503,7 @@ def generate_text_report(snapshot, lang="fr"):
             lines.append(f"{prefix} {item.get('message')}")
 
             if item.get("remediation"):
-                lines.append(f"Action : {item.get('remediation')}")
+                lines.append(f"{T('action')} : {item.get('remediation')}")
 
             lines.append("")
 

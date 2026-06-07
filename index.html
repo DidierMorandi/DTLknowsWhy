@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTL Projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b0d0f;
+    --surface: #131619;
+    --surface2: #1a1e23;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaed;
+    --muted: #7a8290;
+    --accent-net: #38bdf8;
+    --accent-inst: #4e9eff;
+    --accent-diag: #ff7a45;
+    --accent-inv: #4ade80;
+    --tag-bg: rgba(255,255,255,0.05);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 80px 48px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+    border-bottom: 0.5px solid var(--border2);
+  }
+
+  .header-logo {
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 52px;
+    width: auto;
+    image-rendering: pixelated;
+}
+
+  .header-tag {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    font-weight: 400;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(42px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+    color: #ffffff;
+  }
+
+  h1 span { color: var(--muted); font-weight: 400; }
+
+  .header-desc {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 1280px;
+    line-height: 1.8;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 32px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .meta-row span::before { content: '// '; opacity: 0.5; }
+
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 64px 48px;
+    display: grid;
+    gap: 40px;
+  }
+
+  .project-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 2px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 3px 1fr;
+    transition: border-color 0.2s;
+  }
+
+  .project-card:hover { border-color: rgba(255,255,255,0.22); }
+
+  .card-accent {
+    width: 3px;
+    flex-shrink: 0;
+  }
+
+  .card-accent.net { background: var(--accent-net); }
+  .card-accent.inst { background: var(--accent-inst); }
+  .card-accent.diag { background: var(--accent-diag); }
+  .card-accent.inv { background: var(--accent-inv); }
+
+  .card-inner {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0;
+  }
+
+  .card-body {
+    padding: 36px 40px;
+    border-right: 0.5px solid var(--border);
+  }
+
+  .card-sidebar {
+    padding: 36px 32px;
+    background: var(--surface2);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .project-number {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .project-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    color: #ffffff;
+  }
+
+  .project-name.net { color: var(--accent-net); }
+  .project-name.inst { color: var(--accent-inst); }
+  .project-name.diag { color: var(--accent-diag); }
+  .project-name.inv { color: var(--accent-inv); }
+
+  .project-tagline {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-style: italic;
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+
+  .feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .feature-list li {
+    font-size: 13px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .feature-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 5px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.4;
+  }
+
+  .net .feature-list li::before { background: var(--accent-net); opacity: 0.7; }
+  .inst .feature-list li::before { background: var(--accent-inst); opacity: 0.7; }
+  .diag .feature-list li::before { background: var(--accent-diag); opacity: 0.7; }
+  .inv .feature-list li::before { background: var(--accent-inv); opacity: 0.7; }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--tag-bg);
+    border: 0.5px solid var(--border2);
+    padding: 4px 10px;
+    border-radius: 1px;
+    color: var(--muted);
+  }
+
+  .sidebar-block { display: flex; flex-direction: column; gap: 8px; }
+
+  .sidebar-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .sidebar-item:last-child { border-bottom: none; }
+
+  .sidebar-item .key { color: var(--muted); }
+  .sidebar-item .val { color: var(--text); font-size: 11px; }
+
+  .req-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .req-list li {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 1px;
+    border: 0.5px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge-version {
+    display: inline-block;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    margin-top: auto;
+    align-self: flex-start;
+  }
+
+  .badge-version.net { background: rgba(0,212,168,0.1); color: var(--accent-net); border: 0.5px solid rgba(0,212,168,0.3); }
+  .badge-version.inst { background: rgba(78,158,255,0.1); color: var(--accent-inst); border: 0.5px solid rgba(78,158,255,0.3); }
+  .badge-version.diag { background: rgba(255,122,69,0.1); color: var(--accent-diag); border: 0.5px solid rgba(255,122,69,0.3); }
+  .badge-version.inv { background: rgba(192,132,252,0.1); color: var(--accent-inv); border: 0.5px solid rgba(192,132,252,0.3); }
+
+  .card-class-label {
+    position: absolute;
+    bottom: 36px;
+    left: 40px;
+    font-size: 80px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    opacity: 0.03;
+    letter-spacing: -0.04em;
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+  }
+
+  .card-body { position: relative; }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 48px 64px;
+    border-top: 0.5px solid var(--border2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .github-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.3);
+    border: 0.5px solid var(--border2);
+    border-radius: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .github-link:hover { color: var(--text); border-color: rgba(255,255,255,0.22); }
+
+  .github-link svg { flex-shrink: 0; opacity: 0.6; }
+
+  @media (max-width: 768px) {
+    header, main, footer { padding-left: 20px; padding-right: 20px; }
+    .card-inner { grid-template-columns: 1fr; }
+    .card-body { border-right: none; border-bottom: 0.5px solid var(--border); }
+    .card-sidebar { }
+  }
+
+  .lang-switcher {
+    position: fixed;
+    top: 14px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .lang-switcher a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 3px 8px;
+    border: 0.5px solid var(--border2);
+    border-radius: 1px;
+    background: rgba(0,0,0,0.4);
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .lang-switcher a:hover { color: var(--text); border-color: rgba(255,255,255,0.22); }
+  .lang-switcher a.active { color: var(--text); border-color: rgba(255,255,255,0.22); pointer-events: none; }
+  .lang-switcher span { color: var(--border2); }
+</style>
+</head>
+<body>
+<div class="lang-switcher">
+  <a href="index_en.html">En</a>
+  <span>|</span>
+  <a href="index.html" class="active">Fr</a>
+</div>
+<div class="grid-bg"></div>
+
+<header>
+  <img class="header-logo" src="data:image/jpeg;base64,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" alt="NetDTL logo">
+  <p class="header-tag">DTL Software &mdash; Juin 2026</p>
+  <h3 align=center>A tribute to Digital Equipment Corporation (1957 - 1998)</h3>
+  <p>&nbsp;</p>
+  <h1 align=center>Trois outils r&eacute;seau &amp; syst&egrave;me</h1>
+  <p class="header-desc">Trois projets open source pour la d&eacute;couverte, le diagnostic et l&rsquo;inventaire d&rsquo;infrastructures Windows.</p>
+  <div class="meta-row">
+    <span>Didier DTL Morandi</span>
+    <span>didier.morandi@gmail.com</span>
+    <span>MIT License</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- NetDTL -->
+  <div class="project-card">
+    <div class="card-accent net"></div>
+    <div class="card-inner">
+      <div class="card-body">
+        <div class="card-class-label">01</div>
+        <p class="project-number">Projet 01 / 03</p>
+        <h2 class="project-name net">NetDTL</h2>
+        <p class="project-tagline">Inventaire r&eacute;seau agentless, l&eacute;ger, en temps r&eacute;el</p>
+
+        <p class="section-label">Fonctionnalit&eacute;s</p>
+        <ul class="feature-list net">
+          <li>D&eacute;couverte r&eacute;seau par plage CIDR via Nmap (streaming SSE)</li>
+          <li>Inventaire machines : statut, ping, ports ouverts, MAC, fabricant</li>
+          <li>Identification NetBIOS et descriptions WMI (machines Windows)</li>
+          <li>Gestion du patch panel (mapping port &harr; machine)</li>
+          <li>Diagnostics r&eacute;seau : ping, traceroute, DNS, scan de ports</li>
+          <li>Profil machine &eacute;ditable : OS, port switch, commentaire</li>
+          <li>Export CSV de l&rsquo;inventaire</li>
+          <li>Interface web sombre, sans d&eacute;pendances JS externes</li>
+          <li>Authentification HTTP Basic int&eacute;gr&eacute;e</li>
+        </ul>
+
+        <p class="section-label">Stack</p>
+        <div class="tags">
+          <span class="tag">PHP 8.x</span>
+          <span class="tag">MySQL / MariaDB</span>
+          <span class="tag">Nmap</span>
+          <span class="tag">XAMPP</span>
+          <span class="tag">LAMP</span>
+          <span class="tag">Server-Sent Events</span>
+          <span class="tag">PDO</span>
+        </div>
+      </div>
+      <div class="card-sidebar">
+        <div class="sidebar-block">
+          <p class="section-label">Informations</p>
+          <div class="sidebar-item"><span class="key">Version</span><span class="val">1.0-1</span></div>
+          <div class="sidebar-item"><span class="key">Date</span><span class="val">23 mai 2026</span></div>
+          <div class="sidebar-item"><span class="key">Licence</span><span class="val">MIT</span></div>
+          <div class="sidebar-item"><span class="key">D&eacute;ploiement</span><span class="val">htdocs / vhost</span></div>
+        </div>
+        <div class="sidebar-block">
+          <p class="section-label">Pr&eacute;requis</p>
+          <ul class="req-list">
+            <li>PHP 8.x + pdo_mysql, mbstring</li>
+            <li>MySQL / MariaDB</li>
+            <li>Nmap</li>
+            <li>XAMPP ou LAMP</li>
+          </ul>
+        </div>
+        <p class="section-label" style="margin-top:28px;">Documentation</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+          <a href="doc/NetDTL_Manuel_de_Reference.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--accent-net);text-decoration:none;padding:5px 10px;background:rgba(0,212,168,0.07);border:0.5px solid rgba(0,212,168,0.3);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:background 0.2s;" onmouseover="this.style.background='rgba(0,212,168,0.15)'" onmouseout="this.style.background='rgba(0,212,168,0.07)'">Manuel de r&eacute;f&eacute;rence</a>
+          <a href="doc/NetDTL_Guide_Utilisateur.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--accent-net);text-decoration:none;padding:5px 10px;background:rgba(0,212,168,0.07);border:0.5px solid rgba(0,212,168,0.3);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:background 0.2s;" onmouseover="this.style.background='rgba(0,212,168,0.15)'" onmouseout="this.style.background='rgba(0,212,168,0.07)'">Guide utilisateur</a>
+        </div>
+        <a class="github-link" href="https://github.com/DidierMorandi/netdtl" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          DidierMorandi/netdtl
+        </a>
+        <span class="badge-version net">v1.0-1 stable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DTLknowsWhy -->
+  <div class="project-card">
+    <div class="card-accent diag"></div>
+    <div class="card-inner">
+      <div class="card-body">
+        <div class="card-class-label">02</div>
+        <p class="project-number">Projet 02 / 03</p>
+        <h2 class="project-name diag">DTLknowsWhy</h2>
+        <p class="project-tagline">Moteur expert de diagnostic et d'analyse causale pour Windows</p>
+
+        <p class="section-label">Fonctionnalit&eacute;s</p>
+        <ul class="feature-list diag">
+          <li>Inventaire du poste Windows et génération d'un snapshot local</li>
+          <li>Analyse réseau, DNS, résolution de noms et services Windows</li>
+          <li>Diagnostic du client et du serveur SMB</li>
+          <li>Collecte de snapshots distants via DTLknowsWhy-Agent</li>
+          <li>Agent distant HTTP installable comme service Windows</li>
+          <li>Comparaison poste local / poste distant</li>
+          <li>Détection des différences de configuration, SMB, DNS et identité</li>
+          <li>Moteur expert basé sur des règles causales</li>
+          <li>Rapports TXT et HTML enrichis, en français et en anglais</li>
+          <li>Visualisation distincte des systèmes local et distant</li>
+        </ul>
+
+        <p class="section-label">Stack</p>
+        <div class="tags">
+          <span class="tag">Python 3.10+</span>
+          <span class="tag">Windows 10/11</span>
+          <span class="tag">DTLknowsWhy-Agent</span>
+          <span class="tag">HTTP 5050</span>
+          <span class="tag">Service Windows</span>
+          <span class="tag">WMI</span>
+          <span class="tag">SMB</span>
+          <span class="tag">DNS</span>
+          <span class="tag">Analyse causale</span>
+          <span class="tag">Rapports HTML</span>
+          <span class="tag">FR / EN</span>
+        </div>
+      </div>
+      <div class="card-sidebar">
+        <div class="sidebar-block">
+          <p class="section-label">Informations</p>
+          <div class="sidebar-item"><span class="key">Version</span><span class="val">2.0.0</span></div>
+          <div class="sidebar-item"><span class="key">Date</span><span class="val">6 juin 2026</span></div>
+          <div class="sidebar-item"><span class="key">Licence</span><span class="val">MIT</span></div>
+          <div class="sidebar-item"><span class="key">Langues</span><span class="val">FR / EN</span></div>
+          <div class="sidebar-item"><span class="key">Objectif</span><span class="val">Pourquoi ?</span></div>
+        </div>
+        <div class="sidebar-block">
+          <p class="section-label">Pr&eacute;requis</p>
+          <ul class="req-list">
+            <li>Python 3.10+</li>
+            <li>Windows 10 / 11</li>
+            <li>Droits administrateur recommandés</li>
+            <li>Port TCP 5050 pour l'agent distant</li>
+          </ul>
+        </div>
+        <p class="section-label" style="margin-top:28px;">Documentation</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+          <a href="doc/DTLknowsWhy_Manuel_de_Reference.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--accent-diag);text-decoration:none;padding:5px 10px;background:rgba(255,122,69,0.07);border:0.5px solid rgba(255,122,69,0.3);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,122,69,0.15)'" onmouseout="this.style.background='rgba(255,122,69,0.07)'">Manuel de r&eacute;f&eacute;rence</a>
+          <a href="doc/DTLknowsWhy_Guide_Utilisateur.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--accent-diag);text-decoration:none;padding:5px 10px;background:rgba(255,122,69,0.07);border:0.5px solid rgba(255,122,69,0.3);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,122,69,0.15)'" onmouseout="this.style.background='rgba(255,122,69,0.07)'">Guide utilisateur</a>
+        </div>
+        <a class="github-link" href="https://github.com/DidierMorandi/DTLknowsWhy" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          DidierMorandi/DTLknowsWhy
+        </a>
+        <span class="badge-version diag">v2.0.0 agent distant</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DTLsaysWhat -->
+  <div class="project-card">
+    <div class="card-accent inv"></div>
+    <div class="card-inner">
+      <div class="card-body inv">
+        <div class="card-class-label">03</div>
+        <p class="project-number">Projet 03 / 03</p>
+        <h2 class="project-name inv">DTLsaysWhat</h2>
+        <p class="project-tagline">Inventaire syst&egrave;me Windows complet, en ligne de commande</p>
+
+        <p class="section-label">Fonctionnalit&eacute;s</p>
+        <ul class="feature-list inv">
+          <li>Collecte de 20 cat&eacute;gories : syst&egrave;me, mat&eacute;riel, m&eacute;moire, disques, GPU, r&eacute;seau, logiciels, services, processus, d&eacute;marrage, s&eacute;curit&eacute;, mises &agrave; jour, pilotes, utilisateurs, t&acirc;ches, partages, &eacute;v&eacute;nements, performances, virtualisation</li>
+          <li>Collecte locale ou distante (<code style="font-size:11px;background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:1px;">--computer</code>)</li>
+          <li>Double sortie automatique : rapport texte et rapport HTML navigable</li>
+          <li>Rapport HTML avec barre lat&eacute;rale, liens d&rsquo;ancrage par section</li>
+          <li>Inspir&eacute; de l&rsquo;utilitaire <em>WHAT</em> de Stanley Rabinowitz (DEC VAX/VMS, ann&eacute;es 80)</li>
+        </ul>
+
+        <p class="section-label">Stack</p>
+        <div class="tags">
+          <span class="tag">Python 3</span>
+          <span class="tag">WMI</span>
+          <span class="tag">psutil</span>
+          <span class="tag">PowerShell</span>
+          <span class="tag">Registre Windows</span>
+          <span class="tag">Windows 10/11</span>
+          <span class="tag">HTML reports</span>
+        </div>
+      </div>
+      <div class="card-sidebar">
+        <div class="sidebar-block">
+          <p class="section-label">Informations</p>
+          <div class="sidebar-item"><span class="key">Version</span><span class="val">1.0</span></div>
+          <div class="sidebar-item"><span class="key">Date</span><span class="val">28 mai 2026</span></div>
+          <div class="sidebar-item"><span class="key">Licence</span><span class="val">MIT</span></div>
+          <div class="sidebar-item"><span class="key">Cible</span><span class="val">Windows 10/11</span></div>
+        </div>
+        <div class="sidebar-block">
+          <p class="section-label">Pr&eacute;requis</p>
+          <ul class="req-list">
+            <li>Python 3</li>
+            <li>wmi</li>
+            <li>pywin32</li>
+            <li>psutil</li>
+          </ul>
+        </div>
+        <p class="section-label" style="margin-top:28px;">Documentation</p>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <a href="doc/DTLsaysWhat_Manuel_de_Reference.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--accent-inv);text-decoration:none;padding:5px 10px;background:rgba(192,132,252,0.07);border:0.5px solid rgba(192,132,252,0.3);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:background 0.2s;" onmouseover="this.style.background='rgba(192,132,252,0.15)'" onmouseout="this.style.background='rgba(192,132,252,0.07)'">Manuel de r&eacute;f&eacute;rence</a>
+          <a href="doc/DTLsaysWhat_Guide_Utilisateur.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--accent-inv);text-decoration:none;padding:5px 10px;background:rgba(192,132,252,0.07);border:0.5px solid rgba(192,132,252,0.3);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:background 0.2s;" onmouseover="this.style.background='rgba(192,132,252,0.15)'" onmouseout="this.style.background='rgba(192,132,252,0.07)'">Guide utilisateur</a>
+          <a href="doc/DTLsaysWhat_PREDATOR_example.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.08em;color:var(--muted);text-decoration:none;padding:5px 10px;background:rgba(0,0,0,0.3);border:0.5px solid var(--border2);border-radius:1px;font-family:'JetBrains Mono',monospace;transition:color 0.2s,border-color 0.2s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='rgba(255,255,255,0.22)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)'">Exemple de rapport</a>
+        </div>
+        <a class="github-link" href="DTLsaysWhat/DTLsaysWhat.zip" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+		  DTLsaysWhat.zip (12 Ko)
+        </a>
+        <span class="badge-version inv">v1.0 stable</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>&copy; 2026 Didier DTL Morandi &mdash; MIT License</span>
+  <span>didier.morandi@gmail.com</span>
+</footer>
+</body>
+</html>

@@ -25,7 +25,7 @@ def machine_label(snapshot, fallback="Inconnu"):
     return str(name)
 
 
-def target_label(snapshot):
+def target_label(snapshot, lang="fr"):
     remote = snapshot.get("remote_tests", {})
     remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
     remote_system = remote_snapshot.get("system", {})
@@ -34,7 +34,7 @@ def target_label(snapshot):
         remote_system.get("hostname")
         or remote.get("resolved_name")
         or remote.get("target")
-        or "cible"
+        or tr("remote_target", lang)
     )
     ip = remote_network.get("ipv4") or remote.get("target")
 
@@ -44,18 +44,18 @@ def target_label(snapshot):
     return str(name)
 
 
-def causal_comparison_label(snapshot):
-    local_name = snapshot.get("system", {}).get("hostname") or "Machine locale"
+def causal_comparison_label(snapshot, lang="fr"):
+    local_name = snapshot.get("system", {}).get("hostname") or tr("local_machine", lang)
     remote = snapshot.get("remote_tests", {})
     remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
     remote_name = (
         remote_snapshot.get("system", {}).get("hostname")
         or remote.get("resolved_name")
         or remote.get("target")
-        or "Machine distante"
+        or tr("remote_target", lang)
     )
 
-    return f"Comparaison causale : {local_name} ↔ {remote_name}"
+    return f"{tr('causal_comparison', lang)} : {local_name} ↔ {remote_name}"
 
 
 def yn(value, lang):
@@ -72,6 +72,20 @@ def state(value, lang):
     if value is False:
         return f'<span class="val-closed">{tr("closed", lang)}</span>'
     return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
+
+
+def translate_share_detail(value, lang):
+    if not value or lang != "en":
+        return value
+
+    translations = {
+        "Disque": "Disk",
+        "Pilotes d'imprimantes": "Printer drivers",
+        "Imprimante": "Printer",
+        "IPC distant": "Remote IPC",
+    }
+
+    return translations.get(str(value), value)
 
 
 def badge_class(target_type):
@@ -94,10 +108,16 @@ def finding_class(level):
         "FAIL": "finding-fail",
         "INFO": "finding-info",
         "CAUSE PROBABLE": "finding-cause-probable",
+        "PROBABLE CAUSE": "finding-cause-probable",
         "CAUSE POSSIBLE": "finding-cause-possible",
+        "POSSIBLE CAUSE": "finding-cause-possible",
         "À VÉRIFIER": "finding-to-check",
         "A VÉRIFIER": "finding-to-check",
-        "OBSERVE": "finding-ok"
+        "TO CHECK": "finding-to-check",
+        "OBSERVE": "finding-ok",
+        "OBSERVED": "finding-ok",
+        "CONFIRMED CAUSE": "finding-fail",
+        "MISSING INFORMATION": "finding-warn"
     }
 
     return mapping.get(level, "finding-info")
@@ -140,7 +160,7 @@ def format_accessible_shares_html(shares, lang):
     for share in shares:
         name = escape(str(share.get("name") or tr("unknown", lang)))
         details = " / ".join(
-            escape(str(value))
+            escape(str(translate_share_detail(value, lang)))
             for value in (share.get("type"), share.get("comment"))
             if value
         )
@@ -186,9 +206,9 @@ def format_filters_html(filters, lang):
     return '<ul class="share-list">' + "".join(items) + "</ul>"
 
 
-def format_config_rows(config):
+def format_config_rows(config, lang="fr"):
     if not config:
-        return '<tr><td>Inconnu</td><td></td></tr>'
+        return f'<tr><td>{escape(tr("unknown", lang))}</td><td></td></tr>'
 
     rows = []
 
@@ -204,7 +224,7 @@ def summary_marker(ok):
     return "✓" if ok else "⚠"
 
 
-def build_executive_summary(snapshot):
+def build_executive_summary(snapshot, lang="fr"):
     network = snapshot.get("network", {})
     services = snapshot.get("services", {})
     tests = snapshot.get("tests", {})
@@ -219,33 +239,33 @@ def build_executive_summary(snapshot):
     )
     target_ok = bool(remote.get("ping_target")) if remote else None
     missing_comparison = any(
-        item.get("level") == "INFORMATION MANQUANTE"
+        item.get("level") in ("INFORMATION MANQUANTE", "MISSING INFORMATION")
         for item in causal_comparison
     )
 
     lines = [
-        (local_ok, "Réseau local fonctionnel" if local_ok else "Réseau local à vérifier"),
-        (dns_ok, "DNS correctement configuré" if dns_ok else "DNS non renseigné ou incomplet"),
-        (smb_ok, "SMB opérationnel" if smb_ok else "SMB local à vérifier"),
+        (local_ok, tr("summary_local_ok", lang) if local_ok else tr("summary_local_warn", lang)),
+        (dns_ok, tr("summary_dns_ok", lang) if dns_ok else tr("summary_dns_warn", lang)),
+        (smb_ok, tr("summary_smb_ok", lang) if smb_ok else tr("summary_smb_warn", lang)),
     ]
 
     if target_ok is not None:
         lines.append(
-            (target_ok, "Cible joignable" if target_ok else "Cible non joignable")
+            (target_ok, tr("summary_target_ok", lang) if target_ok else tr("summary_target_warn", lang))
         )
 
     if missing_comparison:
         lines.append(
-            (False, "Comparaison complète impossible sans snapshot local sur la cible")
+            (False, tr("summary_missing_comparison", lang))
         )
 
     return lines
 
 
-def format_executive_summary_html(snapshot):
+def format_executive_summary_html(snapshot, lang="fr"):
     items = []
 
-    for ok, text in build_executive_summary(snapshot):
+    for ok, text in build_executive_summary(snapshot, lang):
         css_class = "val-ok" if ok else "val-closed"
         items.append(
             f'<li><span class="{css_class}">{summary_marker(ok)}</span> '
@@ -281,7 +301,7 @@ def generate_html_report(snapshot, lang="fr"):
     report_title = T("report_title")
 
     if remote:
-        report_title = f"{report_title} - Cible {target_label(snapshot)}"
+        report_title = f"{report_title} - {T('remote_target')} {target_label(snapshot, lang)}"
 
     mac = None
 
@@ -663,21 +683,21 @@ summary:hover {{
     <div>
         <h1>{escape(report_title)}</h1>
         <p>{T('generated')} : {format_timestamp(lang)}</p>
-        <p>Machine locale : {escape(machine_label(snapshot))}</p>
-        {f'<p>Machine distante : {escape(target_label(snapshot))}</p>' if remote else ''}
-        {f'<p>Snapshot distant : {escape(str(remote_snapshot_time))}</p>' if remote_snapshot_time else ''}
+        <p>{T('local_machine')} : {escape(machine_label(snapshot))}</p>
+        {f'<p>{T("remote_target")} : {escape(target_label(snapshot, lang))}</p>' if remote else ''}
+        {f'<p>{T("remote_snapshot")} : {escape(str(remote_snapshot_time))}</p>' if remote_snapshot_time else ''}
     </div>
     <img src="netdtl_logo.png" alt="NetDTL Logo">
 </div>
 
 <div class="section">
-<h2>Résumé exécutif</h2>
-{format_executive_summary_html(snapshot)}
+<h2>{T('executive_summary')}</h2>
+{format_executive_summary_html(snapshot, lang)}
 </div>
 
 <div class="section section-local">
 <h2>{T('local_machine')} : {escape(machine_label(snapshot))}</h2>
-<p><strong>Rôle :</strong> machine locale exécutant DTLknowsWhy</p>
+<p><strong>{T('role')} :</strong> {T('local_role')}</p>
 
 <div class="subsection">
 <h3>{T('identity')}</h3>
@@ -715,27 +735,27 @@ summary:hover {{
 <tr><td>{T('netbios')}</td><td>{yn(network.get('netbios_enabled'), lang)}</td></tr>
 <tr><td>{T('smb_shares')}</td>
 <td>{format_smb_shares_html(network.get('smb_shares'), lang)}</td></tr>
-<tr><td>Partages accessibles</td>
+<tr><td>{T('accessible_shares')}</td>
 <td>{format_accessible_shares_html(network.get('accessible_smb_shares'), lang)}</td></tr>
 </table>
 </div>
 
 <div class="subsection">
-<h3>Sécurité</h3>
+<h3>{T('security')}</h3>
 <table>
-<tr><td>Antivirus</td>
+<tr><td>{T('detected_antivirus')}</td>
 <td>{format_antivirus_html(security.get('antivirus_products'), lang)}</td></tr>
-<tr><td>Filtres fltmc</td>
+<tr><td>{T('fltmc_filters')}</td>
 <td>{format_filters_html(security.get('fltmc_filters'), lang)}</td></tr>
 </table>
 </div>
 
 <details>
-<summary>Configuration SMB</summary>
-<h3>Client SMB</h3>
-<table>{format_config_rows(network.get('smb_client_configuration'))}</table>
-<h3>Serveur SMB</h3>
-<table>{format_config_rows(network.get('smb_server_configuration'))}</table>
+<summary>{T('smb_configuration')}</summary>
+<h3>{T('smb_client')}</h3>
+<table>{format_config_rows(network.get('smb_client_configuration'), lang)}</table>
+<h3>{T('smb_server')}</h3>
+<table>{format_config_rows(network.get('smb_server_configuration'), lang)}</table>
 </details>
 
 <details>
@@ -746,12 +766,12 @@ summary:hover {{
     for name, status in services.items():
         html += f"<tr><td>{name}</td><td>{status}</td></tr>"
 
-    html += """
+    html += f"""
 </table>
 </details>
 
 <details>
-<summary>Tests</summary>
+<summary>{T('tests')}</summary>
 <table>
 """
 
@@ -767,20 +787,20 @@ summary:hover {{
     if remote:
         html += f"""
 <div class="section section-remote">
-<h2>{T('remote_target')} : {escape(target_label(snapshot))}</h2>
-<p><strong>Rôle :</strong> machine distante analysée</p>
+<h2>{T('remote_target')} : {escape(target_label(snapshot, lang))}</h2>
+<p><strong>{T('role')} :</strong> {T('remote_role')}</p>
 """
 
         if remote_snapshot:
             html += f"""
 <div class="subsection">
-<h3>Métadonnées du snapshot distant</h3>
+<h3>{T('remote_snapshot_metadata')}</h3>
 <table>
-<tr><td>Date/heure snapshot</td><td>{escape(str(remote_snapshot_time or T('unknown')))}</td></tr>
-<tr><td>Nom machine distante</td><td>{escape(str(remote_system.get('hostname') or T('unknown')))}</td></tr>
-<tr><td>IPv4 machine distante</td><td>{escape(str(remote_network.get('ipv4') or remote.get('target') or T('unknown')))}</td></tr>
-<tr><td>Compte SMB distant</td><td>{escape(str(remote_system.get('smb_recommended_account') or T('unknown')))}</td></tr>
-<tr><td>Fichier snapshot distant</td><td>{escape(str(snapshot.get('remote_agent_snapshot_file') or 'JSON intégré au rapport'))}</td></tr>
+<tr><td>{T('snapshot_datetime')}</td><td>{escape(str(remote_snapshot_time or T('unknown')))}</td></tr>
+<tr><td>{T('remote_machine_name')}</td><td>{escape(str(remote_system.get('hostname') or T('unknown')))}</td></tr>
+<tr><td>{T('remote_machine_ipv4')}</td><td>{escape(str(remote_network.get('ipv4') or remote.get('target') or T('unknown')))}</td></tr>
+<tr><td>{T('remote_smb_account')}</td><td>{escape(str(remote_system.get('smb_recommended_account') or T('unknown')))}</td></tr>
+<tr><td>{T('remote_snapshot_file')}</td><td>{escape(str(snapshot.get('remote_agent_snapshot_file') or T('embedded_json')))}</td></tr>
 </table>
 </div>
 """
@@ -806,7 +826,7 @@ summary:hover {{
 <tr><td>TCP 139</td><td>{state(remote.get('tcp_139'), lang)}</td></tr>
 <tr><td>TCP 443</td><td>{state(remote.get('tcp_443'), lang)}</td></tr>
 <tr><td>TCP 445</td><td>{state(remote.get('tcp_445'), lang)}</td></tr>
-<tr><td>Partages accessibles</td>
+<tr><td>{T('accessible_shares')}</td>
 <td>{format_accessible_shares_html(remote.get('accessible_smb_shares'), lang)}</td></tr>
 </table>
 </div>
@@ -816,7 +836,7 @@ summary:hover {{
     if causal_comparison:
         html += f"""
 <div class="section">
-<h2>{escape(causal_comparison_label(snapshot))}</h2>
+<h2>{escape(causal_comparison_label(snapshot, lang))}</h2>
 """
 
         for item in causal_comparison:
@@ -829,7 +849,7 @@ summary:hover {{
                 for evidence in item.get("evidence", [])
             )
             remediation_html = (
-                f'<p class="finding-remediation"><strong>Action :</strong> '
+                f'<p class="finding-remediation"><strong>{T("action")} :</strong> '
                 f'{escape(str(remediation))}</p>'
                 if remediation else ""
             )
@@ -841,7 +861,7 @@ summary:hover {{
         <span class="finding-case">{title}</span>
     </div>
     <ul class="share-list">{evidence_html}</ul>
-    <p class="finding-message"><strong>Cause :</strong> {cause}</p>
+    <p class="finding-message"><strong>{T('cause')} :</strong> {cause}</p>
     {remediation_html}
 </div>
 """
@@ -867,7 +887,7 @@ summary:hover {{
                 if case else ""
             )
             remediation_html = (
-                f'<p class="finding-remediation"><strong>Action :</strong> '
+                f'<p class="finding-remediation"><strong>{T("action")} :</strong> '
                 f'{escape(str(remediation))}</p>'
                 if remediation else ""
             )

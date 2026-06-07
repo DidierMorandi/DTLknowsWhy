@@ -22,6 +22,7 @@ from shared.report import generate_text_report
 from shared.report_writer import save_text_report
 from shared.html_report import generate_html_report
 from shared.html_writer import save_html_report
+from shared.i18n import tr
 
 AGENT_PORT = 5050
 AGENT_TIMEOUT_SECONDS = 120
@@ -36,7 +37,11 @@ def is_cli_executable():
     )
 
 
-def agent_hosts(target):
+def text(key, lang="fr", **values):
+    return tr(key, lang).format(**values)
+
+
+def agent_hosts(target, lang="fr"):
     hosts = []
 
     try:
@@ -58,7 +63,12 @@ def agent_hosts(target):
                     hosts.append(host)
 
         except OSError as exc:
-            print(f"Resolution IPv4 agent impossible pour {target}: {exc}")
+            print(text(
+                "cli_agent_ipv4_resolution_failed",
+                lang,
+                target=target,
+                error=exc,
+            ))
 
         if target not in hosts:
             hosts.append(target)
@@ -66,25 +76,25 @@ def agent_hosts(target):
     return hosts
 
 
-def require_administrator():
+def require_administrator(lang="fr"):
     if is_admin():
         return
 
     print("")
     print("=" * 70)
-    print("DTLknowsWhy doit être lancé depuis une fenêtre de commande")
-    print("ouverte en mode administrateur.")
+    print(tr("cli_admin_line_1", lang))
+    print(tr("cli_admin_line_2", lang))
     print("")
-    print("Procédure recommandée :")
-    print("  1. Ouvrir le menu Démarrer")
-    print("  2. Chercher Invite de commandes ou PowerShell")
-    print("  3. Choisir Exécuter en tant qu'administrateur")
-    print("  4. Relancer DTLknowsWhy.exe depuis cette fenêtre")
+    print(tr("cli_admin_steps_title", lang))
+    print(tr("cli_admin_step_1", lang))
+    print(tr("cli_admin_step_2", lang))
+    print(tr("cli_admin_step_3", lang))
+    print(tr("cli_admin_step_4", lang))
     print("=" * 70)
     print("")
 
     try:
-        input("Appuyez sur Entree pour quitter...")
+        input(tr("cli_press_enter", lang))
     except EOFError:
         pass
 
@@ -94,9 +104,9 @@ def require_administrator():
 def fetch_agent_snapshot(target, lang="fr"):
     query = urllib.parse.urlencode({"lang": lang})
 
-    for host in agent_hosts(target):
+    for host in agent_hosts(target, lang):
         url = f"http://{host}:{AGENT_PORT}/snapshot?{query}"
-        print(f"Appel agent : {url}")
+        print(text("cli_agent_call", lang, url=url))
 
         try:
             with urllib.request.urlopen(url, timeout=AGENT_TIMEOUT_SECONDS) as response:
@@ -105,7 +115,12 @@ def fetch_agent_snapshot(target, lang="fr"):
                 return json.loads(payload)
 
         except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
-            print(f"Snapshot agent indisponible via {host}: {exc}")
+            print(text(
+                "cli_agent_snapshot_unavailable",
+                lang,
+                host=host,
+                error=exc,
+            ))
 
     return None
 
@@ -113,16 +128,16 @@ def fetch_agent_snapshot(target, lang="fr"):
 def create_snapshot(target=None, lang="fr", save_outputs=True):
     snapshot_time = datetime.now()
 
-    print("Collecte système...")
+    print(tr("cli_collect_system", lang))
     system = collect_system_info()
 
-    print("Collecte réseau...")
+    print(tr("cli_collect_network", lang))
     network = collect_network_info()
 
-    print("Tests locaux...")
+    print(tr("cli_local_tests", lang))
     tests = collect_basic_tests(network)
 
-    print("Inspection services Windows...")
+    print(tr("cli_inspect_services", lang))
     services = collect_services()
 
     snapshot = {
@@ -139,10 +154,10 @@ def create_snapshot(target=None, lang="fr", save_outputs=True):
     }
 
     if target:
-        print(f"Tests distants vers {target}...")
+        print(text("cli_remote_tests", lang, target=target))
         snapshot["remote_tests"] = collect_remote_tests(target)
 
-        print(f"Demande de snapshot complet à l'agent {target}...")
+        print(text("cli_request_agent_snapshot", lang, target=target))
         target_snapshot = fetch_agent_snapshot(target, lang)
 
         if target_snapshot:
@@ -159,21 +174,25 @@ def create_snapshot(target=None, lang="fr", save_outputs=True):
                 target_name = target_snapshot.get("system", {}).get("hostname") or target
                 target_file = export_snapshot(target_snapshot, target_name)
                 snapshot["remote_agent_snapshot_file"] = str(target_file)
-                print(f"Snapshot agent reçu : {target_file}")
+                print(text(
+                    "cli_agent_snapshot_received_file",
+                    lang,
+                    file=target_file,
+                ))
             else:
-                print("Snapshot agent reçu.")
+                print(tr("cli_agent_snapshot_received", lang))
         else:
             snapshot["remote_agent_snapshot_received"] = False
 
-    print("Analyse moteur expert...")
-    snapshot["diagnosis"] = analyze(snapshot)
+    print(tr("cli_expert_analysis", lang))
+    snapshot["diagnosis"] = analyze(snapshot, lang)
 
     if target:
-        print("Comparaison causale avec la cible...")
+        print(tr("cli_causal_comparison", lang))
         if target_snapshot:
-            snapshot["causal_comparison"] = compare_causal(snapshot, target_snapshot)
+            snapshot["causal_comparison"] = compare_causal(snapshot, target_snapshot, lang)
         else:
-            snapshot["causal_comparison"] = compare_remote_target(snapshot)
+            snapshot["causal_comparison"] = compare_remote_target(snapshot, lang)
 
     if not save_outputs:
         return snapshot
@@ -188,9 +207,9 @@ def create_snapshot(target=None, lang="fr", save_outputs=True):
     html = generate_html_report(snapshot, lang)
     html_file = save_html_report(html, output_name)
 
-    print(f"Snapshot exporté : {output}")
-    print(f"Rapport TXT      : {report_file}")
-    print(f"Rapport HTML     : {html_file}")
+    print(text("cli_snapshot_exported", lang, file=output))
+    print(text("cli_txt_report", lang, file=report_file))
+    print(text("cli_html_report", lang, file=html_file))
 
     return snapshot
 
@@ -242,7 +261,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lang",
         choices=["fr", "en"],
-        default="fr",
+        default="en",
         help="Language"
     )
 
@@ -252,19 +271,24 @@ if __name__ == "__main__":
         from agent.gui import run_gui
 
         if args.target:
-            run_gui(create_snapshot, initial_target=args.target, auto_start=True)
+            run_gui(
+                create_snapshot,
+                initial_target=args.target,
+                auto_start=True,
+                lang=args.lang,
+            )
         else:
-            run_gui(create_snapshot)
+            run_gui(create_snapshot, lang=args.lang)
 
     elif args.listen:
-        require_administrator()
+        require_administrator(args.lang)
         from agent.server import run as run_server
         run_server(once=args.once)
 
     elif args.snapshot or args.target:
-        require_administrator()
+        require_administrator(args.lang)
         create_snapshot(args.target, args.lang)
 
     else:
         from agent.gui import run_gui
-        run_gui(create_snapshot)
+        run_gui(create_snapshot, lang=args.lang)

@@ -1,3 +1,6 @@
+from expert.rule_translation import translate_findings
+
+
 def looks_like_ipv4(value):
     if not value:
         return False
@@ -13,7 +16,7 @@ def looks_like_ipv4(value):
         return False
 
 
-def analyze(snapshot):
+def analyze(snapshot, lang="fr"):
     findings = []
 
     tests = snapshot.get("tests", {})
@@ -262,4 +265,4 @@ def analyze(snapshot):
                 )
             })
 
-    return findings
+    return translate_findings(findings, lang)
