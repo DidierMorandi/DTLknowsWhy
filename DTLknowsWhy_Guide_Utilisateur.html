@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DTLknowsWhy &mdash; User Guide v1.2</title>
+<title>DTLknowsWhy &mdash; Guide utilisateur v2.1</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
 
@@ -389,7 +389,7 @@
 <main>
 
   <div class="doc-header">
-    <h1><span class="accent">DTLknowsWhy</span> &mdash; Guide utilisateur</h1>
+    <h1><span class="accent">DTLknowsWhy</span> &mdash; Guide utilisateur v2.1</h1>
     <p style="color:var(--text-muted);font-size:13px;margin-top:10px;">Guide pratique pour installer, exécuter et interpréter DTLknowsWhy 2.1 &mdash; du premier snapshot local à la comparaison causale complète entre deux machines.</p>
     <div class="meta-pills">
       <span class="pill"><span class="k">version</span>2.1.0</span>
@@ -792,7 +792,7 @@ nbtstat -A ADRESSE_IP</code></pre>
     <p>Puis ouvrir Panneau de configuration &rarr; Gestionnaire d'identification &rarr; Informations d'identification Windows et supprimer toutes les entrées liées à la machine cible (y compris les entrées <code>MicrosoftAccount:target=...</code>). Après une réinstallation avec un compte Microsoft, Windows peut mémoriser un jeton MSA qui prend la priorité sur les identifiants locaux ou de domaine.</p>
     <div class="label">Étape 2 : utiliser le bon format de compte</div>
     <pre><code>net use \\MACHINE\IPC$ /user:DOMAINE\prenom.nom</code></pre>
-    <p>Utiliser le nom de domaine (ex. <code>SC\helene.dehan</code>), pas le nom de la machine locale (<code>MACHINE\Helene</code>). Après une réinstallation en Workgroup, la machine ne résout plus automatiquement le contexte de domaine.</p>
+    <p>Utiliser le nom de domaine (ex. <code>SC\anne.honnyme</code>), pas le nom de la machine locale (<code>MACHINE\anne</code>). Après une réinstallation en Workgroup, la machine ne résout plus automatiquement le contexte de domaine.</p>
     <div class="label">Étape 3 : vérifier LmCompatibilityLevel</div>
     <p>Si l'erreur 1326 persiste avec le bon format de compte, vérifier si <code>LmCompatibilityLevel</code> est absent du registre (DTLknowsWhy affichera <code>null</code> dans le snapshot). Une nouvelle installation Windows avec la clé absente utilise le défaut système (NTLMv2 uniquement), que certains serveurs ou configurations Workgroup anciens peuvent rejeter.</p>
     <pre><code>Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" `
