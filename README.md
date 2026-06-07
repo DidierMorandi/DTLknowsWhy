@@ -207,6 +207,11 @@ That distinction is the core objective of the project.
 
 ---
 
+## Documentation
+
+The DTLknowsWhy Reference Manual v2.1 and User Guide v2.1 are available in our NetDTL documentation repository:
+https://didiermorandi.com/netdtl/doc/
+
 ## Version
 
 Current release: **DTLknowsWhy 2.1**
