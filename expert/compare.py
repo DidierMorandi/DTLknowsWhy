@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from expert.rule_translation import translate_findings
+from shared.i18n import tr
 
 
 UNKNOWN_VALUES = (None, "", "(unknown)", "Unknown", "unknown")
@@ -659,25 +660,28 @@ def compare_remote_target(snapshot, lang="fr"):
     return translate_findings(findings, lang)
 
 
-def format_findings(reference, target, findings):
+def format_findings(reference, target, findings, lang="fr"):
     ref_name = get_path(reference, "system.hostname", "Référence")
     target_name = get_path(target, "system.hostname", "Cible")
+    T = lambda key: tr(key, lang)
     lines = []
 
-    lines.append("=== DTLknowsWhy Causal Comparator ===")
+    lines.append(f"=== {T('cmp_header')} ===")
     lines.append("")
     lines.append(f"Référence : {ref_name}")
     lines.append(f"Cible     : {target_name}")
     lines.append("")
 
     if not findings:
-        lines.append("[AUCUNE CAUSE DIFFERENTIANTE]")
+        lines.append(f"[{T('cmp_no_cause')}]")
         lines.append("Aucune différence causale connue n'a été détectée.")
         lines.append("")
         return lines
 
     for finding in findings:
         lines.append(f"[{finding['level']}]")
+        lines.append(T("cmp_observed_difference"))
+        lines.append("-" * len(T("cmp_observed_difference")))
         lines.append(finding["title"])
         lines.append("")
 
@@ -685,12 +689,14 @@ def format_findings(reference, target, findings):
             lines.append(f"  {evidence}")
 
         lines.append("")
-        lines.append("CAUSE :")
+        lines.append(T("cmp_possible_impact"))
+        lines.append("-" * len(T("cmp_possible_impact")))
         lines.append(f"  {finding['cause']}")
 
         if finding.get("remediation"):
             lines.append("")
-            lines.append("ACTION :")
+            lines.append(T("cmp_recommended_action"))
+            lines.append("-" * len(T("cmp_recommended_action")))
             lines.append(f"  {finding['remediation']}")
 
         lines.append("")
@@ -699,7 +705,7 @@ def format_findings(reference, target, findings):
 
 
 def analyze_difference(a, b, lang="fr"):
-    return format_findings(a, b, compare_causal(a, b, lang))
+    return format_findings(a, b, compare_causal(a, b, lang), lang)
 
 
 def print_findings(findings):

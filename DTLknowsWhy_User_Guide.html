@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTLknowsWhy &mdash; User Guide v2.1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --border: #252b3b;
+    --accent: #ff7a45;
+    --accent-dim: #5c2a15;
+    --text: #c9d1e0;
+    --text-muted: #5a6580;
+    --text-heading: #e8edf5;
+    --code-bg: #0a0e17;
+    --code-border: #1a2030;
+    --sidebar-w: 260px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 28px 0 40px;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  nav .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+
+  nav .logo span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 9px;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  nav a {
+    display: block;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+    padding: 5px 20px;
+    transition: color 0.15s, background 0.15s;
+    font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  nav a:hover { color: var(--accent); background: rgba(255,122,69,0.06); }
+  nav a.active { color: var(--accent); }
+
+  nav a.nav-section-link {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 14px 20px 4px;
+    opacity: 0.5;
+  }
+  nav a.nav-section-link:hover { opacity: 1; background: none; }
+
+  main {
+    margin-left: var(--sidebar-w);
+    padding: 56px 64px 100px;
+    max-width: calc(var(--sidebar-w) + 900px);
+    width: 100%;
+  }
+
+  .main-logo {
+    display: block;
+    margin: 0 auto 36px;
+    height: 52px;
+    width: auto;
+    image-rendering: pixelated;
+  }
+
+  .doc-header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .doc-header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-heading);
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+
+  .doc-header h1 .accent { color: var(--accent); }
+
+  .meta-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    color: var(--text-muted);
+  }
+
+  .pill .k { color: var(--accent); margin-right: 4px; }
+
+  h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 52px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin: 32px 0 10px;
+  }
+
+  p { margin-bottom: 14px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    color: #fdba74;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 14px 0 20px;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #fdba74;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 12px; }
+
+  .section-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-dim);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .section-block h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--accent);
+  }
+
+  .section-block .desc {
+    color: var(--text);
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+
+  .section-block .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    margin-top: 14px;
+  }
+
+  .callout {
+    background: rgba(255,122,69,0.05);
+    border: 1px solid var(--accent-dim);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  .callout strong { color: var(--accent); }
+
+  .warn {
+    background: rgba(210,153,34,0.07);
+    border: 1px solid rgba(210,153,34,0.25);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  .warn strong { color: #d29922; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+
+  thead tr { background: var(--code-bg); border-bottom: 1px solid var(--border); }
+
+  th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 10px 14px;
+    text-align: left;
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,122,69,0.03); }
+
+  ul {
+    list-style: none;
+    margin: 10px 0 16px;
+    padding-left: 0;
+  }
+
+  ul li {
+    padding: 3px 0 3px 20px;
+    position: relative;
+  }
+
+  ul li::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  strong { color: var(--text-heading); font-weight: 600; }
+
+  .screenshot {
+    display: block;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin: 16px 0 4px;
+  }
+
+  .screenshot-caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 800px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 32px 24px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">DTLknowsWhy<span>User Guide v2.1</span></div>
+
+  <a class="nav-section-link" href="#preface">Preface</a>
+  <a href="#preface">Preface</a>
+  <a href="#audience">Intended Audience</a>
+  <a href="#conventions">Conventions</a>
+  <a href="#related-docs">Related Documents</a>
+
+  <a class="nav-section-link" href="#chapter1">Chapter 1 &mdash; Getting Started</a>
+  <a href="#overview">Overview</a>
+  <a href="#whats-new">What's New in 2.1</a>
+  <a href="#requirements">Requirements</a>
+  <a href="#installation">Installation</a>
+  <a href="#quickstart">Quick Start</a>
+  <a href="#language">Language Selection</a>
+
+  <a class="nav-section-link" href="#chapter2">Chapter 2 &mdash; Operating Modes</a>
+  <a href="#mode-gui">GUI mode</a>
+  <a href="#mode-snapshot">Local snapshot (CLI)</a>
+  <a href="#mode-target">Remote target (CLI)</a>
+  <a href="#mode-listen">Server mode</a>
+  <a href="#mode-agent">Remote agent</a>
+
+  <a class="nav-section-link" href="#chapter3">Chapter 3 &mdash; Output Files</a>
+  <a href="#out-json">JSON snapshot</a>
+  <a href="#out-txt">Text report</a>
+  <a href="#out-html">HTML report</a>
+
+  <a class="nav-section-link" href="#chapter4">Chapter 4 &mdash; Expert Tools</a>
+  <a href="#tool-expert">Expert diagnosis</a>
+  <a href="#tool-compare">Comparative analysis</a>
+
+  <a class="nav-section-link" href="#chapter5">Chapter 5 &mdash; Troubleshooting</a>
+  <a href="#ts-smb001">SMB-001: invisible machine</a>
+  <a href="#ts-smb002">SMB-002: IP works, name fails</a>
+  <a href="#ts-smb003">SMB-003: auth refused</a>
+  <a href="#ts-tcp445">TCP 445 blocked</a>
+  <a href="#ts-discovery">Network discovery off</a>
+
+  <a class="nav-section-link" href="#appendices">Appendices</a>
+  <a href="#admin">Administrator Rights</a>
+  <a href="#classification">Target Classification</a>
+  <a href="#firewall">Firewall Setup</a>
+  <a href="#smartscreen">SmartScreen Warning</a>
+  <a href="#limitations">Known Limitations</a>
+  <a href="#history">Version History</a>
+</nav>
+
+<main>
+  <img class="main-logo" src="data:image/png;base64,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" alt="NetDTL">
+
+
+  <div class="doc-header">
+    <h1><span class="accent">DTLknowsWhy</span> &mdash; User Guide v2.1</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:10px;">A practical guide to installing, running, and interpreting DTLknowsWhy 2.1 &mdash; from a first local snapshot to a full two-machine causal comparison.</p>
+    <div class="meta-pills">
+      <span class="pill"><span class="k">version</span>2.1.0</span>
+      <span class="pill"><span class="k">date</span>7 June 2026</span>
+      <span class="pill"><span class="k">platform</span>Windows 10 / 11</span>
+      <span class="pill"><span class="k">runtime</span>Python 3.10+</span>
+      <span class="pill"><span class="k">languages</span>fr / en</span>
+      <span class="pill"><span class="k">license</span>MIT</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PREFACE
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="preface">Preface</h2>
+
+  <p>This guide explains how to use DTLknowsWhy to diagnose Windows network and SMB problems. It covers the graphical interface, all command-line modes, the three output file formats, the expert diagnosis and comparative analysis tools, and a set of step-by-step procedures for the most common troubleshooting scenarios.</p>
+  <p>For complete module and API documentation, refer to the companion <em>DTLknowsWhy Reference Manual</em>.</p>
+
+  <h3 id="audience">Intended Audience</h3>
+  <p>This guide is for system administrators and support staff managing Windows 10 and 11 workstations, and for network administrators diagnosing SMB, DNS, and connectivity issues. No Python development experience is required. Basic familiarity with the Windows command prompt is assumed.</p>
+
+  <h3 id="conventions">Conventions</h3>
+  <table>
+    <thead><tr><th>Convention</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>monospace</code></td><td>Commands, file names, and text to type exactly as shown</td></tr>
+      <tr><td><em>italic</em></td><td>Variable text: substitute the actual value</td></tr>
+      <tr><td><strong>Bold</strong></td><td>Key term or important emphasis</td></tr>
+      <tr><td><code>[option]</code></td><td>Optional argument; do not type the brackets</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Note:</strong> All IP addresses and hostnames in examples are fictitious.</div>
+  <div class="warn"><strong>Caution:</strong> Boxes like this highlight steps that can cause data loss or security exposure if not followed carefully.</div>
+
+  <h3 id="related-docs">Related Documents</h3>
+  <table>
+    <thead><tr><th>Document</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>DTLknowsWhy Reference Manual</td><td>Complete command syntax, module reference, and snapshot format specification</td></tr>
+      <tr><td>NetDTL Reference Manual</td><td>PHP/MySQL agentless network inventory web application</td></tr>
+      <tr><td>DTLsaysWhat Reference Manual</td><td>Windows system inventory tool</td></tr>
+      <tr><td>README.md</td><td>Quick-start summary in the repository root</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 1 — GETTING STARTED
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter1">Chapter 1 &mdash; Getting Started</h2>
+
+  <h2 id="overview">1.1 Overview</h2>
+  <p>DTLknowsWhy is a Windows diagnostic and expert analysis tool. Most diagnostic tools answer: <em>"What is configured on this machine?"</em> DTLknowsWhy is designed to answer: <em>"Why is this problem occurring?"</em></p>
+  <p>Run it on a machine to get an immediate picture of its configuration: OS version, network profile, IP settings, key Windows services, and basic connectivity. Optionally point it at a second machine to retrieve its full remote snapshot via the built-in agent, then compare the two configurations to identify the probable cause of the difference.</p>
+  <p>Every collection run produces three files: a <strong>JSON snapshot</strong>, a <strong>plain-text report</strong>, and a <strong>dark-themed HTML report</strong>. All output is available in French and English.</p>
+  <table>
+    <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>DTLknowsWhy.exe</code></td><td>GUI: situation selector, target entry, language picker, findings pane</td></tr>
+      <tr><td><code>DTLknowsWhy-CLI.exe</code> / <code>agent.py</code></td><td>CLI: same pipeline, console output, scriptable</td></tr>
+      <tr><td><code>DTLknowsWhy-Agent.exe</code></td><td>Remote agent: runs on the target machine; delivers its snapshot over HTTP</td></tr>
+      <tr><td><code>expert.py</code></td><td>Analyses a single snapshot; emits findings with remediation steps</td></tr>
+      <tr><td><code>compare.py</code></td><td>Compares two snapshots; identifies what differs between a working and a failing machine</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="whats-new">1.2 What's New in Version 2.1</h3>
+
+  <h3>Works on any Windows language edition</h3>
+  <p>Previous versions parsed <code>ipconfig /all</code> text output using French-language labels and therefore worked correctly only on French Windows. Version 2.1 replaces this engine entirely with structured PowerShell and CIM data. IP address, subnet mask, gateway, DNS servers, DHCP status, and NetBIOS status are now collected reliably on any Windows locale.</p>
+  <div class="callout"><strong>Backward compatibility:</strong> The JSON snapshot structure is unchanged. Existing expert rules, reports, and analysis modules continue to work without modification.</div>
+
+  <h3>Graphical user interface</h3>
+  <p>The new <code>DTLknowsWhy.exe</code> GUI presents a situation checklist, a target entry field, a language selector, a live progress log, and a structured findings pane. Select one or more situations that describe your problem, optionally enter the IP or hostname of the machine under investigation, and click <strong>Run diagnosis</strong>.</p>
+
+  <h3 id="requirements">1.3 Requirements</h3>
+  <ul>
+    <li>Windows 10 or Windows 11</li>
+    <li>Python 3.10 or later (standard library only &mdash; no <code>pip install</code> needed)</li>
+    <li>PowerShell 5.1 or 7+ (pre-installed on all supported Windows versions)</li>
+    <li>Administrator privileges recommended (see <a href="#admin">Appendix A</a>)</li>
+  </ul>
+  <div class="callout"><strong>No dependencies:</strong> Copy the project folder to any Windows machine with Python and run immediately. No virtual environment, no internet access required.</div>
+
+  <h3 id="installation">1.4 Installation</h3>
+  <p>No installer is required. Copy the project folder to the target machine. The compiled executables (<code>DTLknowsWhy.exe</code>, <code>DTLknowsWhy-CLI.exe</code>, <code>DTLknowsWhy-Agent.exe</code>) can be run directly. The Python source files require Python 3.10+ to be installed.</p>
+  <p>All output files are written to the directory from which the tool is invoked. Use a dedicated working directory to keep snapshots and reports organised.</p>
+
+  <h3 id="quickstart">1.5 Quick Start</h3>
+  <table>
+    <thead><tr><th>Goal</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td>Open the GUI</td><td><code>DTLknowsWhy.exe</code></td></tr>
+      <tr><td>Local snapshot, English report</td><td><code>python agent.py --snapshot --lang en</code></td></tr>
+      <tr><td>Local snapshot + remote agent query</td><td><code>python agent.py --target 172.17.7.3 --lang en</code></td></tr>
+      <tr><td>Expert diagnosis on the latest snapshot</td><td><code>python expert.py --lang en</code></td></tr>
+      <tr><td>Compare two machines</td><td><code>python compare.py REF_snap.json TARGET_snap.json --lang en</code></td></tr>
+      <tr><td>Start the remote agent (interactive)</td><td><code>DTLknowsWhy-Agent.exe --listen</code></td></tr>
+      <tr><td>Install remote agent as Windows service</td><td><code>DTLknowsWhy-Agent.exe install</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="language">1.6 Language Selection</h3>
+  <p>DTLknowsWhy supports French and English for all output: report labels, diagnostic messages, GUI elements, and comparator findings.</p>
+  <p>In the GUI: select the language from the combo box in the right panel before running the diagnosis. The selection applies immediately to all labels and to the generated reports. In the CLI: pass <code>--lang en</code> or <code>--lang fr</code> to any command. The default is <code>en</code> for the compiled executables and <code>fr</code> for <code>compare.py</code>.</p>
+  <div class="callout"><strong>OS independence:</strong> The language selection is completely independent from the Windows display language. A French Windows user can generate English reports, and vice versa.</div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 2 — OPERATING MODES
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter2">Chapter 2 &mdash; Operating Modes</h2>
+
+  <div class="section-block" id="mode-gui">
+    <h3>2.1 &mdash; GUI Mode</h3>
+    <div class="desc">The graphical interface is the recommended starting point for interactive troubleshooting. It provides a structured workflow and displays findings in a readable format without requiring command-line knowledge.</div>
+    <div class="label">Launch</div>
+    <pre><code>DTLknowsWhy.exe [--target IP_OR_HOST] [--lang {fr,en}]</code></pre>
+    <div class="label">Workflow</div>
+    <ul>
+      <li>Select one or more <strong>situations</strong> that describe the problem (e.g. "Machine invisible in network neighbourhood", "Cannot access a remote Windows share")</li>
+      <li>Enter the IP or hostname of the <strong>target machine</strong> if a situation requires it (marked with a star)</li>
+      <li>Select the <strong>language</strong> for the interface and reports</li>
+      <li>Click <strong>Run diagnosis</strong></li>
+      <li>Watch the <strong>progress log</strong> on the left; findings appear in the <strong>results pane</strong> on the right when complete</li>
+      <li>Click <strong>Open HTML report</strong> to view the full report in a browser</li>
+    </ul>
+    <div class="label">Situations</div>
+    <table>
+      <thead><tr><th>Situation</th><th>Target required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>SMB-001</td><td>No</td><td>Machine invisible in network neighbourhood despite working SMB access</td></tr>
+        <tr><td>SMB-002</td><td>Yes</td><td><code>\\IP\share</code> works but <code>\\NAME\share</code> fails &mdash; name resolution broken</td></tr>
+        <tr><td>SMB-003</td><td>Yes</td><td>Authentication refused after reinstall (error 86 or 1326)</td></tr>
+        <tr><td>LOCAL-NETWORK</td><td>No</td><td>Gateway unreachable, wrong IP, DHCP failure, or Public profile</td></tr>
+        <tr><td>LOCAL-SMB</td><td>No</td><td>LanmanServer or LanmanWorkstation stopped</td></tr>
+        <tr><td>REMOTE-WINDOWS</td><td>Yes</td><td>Cannot access a remote Windows share (TCP 445 blocked or LanmanServer stopped)</td></tr>
+        <tr><td>REMOTE-DEVICE</td><td>Yes</td><td>Identify and classify an unknown network device</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><strong>Admin rights:</strong> If the process is not elevated, the GUI asks whether to continue without administrator privileges. Some checks (SMB configuration, BitLocker status) will return incomplete data without admin rights.</div>
+  </div>
+
+  <div class="section-block" id="mode-snapshot">
+    <h3>2.2 &mdash; Local Snapshot (CLI)</h3>
+    <div class="desc">Collects a full picture of the local machine and writes three output files. This is the starting point for any CLI diagnostic session.</div>
+    <div class="label">Command</div>
+    <pre><code>python agent.py --snapshot [--lang {fr,en}]</code></pre>
+    <div class="label">What is collected</div>
+    <ul>
+      <li><strong>System:</strong> hostname, username, admin status, Windows version and build, LmCompatibilityLevel, BitLocker status</li>
+      <li><strong>Network:</strong> profile name and category (Public/Private/Domain), IPv4, subnet mask, gateway, DNS servers, DHCP status, NetBIOS option and enabled flag</li>
+      <li><strong>Local tests:</strong> ping loopback (127.0.0.1), ping self (own IP), ping gateway</li>
+      <li><strong>Services:</strong> LanmanServer, LanmanWorkstation, FDResPub, fdPHost, lmhosts</li>
+      <li><strong>Expert diagnosis:</strong> findings from the rules engine are embedded in the snapshot JSON</li>
+    </ul>
+    <div class="label">Output</div>
+    <p>Three files named <code>HOSTNAME_snapshot_TIMESTAMP.json</code>, <code>HOSTNAME_report_TIMESTAMP.txt</code>, and <code>HOSTNAME_report_TIMESTAMP.html</code>. Paths are printed to the console on completion.</p>
+  </div>
+
+  <div class="section-block" id="mode-target">
+    <h3>2.3 &mdash; Remote Target (CLI)</h3>
+    <div class="desc">Runs a local snapshot plus a battery of remote diagnostic tests against a target, and if the DTLknowsWhy-Agent is running on that target, retrieves its complete snapshot and performs a causal comparison.</div>
+    <div class="label">Command</div>
+    <pre><code>python agent.py --target {IP|hostname} [--lang {fr,en}]</code></pre>
+    <div class="label">What is tested on the target</div>
+    <ul>
+      <li><strong>Ping:</strong> basic ICMP reachability</li>
+      <li><strong>Hostname resolution:</strong> name lookup from the IP address</li>
+      <li><strong>TCP port probes:</strong> ports 80 (HTTP), 139 (NetBIOS), 443 (HTTPS), 445 (SMB)</li>
+      <li><strong>MAC address:</strong> from the local ARP table</li>
+      <li><strong>Target classification:</strong> automatic type assignment</li>
+      <li><strong>Remote agent snapshot:</strong> if DTLknowsWhy-Agent is running on the target, its full JSON snapshot is retrieved and a causal comparison is performed automatically</li>
+    </ul>
+    <div class="label">Output</div>
+    <p>Same three files as a local snapshot. If a remote agent snapshot was retrieved, it is also saved as a separate JSON file and the causal comparison is embedded in the main report.</p>
+    <div class="callout"><strong>Tip:</strong> <code>--target</code> always runs a local snapshot first; no need to also pass <code>--snapshot</code>.</div>
+    <div class="warn"><strong>MAC address:</strong> The MAC is read from the local ARP table and only resolves if the target is on the same Layer 2 segment and has been recently contacted.</div>
+    <div class="warn"><strong>Performance:</strong> Each TCP port probe uses PowerShell <code>Test-NetConnection</code> with a 15-second timeout. If all four ports time out, remote tests take up to 60 seconds.</div>
+  </div>
+
+  <div class="section-block" id="mode-listen">
+    <h3>2.4 &mdash; Server Mode</h3>
+    <div class="desc">Starts a lightweight HTTP server on TCP port 5050. Used when you want to remotely trigger a snapshot on this machine from another machine (or from the NetDTL inventory application) without running an interactive command.</div>
+    <div class="label">Command</div>
+    <pre><code>python agent.py --listen</code></pre>
+    <div class="label">HTTP endpoint</div>
+    <pre><code>GET http://172.17.7.10:5050/snapshot?key=DTLSECRET&amp;lang=en</code></pre>
+    <p>Returns HTTP 200 with the full snapshot JSON body. Writes JSON, TXT, and HTML files locally on every request.</p>
+    <div class="warn"><strong>Security:</strong> No TLS. API key (<code>DTLSECRET</code>) stored in plain text in <code>agent/server.py</code>. Change the default key before deployment. Use only on trusted local networks. TCP port 5050 must be open in the Windows Firewall (see <a href="#firewall">Appendix C</a>).</div>
+  </div>
+
+  <div class="section-block" id="mode-agent">
+    <h3>2.5 &mdash; Remote Agent</h3>
+    <div class="desc">DTLknowsWhy-Agent runs on the target machine and exposes the same HTTP snapshot endpoint as server mode. Can run interactively for one-off sessions or as a persistent Windows service.</div>
+    <div class="label">Interactive mode</div>
+    <pre><code>DTLknowsWhy-Agent.exe --listen</code></pre>
+    <div class="label">Windows service mode</div>
+    <pre><code>DTLknowsWhy-Agent.exe install
+DTLknowsWhy-Agent.exe start
+
+DTLknowsWhy-Agent.exe stop
+DTLknowsWhy-Agent.exe remove</code></pre>
+    <div class="label">When to use each mode</div>
+    <table>
+      <thead><tr><th>Mode</th><th>Suitable for</th></tr></thead>
+      <tbody>
+        <tr><td>Interactive (<code>--listen</code>)</td><td>One-off or occasional remote diagnostics; testing the agent</td></tr>
+        <tr><td>Windows service</td><td>Machines always available for remote collection; NetDTL integration</td></tr>
+      </tbody>
+    </table>
+    <div class="warn"><strong>SmartScreen:</strong> On first execution, Windows Defender SmartScreen may block the agent because it is not digitally signed. See <a href="#smartscreen">Appendix D</a>.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 3 — OUTPUT FILES
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter3">Chapter 3 &mdash; Output Files</h2>
+  <p>Every collection run writes three files to the current directory. The files share the same base name, encoding the local hostname and a timestamp.</p>
+
+  <div class="section-block" id="out-json">
+    <h3>3.1 &mdash; JSON Snapshot</h3>
+    <div class="desc">Raw structured data. The primary input format for <code>expert.py</code> and <code>compare.py</code>. Suitable for archiving, scripting, or version-controlled troubleshooting records.</div>
+    <div class="label">Filename</div>
+    <pre><code>HOSTNAME_snapshot_YYYYMMDD_HHMMSS.json</code></pre>
+    <div class="label">Top-level keys (v2.1)</div>
+    <ul>
+      <li><code>metadata</code> &mdash; generation timestamp, role (local/remote), target hostname</li>
+      <li><code>system</code> &mdash; OS, admin status, LmCompatibilityLevel, BitLocker status</li>
+      <li><code>network</code> &mdash; IP config, profile, NetBIOS option and enabled flag</li>
+      <li><code>tests</code> &mdash; local ping results (boolean)</li>
+      <li><code>services</code> &mdash; Windows service statuses</li>
+      <li><code>diagnosis</code> &mdash; expert engine findings (embedded)</li>
+      <li><code>remote_tests</code> &mdash; present only when <code>--target</code> was used</li>
+      <li><code>causal_comparison</code> &mdash; present only when <code>--target</code> was used</li>
+      <li><code>remote_agent_snapshot</code> &mdash; present only if the remote agent responded</li>
+    </ul>
+    <div class="callout"><strong>Format stability:</strong> The core keys (<code>system</code>, <code>network</code>, <code>tests</code>, <code>services</code>) are unchanged from v2.0. Snapshots collected with earlier versions can be analysed by the v2.1 expert and compare tools without conversion.</div>
+  </div>
+
+  <div class="section-block" id="out-txt">
+    <h3>3.2 &mdash; Text Report</h3>
+    <div class="desc">Human-readable plain text, UTF-8 encoded, with fixed-width label columns. All section labels are translated according to the <code>--lang</code> flag. Suitable for printing, attaching to a support ticket, or including in an email.</div>
+    <div class="label">Filename</div>
+    <pre><code>HOSTNAME_report_YYYYMMDD_HHMMSS.txt</code></pre>
+    <div class="label">Sections</div>
+    <ul>
+      <li>Title and generation timestamp</li>
+      <li>Local machine: identity, system, network, Windows services, local tests</li>
+      <li>Expert diagnosis findings (level, message, remediation)</li>
+      <li>Remote target (when <code>--target</code> was used): identification, port tests, classification, interpretation</li>
+      <li>Causal comparison findings (when a remote agent snapshot was retrieved)</li>
+    </ul>
+    <div class="label">Sample (English)</div>
+    <pre><code>DTLknowsWhy Technical Report
+==================================================
+Generated: 2026-06-07 09:34:42
+
+==================================================
+LOCAL MACHINE
+==================================================
+
+Identity
+--------------------------------------------------
+Hostname            : PREDATOR
+Username            : didier
+Administrator       : Yes
+
+System
+--------------------------------------------------
+Operating System    : Windows 11 Pro 23H2
+Build               : 22631
+
+Network
+--------------------------------------------------
+Profile             : Private
+IPv4 Address        : 172.17.7.10
+Subnet Mask         : 255.255.255.0
+Gateway             : 172.17.7.1
+DNS Servers         : 172.17.7.1
+DHCP                : No
+NetBIOS             : Yes (via DHCP)</code></pre>
+  </div>
+
+  <div class="section-block" id="out-html">
+    <h3>3.3 &mdash; HTML Report</h3>
+    <div class="desc">Self-contained HTML with a dark terminal theme. Open in any browser &mdash; no server required. Values are colour-coded: green for positive, red for negative, grey for unknown. The Windows services and local tests sections are collapsible.</div>
+    <div class="label">Filename</div>
+    <pre><code>HOSTNAME_report_YYYYMMDD_HHMMSS.html</code></pre>
+    <div class="label">Sections</div>
+    <ul>
+      <li>Header bar: title, timestamp, NetDTL logo</li>
+      <li>Local machine: identity, system, network, Windows services (collapsible), local tests (collapsible)</li>
+      <li>Expert diagnosis (findings with level badges and remediation)</li>
+      <li>Remote agent snapshot (if retrieved): second machine's full data in a mirrored layout</li>
+      <li>Causal comparison (findings with cause and remediation)</li>
+    </ul>
+    <div class="callout"><strong>Logo:</strong> The report loads <code>netdtl_logo.png</code> from the same directory via a relative path. Place the logo alongside the report for it to display correctly.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 4 — EXPERT TOOLS
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter4">Chapter 4 &mdash; Expert Tools</h2>
+  <p>The expert tools work on previously collected snapshots. They do not collect new data; they analyse what was already captured and produce structured diagnostic output.</p>
+
+  <div class="section-block" id="tool-expert">
+    <h3>4.1 &mdash; Expert Diagnosis</h3>
+    <div class="desc">Analyses a single snapshot and outputs structured findings with levels and remediation steps. Designed for quick identification of network configuration issues on one machine.</div>
+    <div class="label">Commands</div>
+    <pre><code># Analyse the latest snapshot automatically
+python expert.py --lang en
+
+# Analyse a specific snapshot
+python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang en</code></pre>
+    <div class="label">Auto-detection</div>
+    <p>If no snapshot file is specified, <code>expert.py</code> automatically selects the most recently modified <code>*_snapshot_*.json</code> file in the current directory. The typical two-step CLI workflow is: run <code>python agent.py --snapshot</code>, then run <code>python expert.py</code> with no arguments.</p>
+    <div class="label">Finding levels</div>
+    <table>
+      <thead><tr><th>Level</th><th>Meaning</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>[OK]</code></td><td>No issue for this check</td><td>None</td></tr>
+        <tr><td><code>[INFO]</code></td><td>Informational &mdash; worth noting</td><td>None</td></tr>
+        <tr><td><code>[WARN]</code></td><td>Potential issue &mdash; may cause problems</td><td>Review the remediation</td></tr>
+        <tr><td><code>[FAIL]</code></td><td>Confirmed problem &mdash; likely causing the symptom</td><td>Apply the remediation immediately</td></tr>
+      </tbody>
+    </table>
+    <div class="label">What is analysed</div>
+    <ul>
+      <li>Administrator privileges</li>
+      <li>Gateway reachability (local connectivity)</li>
+      <li>Network profile (Public blocks SMB and network discovery)</li>
+      <li>LanmanServer and LanmanWorkstation service status</li>
+      <li>FDResPub status (SMB-001: machine invisible in network neighbourhood)</li>
+      <li>LmCompatibilityLevel value (0 = security risk; 5 = may block Workgroup SMB)</li>
+      <li>BitLocker status (active drives: warn before any system configuration change)</li>
+      <li>Remote target classification and SMB port accessibility (if <code>remote_tests</code> is in the snapshot)</li>
+      <li>Auth error guidance for probable_windows targets with TCP 445 open (error 86/1326)</li>
+    </ul>
+  </div>
+
+  <div class="section-block" id="tool-compare">
+    <h3>4.2 &mdash; Comparative Analysis</h3>
+    <div class="desc">Compares two snapshots &mdash; one from a reference machine (working correctly) and one from the machine under investigation &mdash; to identify which configuration differences most likely explain the problem. Available in French and English via <code>--lang</code>.</div>
+    <div class="label">Command</div>
+    <pre><code>python compare.py REF_snap.json TARGET_snap.json [--lang {fr,en}]</code></pre>
+    <div class="label">Typical workflow</div>
+    <p>PC B cannot access network shares that PC A reaches without difficulty. Collect a snapshot on each machine, copy both JSON files to the same directory, and run <code>compare.py</code>. The output will flag whether the cause is a Public network profile, a stopped SMB service, a gateway connectivity problem, a security product difference, or a configuration parameter mismatch.</p>
+    <div class="label">Finding tags</div>
+    <table>
+      <thead><tr><th>Tag (English)</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>[CONFIRMED CAUSE]</td><td>The difference directly causes the problem (e.g. SMB service stopped on target)</td></tr>
+        <tr><td>[PROBABLE CAUSE]</td><td>A configuration known to block the feature in question</td></tr>
+        <tr><td>[POSSIBLE CAUSE]</td><td>A difference that may contribute depending on the scenario</td></tr>
+        <tr><td>[OBSERVED]</td><td>Factual observation (e.g. accessible shares listed); no issue implied</td></tr>
+        <tr><td>[TO VERIFY]</td><td>Notable configuration warranting manual verification</td></tr>
+        <tr><td>[MISSING INFORMATION]</td><td>Field absent from target snapshot; no conclusion possible</td></tr>
+      </tbody>
+    </table>
+    <div class="label">What is compared</div>
+    <ul>
+      <li>Network profile and gateway reachability</li>
+      <li>LanmanServer, LanmanWorkstation, FDResPub, fdPHost service status</li>
+      <li>NetBIOS option and DNS servers</li>
+      <li>IP topology (gateway and subnet mask)</li>
+      <li>TCP 445 accessibility</li>
+      <li>Security products (Bitdefender presence and fltmc filter stack)</li>
+      <li>SMB client and server configuration parameters</li>
+      <li>Accessible SMB shares</li>
+      <li>Identity context (local account, domain, AzureAD Joined)</li>
+    </ul>
+    <div class="warn"><strong>Directional:</strong> Only deviations where the target differs from the reference are reported. If both machines have the same misconfiguration, it will not be flagged. Run <code>expert.py</code> on each snapshot individually for an absolute analysis.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 5 — TROUBLESHOOTING PROCEDURES
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter5">Chapter 5 &mdash; Troubleshooting Procedures</h2>
+  <p>This chapter provides step-by-step procedures for the most common Windows SMB and network issues identified during operational use of DTLknowsWhy.</p>
+
+  <div class="section-block" id="ts-smb001">
+    <h3>5.1 &mdash; SMB-001: Machine Invisible in Network Neighbourhood</h3>
+    <div class="desc">The machine does not appear in Windows Explorer under "Network", but direct access via <code>\\IP</code> or <code>\\NAME</code> works. <code>net view</code> may return error 6118.</div>
+    <div class="label">Diagnosis</div>
+    <p>Select <strong>SMB-001</strong> in the GUI and run the diagnosis on the invisible machine, or run <code>python agent.py --snapshot --lang en</code> on it.</p>
+    <div class="label">Common cause</div>
+    <p>FDResPub (Function Discovery Resource Publication) is stopped. Network neighbourhood visibility is handled by FDResPub and fdPHost, which are completely separate from the SMB protocol. SMB can work perfectly while the machine is invisible in Explorer.</p>
+    <div class="label">Resolution</div>
+    <pre><code>sc config fdrespub start= delayed-auto
+net start fdrespub</code></pre>
+    <div class="label">Note on error 6118</div>
+    <p>The error "the list of servers for this workgroup is not currently available" (error 6118 from <code>net view</code>) is normal and expected since Windows 10 1709. The SMBv1 network browser service is disabled by default. Do not attempt to re-enable SMBv1. Use <code>\\MACHINE_NAME</code> or <code>\\IP</code> directly in Explorer.</p>
+  </div>
+
+  <div class="section-block" id="ts-smb002">
+    <h3>5.2 &mdash; SMB-002: Access by IP Works, Access by Name Fails</h3>
+    <div class="desc"><code>\\192.168.x.x\share</code> works but <code>\\MACHINE_NAME\share</code> fails or is very slow. SMB itself is functioning; only name resolution is broken.</div>
+    <div class="label">Diagnosis</div>
+    <pre><code>ping -4 MACHINE_NAME
+nslookup MACHINE_NAME
+nbtstat -A IP_ADDRESS</code></pre>
+    <div class="label">Common causes</div>
+    <ul>
+      <li>NetBIOS disabled on one or both machines</li>
+      <li>DNS does not contain an entry for the machine</li>
+      <li>LLMNR disabled by policy</li>
+      <li>FDResPub stopped (the machine is not publishing its presence)</li>
+    </ul>
+    <div class="label">Resolution</div>
+    <p>If ping by name works but name-based SMB access is still slow: the delay is usually caused by Windows enumerating all shares when you browse <code>\\NAME</code> rather than going directly to a specific share. Map shares directly at logon to avoid the enumeration delay:</p>
+    <pre><code>net use Z: \\MACHINE_NAME\share /persistent:yes</code></pre>
+    <p>Also check the Credential Manager for stale tokens that may cause repeated failed authentication attempts before the correct account is tried.</p>
+  </div>
+
+  <div class="section-block" id="ts-smb003">
+    <h3>5.3 &mdash; SMB-003: Authentication Refused (Error 86 or 1326)</h3>
+    <div class="desc">After a Windows reinstall, credentials are refused with "The specified network password is not correct" (error 86) or "The username or password is incorrect" (error 1326), even though the same credentials work from other machines.</div>
+    <div class="label">Step 1: clear cached credentials</div>
+    <pre><code>net use * /delete /y</code></pre>
+    <p>Then open Control Panel &rarr; Credential Manager &rarr; Windows Credentials and delete all entries for the target machine (including any <code>MicrosoftAccount:target=...</code> entries). After a reinstall with a Microsoft account, Windows may cache an MSA token that takes priority over local or domain credentials.</p>
+    <div class="label">Step 2: use the correct account format</div>
+    <pre><code>net use \\MACHINE\IPC$ /user:DOMAIN\firstname.lastname</code></pre>
+    <p>Use the domain name (e.g. <code>SC\anne.honnyme</code>), not the local machine name (<code>MACHINE\Anne</code>). After a reinstall in Workgroup mode the machine no longer resolves the domain context automatically.</p>
+    <div class="label">Step 3: check LmCompatibilityLevel</div>
+    <p>If error 1326 persists with the correct account format, check whether <code>LmCompatibilityLevel</code> is absent from the registry (DTLknowsWhy will show <code>null</code> in the snapshot). A fresh Windows install with the key absent uses the system default (NTLMv2 only), which some older servers or Workgroup configurations may reject.</p>
+    <pre><code>Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" `
+  -Name LmCompatibilityLevel -Value 1 -Type DWord
+# Restart required</code></pre>
+    <p>Value 1 enables LM+NTLM+NTLMv2 negotiation. If this resolves the issue, the target server does not accept NTLMv2 alone.</p>
+  </div>
+
+  <div class="section-block" id="ts-tcp445">
+    <h3>5.4 &mdash; TCP 445 Blocked: net view Error 53 by IP</h3>
+    <div class="desc">Ping to the target IP succeeds, but <code>net view \\IP</code> returns "The network path was not found" (error 53). Because the error occurs using an IP address (not a name), name resolution is not the issue &mdash; this is a pure TCP block on port 445.</div>
+    <div class="label">Confirm the block</div>
+    <pre><code>Test-NetConnection IP_TARGET -Port 445</code></pre>
+    <p>If <code>TcpTestSucceeded: False</code>, proceed to the checks below.</p>
+    <div class="label">Check LanmanServer on the target</div>
+    <pre><code>sc query lanmanserver</code></pre>
+    <p>If not Running: <code>sc start lanmanserver</code></p>
+    <div class="label">Check Windows Firewall on the target</div>
+    <p>Verify that the inbound rule for TCP port 445 exists and is enabled. An easy test: temporarily disable the Windows Firewall on the target and retry. If access is restored, the firewall is the cause. Re-enable the firewall and create the appropriate inbound rule.</p>
+    <div class="label">Note on IPv6 ping</div>
+    <p>If <code>ping MACHINE_NAME</code> resolves to an IPv6 link-local address (<code>fe80::...</code>), this does not confirm that SMB is accessible on IPv4. Always verify with <code>ping -4 MACHINE_NAME</code> to get the IPv4 address, then test <code>Test-NetConnection IP -Port 445</code>.</p>
+  </div>
+
+  <div class="section-block" id="ts-discovery">
+    <h3>5.5 &mdash; Network Discovery Keeps Turning Itself Off</h3>
+    <div class="desc">The network profile is Private and all discovery services (FDResPub, fdPHost, SSDPSRV, upnphost, Dnscache) are Running, but the "Network Discovery" checkbox in Windows settings resets to off immediately after being enabled.</div>
+    <div class="label">Check the firewall rules</div>
+    <pre><code>Get-NetFirewallRule | Where-Object {
+    $_.DisplayGroup -like '*Network Discovery*' -or
+    $_.DisplayGroup -like '*Découverte*'
+} | Select-Object DisplayName, DisplayGroup, Enabled</code></pre>
+    <p>If only Wi-Fi Direct rules appear and no "Network Discovery" group rules are listed, the rules have been deleted (not just disabled). This can happen after security hardening, a GPO, or a third-party security tool.</p>
+    <div class="label">Resolution: re-enable the deleted rules</div>
+    <pre><code># English Windows
+netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes
+
+# French Windows
+netsh advfirewall firewall set rule group="Découverte du réseau" new enable=Yes</code></pre>
+    <p>If the command reports "No rules match the specified criteria", the rules were fully deleted. Reset the firewall to defaults or import the rules from a healthy machine. If the rules reappear but the checkbox resets again after a few minutes, a third-party security tool (e.g. an EDR or antivirus) is re-applying a policy. Identify the tool and configure an exception.</p>
+    <div class="label">GPO check</div>
+    <p>Run <code>gpresult /r</code>. If "Domain type" shows "Windows NT 4" or "Standalone workstation" with no applied GPOs listed, the issue is not Group Policy &mdash; it is a local firewall or security tool.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       APPENDICES
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="appendices">Appendices</h2>
+
+  <h2 id="admin">Appendix A &mdash; Administrator Rights</h2>
+  <p>DTLknowsWhy works without administrator privileges, but some data will be incomplete. The following table shows what is affected.</p>
+  <table>
+    <thead><tr><th>Feature</th><th>Without admin</th><th>With admin</th></tr></thead>
+    <tbody>
+      <tr><td>System info, network, local tests</td><td>Full data</td><td>Full data</td></tr>
+      <tr><td>Service status queries</td><td>Usually full; may be partial on hardened machines</td><td>Full</td></tr>
+      <tr><td>SMB client/server configuration</td><td>May be inaccessible</td><td>Full</td></tr>
+      <tr><td>BitLocker status</td><td><code>null</code> in snapshot</td><td>Full</td></tr>
+      <tr><td>Security Center queries</td><td>May require elevation</td><td>Full</td></tr>
+      <tr><td><code>is_admin</code> field</td><td><code>false</code> &mdash; expert engine emits [WARN]</td><td><code>true</code></td></tr>
+    </tbody>
+  </table>
+  <p>To run as administrator: right-click the command prompt or PowerShell icon, choose <strong>Run as administrator</strong>, then run the tool from that elevated session.</p>
+
+  <h2 id="classification">Appendix B &mdash; Target Classification</h2>
+  <p>After remote tests complete, the tool assigns a <code>target_type</code> to the tested machine. Rules are applied in order; the first match wins.</p>
+  <table>
+    <thead><tr><th>Classification</th><th>Badge</th><th>Condition</th></tr></thead>
+    <tbody>
+      <tr><td>probable_mobile_apple</td><td style="color:#79b8ff">Blue</td><td>Resolved hostname contains <em>iphone</em> or <em>ipad</em></td></tr>
+      <tr><td>probable_mobile_android</td><td style="color:#79b8ff">Blue</td><td>Resolved hostname contains <em>android</em></td></tr>
+      <tr><td>probable_windows</td><td style="color:#3fb950">Green</td><td>TCP 445 or TCP 139 open &mdash; likely a Windows workstation</td></tr>
+      <tr><td>probable_device</td><td style="color:#e3b341">Orange</td><td>TCP 80 or TCP 443 open &mdash; network appliance or smart device</td></tr>
+      <tr><td>unknown_network_device</td><td style="color:#e3b341">Orange</td><td>MAC resolved but no recognisable open ports</td></tr>
+      <tr><td>unknown_host</td><td style="color:#8b949e">Grey</td><td>Ping succeeded but no MAC and no open ports</td></tr>
+      <tr><td>unreachable</td><td style="color:#f85149">Red</td><td>Ping failed</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Note on TTL:</strong> If <code>nmap</code> or a verbose ping reports a TTL of approximately 62&ndash;63 for a machine you expected to be a Windows PC, it is almost certainly a Linux-based appliance or network device (initial TTL 64, minus hops). Windows machines start at TTL 128. DTLknowsWhy will classify it as <code>probable_device</code> or <code>unknown_network_device</code> based on the open ports; verify with <code>arp -a</code> to identify the manufacturer from the MAC address.</div>
+
+  <h2 id="firewall">Appendix C &mdash; Firewall Configuration for the Remote Agent</h2>
+  <p>DTLknowsWhy-Agent listens on TCP port 5050. This port must be open inbound on the Windows Firewall of the target machine before the diagnostic workstation can connect.</p>
+  <p>Create the rule from an elevated command prompt on the target machine:</p>
+  <pre><code>netsh advfirewall firewall add rule name="DTLknowsWhy Agent" ^
+  dir=in action=allow protocol=TCP localport=5050</code></pre>
+  <p>Or via the graphical interface: Windows Defender Firewall &rarr; Advanced Settings &rarr; Inbound Rules &rarr; New Rule &rarr; Port &rarr; TCP &rarr; 5050 &rarr; Allow the connection.</p>
+
+  <h2 id="smartscreen">Appendix D &mdash; SmartScreen Warning</h2>
+  <p>On first execution, Windows Defender SmartScreen may display:</p>
+  <pre><code>Windows protected your PC.
+Microsoft Defender SmartScreen prevented an unrecognized app from starting.</code></pre>
+  <p>This is expected for executables that are not digitally signed. To proceed:</p>
+  <ul>
+    <li>Verify the file originates from the official DTLknowsWhy repository.</li>
+    <li>Click <strong>More info</strong>, then click <strong>Run anyway</strong>.</li>
+    <li>In corporate environments, request digital signing or explicit approval from your security team before wide deployment.</li>
+  </ul>
+
+  <h2 id="limitations">Appendix E &mdash; Known Limitations</h2>
+  <ul>
+    <li><strong>Windows only.</strong> The tool will not run on Linux or macOS.</li>
+    <li><strong>Single active adapter.</strong> On multi-adapter machines, only the first matching adapter's values are collected.</li>
+    <li><strong>ARP MAC lookup requires LAN adjacency.</strong> The target must be on the same Layer 2 segment or have been recently contacted.</li>
+    <li><strong>Remote tests can be slow.</strong> Each TCP port probe has a 15-second timeout. Up to 60 seconds if all four ports time out.</li>
+    <li><strong>Server mode writes files on every request.</strong> Each <code>GET /snapshot</code> triggers a full collection and writes new output files locally.</li>
+    <li><strong>BitLocker collection requires elevation.</strong> Without admin rights, <code>bitlocker_status</code> will be <code>null</code>.</li>
+    <li><strong>compare.py is directional.</strong> Only target deviations from the reference are reported. Run <code>expert.py</code> on each snapshot individually for an independent analysis.</li>
+    <li><strong>HTML report logo path is relative.</strong> Place <code>netdtl_logo.png</code> in the same directory as the HTML report.</li>
+    <li><strong>Log file in current directory.</strong> <code>dtlknowswhy.log</code> is written to the invocation directory; logging silently fails if write permission is absent.</li>
+  </ul>
+
+  <h2 id="history">Appendix F &mdash; Version History</h2>
+  <table>
+    <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+    <tbody>
+      <tr><td>2.1.0</td><td>7 June 2026</td><td>Language-independent network collection (PowerShell/CIM); Tkinter GUI with language selector; <code>lm_compatibility_level</code> and <code>bitlocker_status</code> collector keys; fully internationalised comparator; 15 expert rules from operational sessions; 280+ i18n keys; backward-compatible JSON format</td></tr>
+      <tr><td>2.0.0</td><td>6 June 2026</td><td>Remote agent; Windows service mode; HTTP snapshot endpoint; local/remote causal comparison; enhanced HTML reports; expert rule engine</td></tr>
+      <tr><td>1.2.0</td><td>&mdash;</td><td>Experimental remote snapshot server</td></tr>
+      <tr><td>1.0.0</td><td>&mdash;</td><td>Initial release: local diagnostics and reporting</td></tr>
+    </tbody>
+  </table>
+
+</main>
+
+<script>
+  const sections = document.querySelectorAll('[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

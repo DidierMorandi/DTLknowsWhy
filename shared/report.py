@@ -157,6 +157,33 @@ def format_filters(filters, lang):
     ]
 
 
+def format_glpi(glpi, lang):
+    if not glpi or not glpi.get("installed"):
+        return [tr("glpi_not_detected", lang)]
+
+    lines = []
+    services = glpi.get("services") or {}
+    server_entries = glpi.get("server_entries") or []
+
+    for name, status in services.items():
+        lines.append(f"{name} = {status}")
+
+    for item in server_entries:
+        if item.get("is_unc_path"):
+            marker = "UNC"
+        elif item.get("is_http_url"):
+            marker = "HTTP"
+        else:
+            marker = "?"
+
+        lines.append(
+            f"{item.get('file')}:{item.get('line')} "
+            f"server = {item.get('value')} ({marker})"
+        )
+
+    return lines or [tr("none", lang)]
+
+
 def append_block(lines, title, values):
     lines.append(title)
 
@@ -240,6 +267,7 @@ def generate_text_report(snapshot, lang="fr"):
     diagnosis = snapshot.get("diagnosis", [])
     causal_comparison = snapshot.get("causal_comparison", [])
     security = system.get("security", {})
+    glpi = snapshot.get("glpi", {})
     metadata = snapshot.get("metadata", {})
     remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
     remote_metadata = remote_snapshot.get("metadata", {})
@@ -371,6 +399,11 @@ def generate_text_report(snapshot, lang="fr"):
 
     lines.append("")
 
+    lines.append(T("glpi_agent"))
+    lines.append("-" * 50)
+    lines.extend(f"  {line}" for line in format_glpi(glpi, lang))
+    lines.append("")
+
     lines.append(T("local_tests"))
     lines.append("-" * 50)
 
@@ -475,15 +508,24 @@ def generate_text_report(snapshot, lang="fr"):
         lines.append("")
 
         for item in causal_comparison:
-            lines.append(f"[{item.get('level', T('unknown'))}] {item.get('title')}")
+            lines.append(f"[{item.get('level', T('unknown'))}]")
+            lines.append(T("cmp_observed_difference"))
+            lines.append("-" * len(T("cmp_observed_difference")))
+            lines.append(str(item.get("title") or T("unknown")))
 
             for evidence in item.get("evidence", []):
                 lines.append(f"  {evidence}")
 
-            lines.append(f"{T('cause').upper()} : {item.get('cause')}")
+            lines.append("")
+            lines.append(T("cmp_possible_impact"))
+            lines.append("-" * len(T("cmp_possible_impact")))
+            lines.append(str(item.get("cause") or T("unknown")))
 
             if item.get("remediation"):
-                lines.append(f"{T('action').upper()} : {item.get('remediation')}")
+                lines.append("")
+                lines.append(T("cmp_recommended_action"))
+                lines.append("-" * len(T("cmp_recommended_action")))
+                lines.append(str(item.get("remediation")))
 
             lines.append("")
 
@@ -501,6 +543,9 @@ def generate_text_report(snapshot, lang="fr"):
                 prefix = f"{prefix} {case}"
 
             lines.append(f"{prefix} {item.get('message')}")
+
+            for evidence in item.get("evidence", []):
+                lines.append(f"  - {evidence}")
 
             if item.get("remediation"):
                 lines.append(f"{T('action')} : {item.get('remediation')}")

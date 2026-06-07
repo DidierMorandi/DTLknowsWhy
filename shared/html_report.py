@@ -206,6 +206,33 @@ def format_filters_html(filters, lang):
     return '<ul class="share-list">' + "".join(items) + "</ul>"
 
 
+def format_glpi_html(glpi, lang):
+    if not glpi or not glpi.get("installed"):
+        return escape(tr("glpi_not_detected", lang))
+
+    items = []
+
+    for name, status in (glpi.get("services") or {}).items():
+        items.append(
+            f"<li><strong>{escape(str(name))}</strong> = {escape(str(status))}</li>"
+        )
+
+    for item in glpi.get("server_entries") or []:
+        if item.get("is_unc_path"):
+            marker = "UNC"
+        elif item.get("is_http_url"):
+            marker = "HTTP"
+        else:
+            marker = "?"
+
+        items.append(
+            f"<li><strong>{escape(str(item.get('file')))}:{escape(str(item.get('line')))}</strong> "
+            f"server = {escape(str(item.get('value')))} ({marker})</li>"
+        )
+
+    return '<ul class="share-list">' + "".join(items) + "</ul>" if items else escape(tr("none", lang))
+
+
 def format_config_rows(config, lang="fr"):
     if not config:
         return f'<tr><td>{escape(tr("unknown", lang))}</td><td></td></tr>'
@@ -286,6 +313,7 @@ def generate_html_report(snapshot, lang="fr"):
     diagnosis = snapshot.get("diagnosis", [])
     causal_comparison = snapshot.get("causal_comparison", [])
     security = system.get("security", {})
+    glpi = snapshot.get("glpi", {})
     metadata = snapshot.get("metadata", {})
     remote_snapshot = snapshot.get("remote_agent_snapshot") or {}
     remote_metadata = remote_snapshot.get("metadata", {})
@@ -606,6 +634,29 @@ summary:hover {{
     color: var(--text);
 }}
 
+.causal-block {{
+    margin-top: 12px;
+}}
+
+.causal-label {{
+    display: block;
+    color: var(--accent);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin: 0 0 8px 0;
+}}
+
+.causal-title {{
+    margin: 0 0 8px 0;
+    color: var(--text-head);
+    font-weight: 600;
+}}
+
 .finding-ok {{
     border-left-color: var(--ok-fg);
 }}
@@ -771,6 +822,11 @@ summary:hover {{
 </details>
 
 <details>
+<summary>{T('glpi_agent')}</summary>
+{format_glpi_html(glpi, lang)}
+</details>
+
+<details>
 <summary>{T('tests')}</summary>
 <table>
 """
@@ -849,8 +905,10 @@ summary:hover {{
                 for evidence in item.get("evidence", [])
             )
             remediation_html = (
-                f'<p class="finding-remediation"><strong>{T("action")} :</strong> '
-                f'{escape(str(remediation))}</p>'
+                '<div class="causal-block">'
+                f'<span class="causal-label">{T("cmp_recommended_action")}</span>'
+                f'<p class="finding-remediation">{escape(str(remediation))}</p>'
+                '</div>'
                 if remediation else ""
             )
 
@@ -858,10 +916,16 @@ summary:hover {{
 <div class="finding {finding_class(level)}">
     <div class="finding-meta">
         <span class="finding-level">{escape(level)}</span>
-        <span class="finding-case">{title}</span>
     </div>
-    <ul class="share-list">{evidence_html}</ul>
-    <p class="finding-message"><strong>{T('cause')} :</strong> {cause}</p>
+    <div class="causal-block">
+        <span class="causal-label">{T('cmp_observed_difference')}</span>
+        <p class="causal-title">{title}</p>
+        <ul class="share-list">{evidence_html}</ul>
+    </div>
+    <div class="causal-block">
+        <span class="causal-label">{T('cmp_possible_impact')}</span>
+        <p class="finding-message">{cause}</p>
+    </div>
     {remediation_html}
 </div>
 """
@@ -882,6 +946,14 @@ summary:hover {{
             message = escape(str(item.get("message") or ""))
             remediation = item.get("remediation")
             css_class = finding_class(level)
+            evidence_html = "".join(
+                f"<li>{escape(str(evidence))}</li>"
+                for evidence in item.get("evidence", [])
+            )
+            evidence_block = (
+                f'<ul class="share-list">{evidence_html}</ul>'
+                if evidence_html else ""
+            )
             case_html = (
                 f'<span class="finding-case">{escape(str(case))}</span>'
                 if case else ""
@@ -899,6 +971,7 @@ summary:hover {{
         {case_html}
     </div>
     <p class="finding-message">{message}</p>
+    {evidence_block}
     {remediation_html}
 </div>
 """

@@ -10,6 +10,7 @@ from tkinter import messagebox
 from tkinter import ttk
 
 from agent.collectors.system import is_admin
+from expert.rule_catalog import RULE_CATEGORIES, RULES
 from shared.i18n import tr
 from shared.version import DTLKNOWSWHY_VERSION
 
@@ -50,52 +51,6 @@ LEVEL_COLORS = {
 }
 
 
-SITUATIONS = [
-    {
-        "id": "SMB-001",
-        "title_key": "gui_smb_001_title",
-        "description_key": "gui_smb_001_desc",
-        "requires_target": False,
-    },
-    {
-        "id": "SMB-002",
-        "title_key": "gui_smb_002_title",
-        "description_key": "gui_smb_002_desc",
-        "requires_target": True,
-    },
-    {
-        "id": "SMB-003",
-        "title_key": "gui_smb_003_title",
-        "description_key": "gui_smb_003_desc",
-        "requires_target": True,
-    },
-    {
-        "id": "LOCAL-NETWORK",
-        "title_key": "gui_local_network_title",
-        "description_key": "gui_local_network_desc",
-        "requires_target": False,
-    },
-    {
-        "id": "LOCAL-SMB",
-        "title_key": "gui_local_smb_title",
-        "description_key": "gui_local_smb_desc",
-        "requires_target": False,
-    },
-    {
-        "id": "REMOTE-WINDOWS",
-        "title_key": "gui_remote_windows_title",
-        "description_key": "gui_remote_windows_desc",
-        "requires_target": True,
-    },
-    {
-        "id": "REMOTE-DEVICE",
-        "title_key": "gui_remote_device_title",
-        "description_key": "gui_remote_device_desc",
-        "requires_target": True,
-    },
-]
-
-
 class QueueWriter(io.TextIOBase):
     def __init__(self, output_queue):
         self.output_queue = output_queue
@@ -119,6 +74,7 @@ class DTLknowsWhyGui:
         self.latest_snapshot = None
         self.selected_vars = {}
         self.situation_widgets = []
+        self.category_widgets = []
         self.summary_rows = {}
 
         self.root = tk.Tk()
@@ -285,46 +241,78 @@ class DTLknowsWhyGui:
         self.situations_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self.situations_frame.columnconfigure(0, weight=1)
 
-        for row, situation in enumerate(SITUATIONS):
-            var = tk.BooleanVar(value=False)
-            self.selected_vars[situation["id"]] = var
-            card = ttk.Frame(
+        for row, category in enumerate(RULE_CATEGORIES):
+            expanded = tk.BooleanVar(value=True)
+            category_frame = ttk.Frame(
                 self.situations_frame,
                 padding=(10, 8),
                 style="Card.TFrame",
             )
-            card.grid(row=row, column=0, sticky="ew", pady=(0, 8))
-            card.columnconfigure(0, weight=1)
+            category_frame.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+            category_frame.columnconfigure(0, weight=1)
 
-            title = ttk.Checkbutton(
-                card,
-                variable=var,
-                command=self._refresh_target_hint,
+            header = ttk.Checkbutton(
+                category_frame,
+                variable=expanded,
+                command=lambda cat=category["id"]: self._toggle_rule_category(cat),
                 style="CardTitle.TCheckbutton",
             )
-            title.grid(row=0, column=0, sticky="w")
+            header.grid(row=0, column=0, sticky="w")
 
-            description = ttk.Label(
-                card,
-                wraplength=560,
-                style="CardText.TLabel",
+            rules_frame = ttk.Frame(
+                category_frame,
+                padding=(10, 6),
+                style="Card.TFrame",
             )
-            description.grid(row=1, column=0, sticky="w", padx=(24, 0), pady=(3, 0))
+            rules_frame.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+            rules_frame.columnconfigure(0, weight=1)
 
-            badge = None
-            if situation["requires_target"]:
-                badge = ttk.Label(
-                    card,
-                    style="Badge.TLabel",
-                )
-                badge.grid(row=0, column=1, sticky="ne", padx=(8, 0))
-
-            self.situation_widgets.append({
-                "situation": situation,
-                "title": title,
-                "description": description,
-                "badge": badge,
+            self.category_widgets.append({
+                "category": category,
+                "expanded": expanded,
+                "header": header,
+                "rules_frame": rules_frame,
             })
+
+            for rule_row, rule in enumerate(category["rules"]):
+                var = tk.BooleanVar(value=False)
+                self.selected_vars[rule["id"]] = var
+
+                title = ttk.Checkbutton(
+                    rules_frame,
+                    variable=var,
+                    command=self._refresh_target_hint,
+                    style="CardTitle.TCheckbutton",
+                )
+                title.grid(row=rule_row * 2, column=0, sticky="w", padx=(12, 0))
+
+                description = ttk.Label(
+                    rules_frame,
+                    wraplength=520,
+                    style="CardText.TLabel",
+                )
+                description.grid(
+                    row=rule_row * 2 + 1,
+                    column=0,
+                    sticky="w",
+                    padx=(36, 0),
+                    pady=(2, 7),
+                )
+
+                badge = None
+                if rule["requires_target"]:
+                    badge = ttk.Label(
+                        rules_frame,
+                        style="Badge.TLabel",
+                    )
+                    badge.grid(row=rule_row * 2, column=1, sticky="ne", padx=(8, 0))
+
+                self.situation_widgets.append({
+                    "situation": rule,
+                    "title": title,
+                    "description": description,
+                    "badge": badge,
+                })
 
         self.target_frame = ttk.LabelFrame(
             top,
@@ -513,6 +501,11 @@ class DTLknowsWhyGui:
         self.language_combo.configure(values=language_values)
         self.language_var.set(self._language_code_to_label(self.lang))
 
+        for item in self.category_widgets:
+            category = item["category"]
+            prefix = "▼" if item["expanded"].get() else "▶"
+            item["header"].configure(text=f"{prefix} {self._t(category['title_key'])}")
+
         for item in self.situation_widgets:
             situation = item["situation"]
             label = self._t(situation["title_key"])
@@ -553,6 +546,19 @@ class DTLknowsWhyGui:
         self.lang = "fr" if selected == self._t("gui_lang_fr") else "en"
         self._apply_language()
 
+    def _toggle_rule_category(self, category_id):
+        for item in self.category_widgets:
+            if item["category"]["id"] != category_id:
+                continue
+
+            if item["expanded"].get():
+                item["rules_frame"].grid()
+            else:
+                item["rules_frame"].grid_remove()
+
+            self._apply_language()
+            break
+
     def run(self):
         self.root.mainloop()
 
@@ -562,7 +568,7 @@ class DTLknowsWhyGui:
 
         self.target_var.set(self.initial_target)
 
-        for situation in SITUATIONS:
+        for situation in RULES:
             if situation["requires_target"]:
                 self.selected_vars[situation["id"]].set(True)
 
@@ -574,7 +580,7 @@ class DTLknowsWhyGui:
     def _selected_situations(self):
         return [
             situation
-            for situation in SITUATIONS
+            for situation in RULES
             if self.selected_vars[situation["id"]].get()
         ]
 
@@ -716,6 +722,13 @@ class DTLknowsWhyGui:
                 f"{item.get('message')}\n",
                 "message",
             )
+
+            for evidence in item.get("evidence", []):
+                self.findings_text.insert(
+                    "end",
+                    f"- {evidence}\n",
+                    "message",
+                )
 
             if item.get("remediation"):
                 self.findings_text.insert(

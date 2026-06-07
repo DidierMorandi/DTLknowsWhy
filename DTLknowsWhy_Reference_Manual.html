@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTLknowsWhy &mdash; Reference Manual v2.1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --border: #252b3b;
+    --accent: #ff7a45;
+    --accent-dim: #5c2a15;
+    --text: #c9d1e0;
+    --text-muted: #5a6580;
+    --text-heading: #e8edf5;
+    --code-bg: #12161f;
+    --code-border: #1e2535;
+    --sidebar-w: 260px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 28px 0 40px;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  nav .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+
+  nav .logo span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 9px;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  nav a {
+    display: block;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+    padding: 5px 20px;
+    transition: color 0.15s, background 0.15s;
+    font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  nav a:hover { color: var(--accent); background: rgba(255,122,69,0.06); }
+  nav a.active { color: var(--accent); }
+
+  nav a.nav-section-link {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 14px 20px 4px;
+    opacity: 0.5;
+  }
+  nav a.nav-section-link:hover { opacity: 1; background: none; }
+
+  main {
+    margin-left: var(--sidebar-w);
+    padding: 56px 64px 100px;
+    max-width: calc(var(--sidebar-w) + 900px);
+    width: 100%;
+  }
+
+  .main-logo {
+    display: block;
+    margin: 0 auto 36px;
+    height: 52px;
+    width: auto;
+    image-rendering: pixelated;
+  }
+
+  .doc-header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .doc-header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-heading);
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+  }
+
+  .doc-header h1 .accent { color: var(--accent); }
+
+  .meta-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    color: var(--text-muted);
+  }
+
+  .pill .k { color: var(--accent); margin-right: 4px; }
+
+  h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 52px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin: 32px 0 10px;
+  }
+
+  p { margin-bottom: 14px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    color: #fdba74;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 14px 0 20px;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #fdba74;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 12px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+
+  thead tr { background: var(--code-bg); border-bottom: 1px solid var(--border); }
+
+  th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 10px 14px;
+    text-align: left;
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,122,69,0.03); }
+
+  ul {
+    list-style: none;
+    margin: 10px 0 16px;
+    padding-left: 0;
+  }
+
+  ul li {
+    padding: 3px 0 3px 20px;
+    position: relative;
+    font-size: 13px;
+  }
+
+  ul li::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .page-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-dim);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .page-block h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  .page-block .file {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .page-block .desc {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .page-block .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    margin-top: 14px;
+  }
+
+  .callout {
+    background: rgba(255,122,69,0.05);
+    border: 1px solid var(--accent-dim);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  .callout strong { color: var(--accent); }
+
+  .warn {
+    background: rgba(210,153,34,0.07);
+    border: 1px solid rgba(210,153,34,0.25);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  .warn strong { color: #d29922; }
+
+  strong { color: var(--text-heading); font-weight: 600; }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 800px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 32px 24px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">DTLknowsWhy<span>Reference Manual v2.1</span></div>
+
+  <a class="nav-section-link" href="#preface">Preface</a>
+  <a href="#preface">Preface</a>
+  <a href="#audience">Intended Audience</a>
+  <a href="#conventions">Conventions</a>
+  <a href="#related-docs">Related Documents</a>
+
+  <a class="nav-section-link" href="#chapter1">Chapter 1</a>
+  <a href="#overview">Overview</a>
+  <a href="#whats-new">What's New in 2.1</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#requirements">Requirements</a>
+  <a href="#installation">Installation</a>
+
+  <a class="nav-section-link" href="#chapter2">Chapter 2 &mdash; CLI</a>
+  <a href="#cmd-agent">agent.py</a>
+  <a href="#cmd-gui">DTLknowsWhy.exe (GUI)</a>
+  <a href="#cmd-cli">DTLknowsWhy-CLI.exe</a>
+  <a href="#cmd-server">DTLknowsWhy-Agent</a>
+  <a href="#cmd-expert">expert.py</a>
+  <a href="#cmd-compare">compare.py</a>
+
+  <a class="nav-section-link" href="#chapter3">Chapter 3 &mdash; Modules</a>
+  <a href="#mod-entrypoint">agent.py</a>
+  <a href="#mod-gui">agent/gui.py</a>
+  <a href="#mod-server">agent/server.py</a>
+  <a href="#col-system">collectors/system</a>
+  <a href="#col-network">collectors/network</a>
+  <a href="#col-tests">collectors/tests</a>
+  <a href="#col-remote">collectors/remote_tests</a>
+  <a href="#col-services">collectors/services</a>
+  <a href="#sh-commands">shared/commands</a>
+  <a href="#sh-serializer">shared/serializer</a>
+  <a href="#sh-report">shared/report</a>
+  <a href="#sh-html-report">shared/html_report</a>
+  <a href="#sh-i18n">shared/i18n</a>
+  <a href="#sh-version">shared/version</a>
+  <a href="#sh-logger">shared/logger</a>
+  <a href="#ex-rules">expert/rules_engine</a>
+  <a href="#ex-compare">expert/compare</a>
+
+  <a class="nav-section-link" href="#appendices">Appendices</a>
+  <a href="#snapshot-format">Snapshot Format</a>
+  <a href="#classification">Target Classification</a>
+  <a href="#firewall">Firewall Configuration</a>
+  <a href="#smartscreen">SmartScreen Warning</a>
+  <a href="#lm-compat">LmCompatibilityLevel</a>
+  <a href="#limitations">Known Limitations</a>
+  <a href="#history">Version History</a>
+</nav>
+
+<main>
+  <img class="main-logo" src="data:image/png;base64,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" alt="NetDTL">
+
+
+  <div class="doc-header">
+    <h1><span class="accent">DTLknowsWhy</span> &mdash; Reference Manual v2.1</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:10px;">Complete module and command reference for DTLknowsWhy 2.1 &mdash; Windows network diagnostic and causal analysis engine.</p>
+    <div class="meta-pills">
+      <span class="pill"><span class="k">version</span>2.1.0</span>
+      <span class="pill"><span class="k">date</span>7 June 2026</span>
+      <span class="pill"><span class="k">platform</span>Windows 10 / 11</span>
+      <span class="pill"><span class="k">runtime</span>Python 3.10+</span>
+      <span class="pill"><span class="k">languages</span>fr / en</span>
+      <span class="pill"><span class="k">author</span>Didier DTL Morandi</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PREFACE
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="preface">Preface</h2>
+
+  <p>This manual describes the command-line interface, the graphical user interface, and the internal module reference for DTLknowsWhy 2.1. It covers every executable entry point, every collector module, every shared support module, the expert rule engine, the comparative analyser, and the snapshot format. For step-by-step operational guidance, refer to the companion <em>DTLknowsWhy User Guide</em>.</p>
+
+  <p>DTLknowsWhy answers one practical question: <em>"Why does it work on one machine and not on another?"</em> Rather than listing symptoms, it identifies probable causes and proposes corrective actions. Version 2.1 replaces the legacy <code>ipconfig /all</code> text-parsing approach with a structured PowerShell and CIM data collection engine, making the tool fully language-independent and compatible with any Windows locale.</p>
+
+  <h3 id="audience">Intended Audience</h3>
+  <p>This manual is intended for:</p>
+  <ul>
+    <li>System administrators managing Windows 10 and 11 workstations and small Windows-centric networks</li>
+    <li>Network administrators diagnosing SMB, DNS, and connectivity issues</li>
+    <li>Developers extending or integrating DTLknowsWhy</li>
+  </ul>
+  <p>Readers are assumed to be comfortable with the Windows command prompt, basic TCP/IP networking, and Python execution. No Python development experience is required for operational use.</p>
+
+  <h3 id="conventions">Conventions</h3>
+  <table>
+    <thead><tr><th>Convention</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>monospace</code></td><td>Command text, file names, function names, parameter names, and output literals</td></tr>
+      <tr><td><em>italic</em></td><td>Variables and placeholders &mdash; substitute actual values when typing commands</td></tr>
+      <tr><td><strong>Bold</strong></td><td>Introduction of a new term or emphasis on a critical point</td></tr>
+      <tr><td><code>[option]</code></td><td>Optional argument; do not type the brackets</td></tr>
+      <tr><td><code>{a|b}</code></td><td>Mutually exclusive choices; choose exactly one; do not type the braces or pipe</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Note on addresses:</strong> All IP addresses and hostnames used in examples are fictitious. They do not represent real network resources.</div>
+  <div class="warn"><strong>Caution boxes</strong> like this one indicate settings or actions that can cause data loss, security exposure, or unexpected behaviour if not followed carefully.</div>
+
+  <h3 id="related-docs">Related Documents</h3>
+  <table>
+    <thead><tr><th>Document</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>DTLknowsWhy User Guide</td><td>Step-by-step operational guide for first-time and daily use</td></tr>
+      <tr><td>NetDTL Reference Manual</td><td>PHP/MySQL agentless network inventory web application</td></tr>
+      <tr><td>DTLsaysWhat Reference Manual</td><td>Windows system inventory tool inspired by the OpenVMS SHOW SYSTEM command</td></tr>
+      <tr><td>README.md</td><td>Quick-start summary included in the repository root</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 1 — INTRODUCTION
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter1">Chapter 1 &mdash; Introduction</h2>
+
+  <h2 id="overview">1.1 Overview</h2>
+  <p>DTLknowsWhy is a Windows diagnostic and expert analysis tool. Run it on a machine to get an immediate picture of its configuration: OS version, network profile, IP settings, key Windows services, and basic connectivity. Optionally point it at another machine to classify it, test its ports, and retrieve its full remote snapshot.</p>
+  <p>Every collection run produces three output files: a <strong>JSON snapshot</strong> (raw data for archiving or later analysis), a <strong>plain-text report</strong>, and a <strong>dark-themed HTML report</strong>. Reports are available in French and English.</p>
+
+  <table>
+    <thead><tr><th>Component</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>agent.py</code></td><td>Main entry point; CLI dispatcher and snapshot orchestrator</td></tr>
+      <tr><td><code>DTLknowsWhy.exe</code></td><td>GUI executable (no console window); launches the Tkinter interface</td></tr>
+      <tr><td><code>DTLknowsWhy-CLI.exe</code></td><td>CLI executable (console window); identical logic to agent.py at runtime</td></tr>
+      <tr><td><code>DTLknowsWhy-Agent.exe</code></td><td>Remote agent; exposes HTTP snapshot endpoint; can run as a Windows service</td></tr>
+      <tr><td><code>expert.py</code></td><td>Expert analysis engine; loads a snapshot and emits diagnostic findings</td></tr>
+      <tr><td><code>compare.py</code></td><td>Comparative analyser; loads two snapshots and identifies causal differences</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="whats-new">1.2 What's New in Version 2.1</h3>
+
+  <h3>Language-independent network collection</h3>
+  <p>Previous versions collected network configuration by parsing <code>ipconfig /all</code> text output, which depended on localised Windows labels and worked reliably only on French Windows. Version 2.1 replaces this engine entirely with structured PowerShell and CIM data objects.</p>
+  <table>
+    <thead><tr><th>Aspect</th><th>Version 2.0</th><th>Version 2.1</th></tr></thead>
+    <tbody>
+      <tr><td>Data source</td><td><code>ipconfig /all</code> text parsing</td><td>PowerShell + CIM structured objects</td></tr>
+      <tr><td>Windows locale</td><td>French only</td><td>Any language</td></tr>
+      <tr><td>Fragility</td><td>Breaks on Windows update label changes</td><td>Resilient &mdash; structured data is version-stable</td></tr>
+      <tr><td>JSON snapshot format</td><td>&mdash;</td><td>Unchanged (full backward compatibility)</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Backward compatibility:</strong> The JSON snapshot structure is unchanged. Existing expert rules, HTML reports, and analysis modules continue to work without modification.</div>
+
+  <h3>Graphical user interface with language selection</h3>
+  <p>Version 2.1 adds a Tkinter GUI (<code>DTLknowsWhy.exe</code>) with a language selection control at startup. The selected language applies to all interface labels, menus, generated reports, and diagnostic messages. French and English are supported. The language selection is independent from the Windows display language.</p>
+
+  <h3>New collector keys</h3>
+  <p>Two new keys are added to the <code>system</code> section of the snapshot: <code>lm_compatibility_level</code> (integer from the LSA registry key, or <code>null</code> if absent) and <code>bitlocker_status</code> (dict of drive letter to encryption state). These feed new rules in the expert engine.</p>
+
+  <h3>Expert engine and comparative analyser</h3>
+  <p>The <code>analyze()</code> function now accepts a <code>lang</code> parameter. The comparative analyser (<code>compare.py</code>) is fully internationalised via <code>shared/i18n.py</code>: all finding tags, cause descriptions, and remediation strings are available in French and English via <code>--lang</code>.</p>
+
+  <h3 id="architecture">1.3 Architecture</h3>
+  <p>The tool is structured in four layers:</p>
+  <ul>
+    <li><strong>Entry points:</strong> <code>agent.py</code>, <code>expert.py</code>, <code>compare.py</code> and the compiled executables</li>
+    <li><strong>Collectors:</strong> <code>agent/collectors/</code> &mdash; one module per data category, all returning plain Python dicts</li>
+    <li><strong>Shared modules:</strong> <code>shared/</code> &mdash; serialisation, text and HTML report generation, i18n, command runner, logger</li>
+    <li><strong>Expert modules:</strong> <code>expert/</code> &mdash; rule engine and comparative analyser</li>
+  </ul>
+  <pre><code>Windows System
+      |
+      v
+Collectors (system, network, tests, services, remote_tests)
+      |
+      v
+Snapshot dict  ──────────────────────────────────┐
+      |                                       |
+      v                                       v
+serializer.py                          rules_engine.py
+report.py / html_report.py             compare.py
+      |                                       |
+      v                                       v
+JSON + TXT + HTML files            Diagnostic findings (stdout)</code></pre>
+
+  <h3 id="requirements">1.4 Requirements</h3>
+  <table>
+    <thead><tr><th>Component</th><th>Version</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Windows</td><td>10 / 11</td><td>Collectors use Windows-specific commands and CIM classes</td></tr>
+      <tr><td>Python</td><td>3.10+</td><td>Standard library only &mdash; no <code>pip install</code> required</td></tr>
+      <tr><td>PowerShell</td><td>5.1 / 7+</td><td>Pre-installed on all supported Windows versions</td></tr>
+      <tr><td>Administrator privileges</td><td>Recommended</td><td>Required for full service inspection, SMB configuration, and BitLocker status</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="installation">1.5 Installation</h3>
+  <p>No installer is required. Copy the project folder to the target machine and run from the project root. The directory layout is:</p>
+  <pre><code>DTLknowsWhy/
+├── agent.py                   ← main entry point
+├── expert.py                  ← expert analysis entry point
+├── compare.py                 ← comparative analysis entry point
+├── DTLknowsWhy.exe            ← GUI executable (console=False)
+├── DTLknowsWhy-CLI.exe        ← CLI executable (console=True)
+├── DTLknowsWhy-Agent.exe      ← remote agent executable
+├── agent/
+│   ├── gui.py
+│   ├── server.py
+│   ├── service.py
+│   └── collectors/
+│       ├── system.py
+│       ├── network.py
+│       ├── tests.py
+│       ├── remote_tests.py
+│       └── services.py
+├── expert/
+│   ├── rules_engine.py
+│   └── compare.py
+└── shared/
+    ├── commands.py
+    ├── serializer.py
+    ├── report.py
+    ├── report_writer.py
+    ├── html_report.py
+    ├── html_writer.py
+    ├── i18n.py
+    ├── version.py
+    └── logger.py</code></pre>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 2 — COMMAND DESCRIPTIONS
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter2">Chapter 2 &mdash; Command Descriptions</h2>
+  <p>This chapter describes each executable entry point: syntax, parameters, options, behaviour, and examples. For module internals, see Chapter 3.</p>
+
+  <div class="page-block" id="cmd-agent">
+    <h3>agent.py</h3>
+    <div class="desc">Main entry point. Parses CLI arguments, dispatches to the GUI, the HTTP server, or the snapshot collection pipeline. Also the source compiled into the two executables.</div>
+    <div class="label">Format</div>
+    <pre><code>python agent.py [--snapshot] [--target IP_OR_HOST] [--listen] [--once] [--lang {fr,en}]</code></pre>
+    <div class="label">Parameters</div>
+    <table>
+      <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--snapshot</td><td>Optional</td><td>Collect local snapshot and write output files. Can be combined with <code>--target</code>.</td></tr>
+        <tr><td>--target <em>HOST</em></td><td>Optional</td><td>Run remote diagnostic tests plus retrieve a full remote snapshot from the agent on <em>HOST</em>. Implies <code>--snapshot</code>.</td></tr>
+        <tr><td>--listen</td><td>Optional</td><td>Start the HTTP server on port 5050. Mutually exclusive with <code>--snapshot</code> and <code>--target</code>.</td></tr>
+        <tr><td>--once</td><td>Optional</td><td>Stop the server after the first successful <code>/snapshot</code> request. Test mode only; ignored when running as a Windows service.</td></tr>
+        <tr><td>--lang {fr|en}</td><td>Optional</td><td>Report language. Default: <code>en</code>.</td></tr>
+      </tbody>
+    </table>
+    <div class="label">Dispatch logic</div>
+    <p><code>is_cli_executable()</code> checks <code>sys.argv[0]</code>: if the stem is <code>agent</code>, contains <code>cli</code>, or ends with <code>-agent</code>, the process runs in CLI mode; otherwise it launches the GUI. This makes the same source file behave correctly whether run as <code>python agent.py</code>, <code>DTLknowsWhy.exe</code>, or <code>DTLknowsWhy-CLI.exe</code>.</p>
+    <div class="label">Examples</div>
+    <pre><code># Local snapshot, English report
+python agent.py --snapshot --lang en
+
+# Local snapshot + remote agent query
+python agent.py --target PC-BEN-002 --lang en
+
+# Start HTTP server
+python agent.py --listen</code></pre>
+  </div>
+
+  <div class="page-block" id="cmd-gui">
+    <h3>DTLknowsWhy.exe (GUI)</h3>
+    <div class="desc">Compiled GUI executable. Identical source to <code>agent.py</code>; the <code>console=False</code> PyInstaller flag suppresses the console window. Launches the Tkinter interface automatically because <code>is_cli_executable()</code> returns <code>False</code> for this name.</div>
+    <div class="label">Format</div>
+    <pre><code>DTLknowsWhy.exe [--target IP_OR_HOST] [--lang {fr,en}]</code></pre>
+    <div class="label">Behaviour</div>
+    <p>Without <code>--target</code>: opens the GUI at the situation selection screen. With <code>--target</code>: pre-fills the target field and, if <code>--auto-start</code> is also passed internally, begins the diagnosis immediately. Language defaults to <code>en</code>; user can change it in the GUI combo box.</p>
+    <div class="callout"><strong>Note:</strong> The GUI requires administrator privileges for complete results. If the process is not elevated, a dialog asks the user whether to continue without admin rights.</div>
+  </div>
+
+  <div class="page-block" id="cmd-cli">
+    <h3>DTLknowsWhy-CLI.exe</h3>
+    <div class="desc">Compiled CLI executable. Identical source to <code>agent.py</code>; the <code>console=True</code> PyInstaller flag keeps the console window. Behaves as CLI because <code>is_cli_executable()</code> returns <code>True</code> for names containing <code>cli</code>.</div>
+    <div class="label">Format</div>
+    <pre><code>DTLknowsWhy-CLI.exe [--snapshot] [--target IP_OR_HOST] [--listen] [--lang {fr,en}]</code></pre>
+    <p>Same parameters and behaviour as <code>agent.py</code> in CLI mode. Requires administrator privileges; displays a formatted warning and exits if not elevated.</p>
+  </div>
+
+  <div class="page-block" id="cmd-server">
+    <h3>DTLknowsWhy-Agent</h3>
+    <div class="desc">Remote agent executable. Runs on the target machine and exposes a single HTTP endpoint on TCP port 5050. Can run interactively or as a persistent Windows service.</div>
+    <div class="label">Format</div>
+    <pre><code>DTLknowsWhy-Agent.exe --listen
+DTLknowsWhy-Agent.exe install
+DTLknowsWhy-Agent.exe start
+DTLknowsWhy-Agent.exe stop
+DTLknowsWhy-Agent.exe remove</code></pre>
+    <div class="label">Parameters</div>
+    <table>
+      <thead><tr><th>Parameter</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--listen</td><td>Start in interactive foreground mode; listens on TCP 5050 until Ctrl+C</td></tr>
+        <tr><td>install</td><td>Install as a Windows service (requires administrator)</td></tr>
+        <tr><td>start</td><td>Start the installed Windows service</td></tr>
+        <tr><td>stop</td><td>Stop the running Windows service</td></tr>
+        <tr><td>remove</td><td>Remove the Windows service registration</td></tr>
+      </tbody>
+    </table>
+    <div class="label">HTTP endpoint</div>
+    <pre><code>GET /snapshot?key=DTLSECRET&amp;lang=en</code></pre>
+    <table>
+      <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>key</td><td>Yes</td><td>Must match <code>API_KEY</code> in <code>agent/server.py</code>. Returns HTTP 403 if absent or wrong.</td></tr>
+        <tr><td>lang</td><td>No</td><td><code>en</code> (default) or <code>fr</code></td></tr>
+      </tbody>
+    </table>
+    <div class="warn"><strong>Security:</strong> The API key is stored in plain text in <code>server.py</code>. No TLS. Use only on trusted local networks. TCP port 5050 must be open inbound on the Windows Firewall; see <a href="#firewall">Appendix C</a>. On first execution, Windows SmartScreen may block the agent; see <a href="#smartscreen">Appendix D</a>.</div>
+    <div class="label">Examples</div>
+    <pre><code># Interactive mode
+DTLknowsWhy-Agent.exe --listen
+
+# Install and start as Windows service
+DTLknowsWhy-Agent.exe install
+DTLknowsWhy-Agent.exe start</code></pre>
+  </div>
+
+  <div class="page-block" id="cmd-expert">
+    <h3>expert.py</h3>
+    <div class="desc">Expert analysis engine. Loads a snapshot JSON file, runs it through the rules engine, and prints a structured findings report to stdout. Auto-selects the most recently modified snapshot if none is specified.</div>
+    <div class="label">Format</div>
+    <pre><code>python expert.py [snapshot.json] [--lang {fr,en}]</code></pre>
+    <div class="label">Parameters</div>
+    <table>
+      <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><em>snapshot.json</em></td><td>Optional</td><td>Path to a snapshot JSON file. If omitted, the most recently modified <code>*_snapshot_*.json</code> in the current directory is used. Exits with code 1 if none found.</td></tr>
+        <tr><td>--lang {fr|en}</td><td>Optional</td><td>Output language. Default: <code>en</code>.</td></tr>
+      </tbody>
+    </table>
+    <div class="label">Finding levels</div>
+    <table>
+      <thead><tr><th>Level</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>[OK]</code></td><td>No problem detected for this check</td></tr>
+        <tr><td><code>[INFO]</code></td><td>Informational; no action required</td></tr>
+        <tr><td><code>[WARN]</code></td><td>Potential issue; review the remediation suggestion</td></tr>
+        <tr><td><code>[FAIL]</code></td><td>Confirmed problem; apply the remediation</td></tr>
+      </tbody>
+    </table>
+    <div class="label">Examples</div>
+    <pre><code># Analyse latest snapshot, English output
+python expert.py --lang en
+
+# Analyse a specific snapshot
+python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang en</code></pre>
+  </div>
+
+  <div class="page-block" id="cmd-compare">
+    <h3>compare.py</h3>
+    <div class="desc">Comparative analyser. Compares two snapshots (reference and target) to identify configuration differences that explain why a feature works on one machine and not the other. Fully internationalised via <code>--lang</code>.</div>
+    <div class="label">Format</div>
+    <pre><code>python compare.py snapshot_ref.json snapshot_target.json [--lang {fr,en}]</code></pre>
+    <div class="label">Parameters</div>
+    <table>
+      <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><em>snapshot_ref.json</em></td><td>Yes</td><td>Reference snapshot (the machine that works correctly &mdash; PC A)</td></tr>
+        <tr><td><em>snapshot_target.json</em></td><td>Yes</td><td>Target snapshot (the machine under investigation &mdash; PC B)</td></tr>
+        <tr><td>--lang {fr|en}</td><td>Optional</td><td>Output language. Default: <code>fr</code>.</td></tr>
+        <tr><td>--ben-reference</td><td>Optional</td><td>Use the latest <code>PC-BEN-001_snapshot_*.json</code> as reference automatically</td></tr>
+      </tbody>
+    </table>
+    <div class="label">Finding tags (English)</div>
+    <table>
+      <thead><tr><th>Tag</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>[CONFIRMED CAUSE]</td><td>The difference directly causes the problem</td></tr>
+        <tr><td>[PROBABLE CAUSE]</td><td>A configuration known to block the feature in question</td></tr>
+        <tr><td>[POSSIBLE CAUSE]</td><td>A difference that may contribute depending on the scenario</td></tr>
+        <tr><td>[OBSERVED]</td><td>Factual observation; no issue implied</td></tr>
+        <tr><td>[TO VERIFY]</td><td>Notable configuration warranting manual check</td></tr>
+        <tr><td>[MISSING INFORMATION]</td><td>Field absent from target snapshot; no conclusion possible</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><strong>Directional analysis:</strong> Only deviations where PC B differs from PC A are reported. To perform the reverse comparison, swap the arguments.</div>
+    <div class="label">Examples</div>
+    <pre><code>python compare.py PREDATOR_snapshot_20260607.json PC-BEN-002_snapshot_20260607.json --lang en</code></pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CHAPTER 3 — MODULE REFERENCE
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="chapter3">Chapter 3 &mdash; Module Reference</h2>
+  <p>This chapter describes each Python module: purpose, public functions, parameters, and output keys. For CLI entry points, see Chapter 2.</p>
+
+  <div class="page-block" id="mod-entrypoint">
+    <h3>Entry point</h3>
+    <div class="file">agent.py</div>
+    <div class="desc">Parses CLI arguments, determines operating mode (GUI or CLI), and dispatches accordingly. Contains <code>create_snapshot()</code>, the central orchestration function.</div>
+    <div class="label">Key function</div>
+    <p><code>create_snapshot(target=None, lang="en", save_outputs=True) &rarr; dict</code></p>
+    <ul>
+      <li>Calls all collectors in sequence: system, network, tests, services</li>
+      <li>If <code>target</code> is provided: calls <code>collect_remote_tests(target)</code> and attempts to retrieve a full remote snapshot from the agent via HTTP</li>
+      <li>Runs <code>analyze(snapshot, lang)</code> and stores findings in <code>snapshot["diagnosis"]</code></li>
+      <li>Runs <code>compare_causal()</code> or <code>compare_remote_target()</code> and stores results in <code>snapshot["causal_comparison"]</code></li>
+      <li>If <code>save_outputs=True</code>: serialises JSON, generates and saves TXT and HTML reports</li>
+      <li>Returns the complete snapshot dict</li>
+    </ul>
+  </div>
+
+  <div class="page-block" id="mod-gui">
+    <h3>GUI</h3>
+    <div class="file">agent/gui.py</div>
+    <div class="desc">Tkinter graphical interface. Presents a situation selector, a target entry field, a language combo box, a progress log pane, and a findings pane. Runs <code>create_snapshot()</code> in a background thread to keep the UI responsive.</div>
+    <div class="label">Entry point</div>
+    <p><code>run_gui(create_snapshot, initial_target=None, auto_start=False, lang="en")</code></p>
+    <div class="label">Situations</div>
+    <p>Seven pre-defined situations are defined in the <code>SITUATIONS</code> list constant. Each situation has an <code>id</code>, a title i18n key, a description i18n key, and a <code>requires_target</code> flag. The GUI uses these to filter and highlight relevant findings from <code>snapshot["diagnosis"]</code>.</p>
+    <table>
+      <thead><tr><th>id</th><th>requires_target</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>SMB-001</td><td>No</td><td>Machine invisible in network neighbourhood</td></tr>
+        <tr><td>SMB-002</td><td>Yes</td><td>SMB access works by IP but not by name</td></tr>
+        <tr><td>SMB-003</td><td>Yes</td><td>SMB authentication refused (error 86 / 1326)</td></tr>
+        <tr><td>LOCAL-NETWORK</td><td>No</td><td>Local network connectivity problem</td></tr>
+        <tr><td>LOCAL-SMB</td><td>No</td><td>Local SMB service failure</td></tr>
+        <tr><td>REMOTE-WINDOWS</td><td>Yes</td><td>Cannot access a remote Windows share</td></tr>
+        <tr><td>REMOTE-DEVICE</td><td>Yes</td><td>Diagnose a remote network device</td></tr>
+      </tbody>
+    </table>
+    <div class="label">Queue-based output</div>
+    <p><code>QueueWriter</code> redirects <code>stdout</code> / <code>stderr</code> to a <code>queue.Queue</code>. The main thread polls the queue every 100 ms via <code>root.after()</code> and appends messages to the log pane. This avoids Tkinter thread-safety issues.</p>
+  </div>
+
+  <div class="page-block" id="mod-server">
+    <h3>HTTP server</h3>
+    <div class="file">agent/server.py</div>
+    <div class="desc">Minimal HTTP server exposing <code>GET /snapshot</code>. Calls <code>create_snapshot()</code> locally and returns the result as JSON. Used both by <code>--listen</code> and the Windows service.</div>
+    <div class="label">Configuration constants</div>
+    <table>
+      <thead><tr><th>Constant</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>API_KEY</td><td>DTLSECRET</td><td>Pre-shared key; requests with wrong key receive HTTP 403</td></tr>
+        <tr><td>HOST</td><td>0.0.0.0</td><td>Binds to all network interfaces</td></tr>
+        <tr><td>PORT</td><td>5050</td><td>TCP port</td></tr>
+      </tbody>
+    </table>
+    <div class="label">Agent timeout</div>
+    <p><code>AGENT_TIMEOUT_SECONDS = 120</code> (defined in <code>agent.py</code>) is the HTTP client-side timeout when the diagnostic workstation fetches a remote snapshot.</p>
+    <div class="warn"><strong>Security:</strong> No TLS. API key in plain text. Trusted networks only.</div>
+  </div>
+
+  <h2 id="collectors">Collectors</h2>
+
+  <div class="page-block" id="col-system">
+    <h3>System collector</h3>
+    <div class="file">agent/collectors/system.py</div>
+    <div class="desc">Collects machine identity, OS version, security posture, and new v2.1 fields: LmCompatibilityLevel and BitLocker status.</div>
+    <div class="label">Output keys (v2.1)</div>
+    <table>
+      <thead><tr><th>Key</th><th>Source</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>hostname</td><td><code>socket.gethostname()</code></td><td>NetBIOS / DNS hostname</td></tr>
+        <tr><td>username</td><td><code>getpass.getuser()</code></td><td>Logged-in Windows username</td></tr>
+        <tr><td>is_admin</td><td><code>ctypes.windll</code></td><td>Boolean &mdash; process has administrator privileges</td></tr>
+        <tr><td>windows_product_name</td><td>Registry + normalisation</td><td>OS name corrected for the Windows 10/11 reporting discrepancy</td></tr>
+        <tr><td>windows_version</td><td>Registry <code>DisplayVersion</code></td><td>Feature update string, e.g. <em>23H2</em></td></tr>
+        <tr><td>windows_build</td><td>Registry <code>CurrentBuild</code></td><td>Build number string, e.g. <em>22631</em></td></tr>
+        <tr><td>lm_compatibility_level</td><td>Registry <code>HKLM\...\Lsa\LmCompatibilityLevel</code></td><td>Integer 0&ndash;5, or <code>null</code> if the key is absent (Windows default)</td></tr>
+        <tr><td>bitlocker_status</td><td>PowerShell <code>Get-BitLockerVolume</code> / <code>manage-bde</code></td><td>Dict of drive letter to encryption state, or <code>null</code> if not collectible</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><strong>Windows 11 normalisation:</strong> Windows 11 reports itself as "Windows 10" in the registry <code>ProductName</code> on some builds. The collector corrects this by checking whether the build number is &ge; 22000.</div>
+    <div class="callout"><strong>LmCompatibilityLevel:</strong> A <code>null</code> value means the registry key is absent and Windows uses its compiled-in default (NTLMv2 only on Windows 10/11 1903+). Values 0&ndash;5 indicate explicit overrides. See <a href="#lm-compat">Appendix E</a> for the full interpretation table.</div>
+  </div>
+
+  <div class="page-block" id="col-network">
+    <h3>Network collector</h3>
+    <div class="file">agent/collectors/network.py</div>
+    <div class="desc">Collects IP configuration and profile information from structured PowerShell and CIM objects. Language-independent in v2.1; works on any Windows locale.</div>
+    <div class="label">Output keys</div>
+    <table>
+      <thead><tr><th>Key</th><th>Source</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>active_adapter_profile</td><td>PowerShell <code>Get-NetConnectionProfile</code></td><td>Name of the active connection profile</td></tr>
+        <tr><td>network_category</td><td>PowerShell <code>NetworkCategory</code></td><td>Profile type: <em>Public</em>, <em>Private</em>, or <em>Domain</em></td></tr>
+        <tr><td>ipv4</td><td>CIM <code>Win32_NetworkAdapterConfiguration</code></td><td>Primary IPv4 address</td></tr>
+        <tr><td>subnet_mask</td><td>CIM</td><td>Subnet mask</td></tr>
+        <tr><td>default_gateway</td><td>CIM</td><td>Default gateway IP</td></tr>
+        <tr><td>dns_servers</td><td>CIM</td><td>List of DNS server IPs (deduplicated)</td></tr>
+        <tr><td>dhcp_enabled</td><td>CIM</td><td>Boolean &mdash; DHCP active on the primary adapter</td></tr>
+        <tr><td>netbios_option</td><td>CIM <code>TcpipNetbiosOptions</code></td><td>Raw integer: 0=via DHCP, 1=enabled, 2=disabled</td></tr>
+        <tr><td>netbios_enabled</td><td>Derived from <code>netbios_option</code></td><td>Boolean: <code>True</code> for 0 or 1, <code>False</code> for 2, <code>null</code> if unknown</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-block" id="col-tests">
+    <h3>Local tests collector</h3>
+    <div class="file">agent/collectors/tests.py</div>
+    <div class="desc">Runs three ping tests to verify local IP stack health. Each test uses <code>ping -n 1</code> with a 10-second timeout and returns <code>True</code> if exit code is 0.</div>
+    <div class="label">Output keys</div>
+    <table>
+      <thead><tr><th>Key</th><th>Target</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>ping_localhost</td><td>127.0.0.1</td><td>Verifies the IP stack is functional</td></tr>
+        <tr><td>ping_self</td><td>Local IPv4</td><td>Verifies the NIC is reachable; skipped (<code>False</code>) if no IPv4 was collected</td></tr>
+        <tr><td>ping_gateway</td><td>Default gateway</td><td>Verifies LAN reachability; skipped (<code>False</code>) if no gateway was collected</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-block" id="col-remote">
+    <h3>Remote tests collector</h3>
+    <div class="file">agent/collectors/remote_tests.py</div>
+    <div class="desc">Runs a battery of remote diagnostic tests against a target IP or hostname: ping, hostname resolution, TCP port probes on 80/139/443/445, MAC address lookup, and automatic target classification. TCP probes and MAC lookup are only attempted if ping succeeds.</div>
+    <div class="label">Output keys</div>
+    <table>
+      <thead><tr><th>Key</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>target</td><td>The IP or hostname passed to <code>collect_remote_tests()</code></td></tr>
+        <tr><td>resolved_name</td><td>Hostname resolved from the IP via <code>ping -a -n 1</code>; <code>None</code> if not resolved</td></tr>
+        <tr><td>ping_target</td><td>Boolean &mdash; ping succeeded</td></tr>
+        <tr><td>tcp_80 / tcp_139 / tcp_443 / tcp_445</td><td>Boolean &mdash; TCP port open (PowerShell <code>Test-NetConnection</code>, 15-second timeout each)</td></tr>
+        <tr><td>mac_address</td><td>MAC from the ARP table; <code>None</code> if not found</td></tr>
+        <tr><td>target_type</td><td>Classification string; see <a href="#classification">Appendix B</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-block" id="col-services">
+    <h3>Services collector</h3>
+    <div class="file">agent/collectors/services.py</div>
+    <div class="desc">Queries five Windows services critical for network file sharing and name resolution using <code>sc query</code>. Returns one of: <code>Running</code>, <code>Stopped</code>, <code>Failed</code>, <code>Missing</code>, <code>Unknown</code>.</div>
+    <div class="label">Monitored services</div>
+    <table>
+      <thead><tr><th>Service</th><th>Role</th><th>Impact when stopped</th></tr></thead>
+      <tbody>
+        <tr><td>LanmanServer</td><td>SMB Server</td><td>File and printer sharing unavailable</td></tr>
+        <tr><td>LanmanWorkstation</td><td>SMB Workstation client</td><td>Cannot access remote shares</td></tr>
+        <tr><td>FDResPub</td><td>Function Discovery Resource Publication</td><td>Machine invisible in network neighbourhood</td></tr>
+        <tr><td>fdPHost</td><td>Function Discovery Provider Host</td><td>Device discovery degraded</td></tr>
+        <tr><td>lmhosts</td><td>TCP/IP NetBIOS Helper</td><td>NetBIOS name resolution may fail</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="shared">Shared Modules</h2>
+
+  <div class="page-block" id="sh-commands">
+    <h3>Command runner</h3>
+    <div class="file">shared/commands.py</div>
+    <div class="desc">Thin wrapper around <code>subprocess.run()</code>. Tries <code>utf-8</code>, <code>cp850</code>, <code>cp1252</code> for decoding; falls back to <code>errors="replace"</code>. Always returns a consistent dict.</div>
+    <div class="label">Function</div>
+    <p><code>run_command(command: str, timeout: int = 15) &rarr; dict</code></p>
+    <table>
+      <thead><tr><th>Key</th><th>Type</th><th>Value on error</th></tr></thead>
+      <tbody>
+        <tr><td>stdout</td><td>str</td><td>Empty string on timeout or exception</td></tr>
+        <tr><td>stderr</td><td>str</td><td>Empty string on timeout or exception</td></tr>
+        <tr><td>exit_code</td><td>int</td><td><code>-1</code> on timeout; <code>-2</code> on exception</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-block" id="sh-serializer">
+    <h3>Snapshot serializer</h3>
+    <div class="file">shared/serializer.py</div>
+    <div class="desc">Writes the snapshot dict to a timestamped JSON file.</div>
+    <div class="label">Function</div>
+    <p><code>export_snapshot(data: dict, hostname: str) &rarr; Path</code></p>
+    <p>Writes <code>HOSTNAME_snapshot_YYYYMMDD_HHMMSS.json</code> with <code>indent=2</code>, <code>ensure_ascii=False</code>. Returns the <code>Path</code> of the created file.</p>
+  </div>
+
+  <div class="page-block" id="sh-report">
+    <h3>Report generators</h3>
+    <div class="file">shared/report.py &nbsp;/&nbsp; shared/html_report.py</div>
+    <div class="desc">Generate plain-text and HTML reports respectively. Both accept <code>(snapshot: dict, lang: str)</code> and return a string. Section labels are resolved via <code>tr(key, lang)</code>. The HTML report is self-contained with an embedded dark theme.</div>
+    <div class="label">Functions</div>
+    <p><code>generate_text_report(snapshot, lang="en") &rarr; str</code></p>
+    <p><code>generate_html_report(snapshot, lang="en") &rarr; str</code></p>
+    <div class="label">Report sections</div>
+    <ul>
+      <li>Header: title, generation timestamp</li>
+      <li>Local machine: identity, system, network, Windows services, local tests</li>
+      <li>Diagnosis: findings from <code>snapshot["diagnosis"]</code></li>
+      <li>Remote agent snapshot (if <code>snapshot["remote_agent_snapshot"]</code> is present)</li>
+      <li>Causal comparison (if <code>snapshot["causal_comparison"]</code> is present)</li>
+    </ul>
+  </div>
+
+  <div class="page-block" id="sh-i18n">
+    <h3>Internationalisation</h3>
+    <div class="file">shared/i18n.py</div>
+    <div class="desc">Central store for all user-visible strings in French and English. Version 2.1 adds 280+ keys covering GUI labels, collector v2.1 fields, comparator findings, and expert rules extracted from operational troubleshooting sessions.</div>
+    <div class="label">Function</div>
+    <p><code>tr(key: str, lang: str = "fr") &rarr; str</code></p>
+    <p>Returns the translation of <code>key</code> for <code>lang</code>. Falls back to French if the language is not found. Returns the key itself if no translation exists, making missing keys immediately visible in the UI.</p>
+    <div class="label">Key categories</div>
+    <ul>
+      <li>Report section headings and field labels</li>
+      <li>CLI progress messages (<code>cli_*</code>)</li>
+      <li>GUI labels and dialog messages (<code>gui_*</code>)</li>
+      <li>Comparator findings (<code>cmp_*</code>)</li>
+      <li>Expert rule messages and remediations (<code>rule001_*</code> through <code>rule015_*</code>)</li>
+      <li>Collector v2.1 interpretation strings (<code>netbios_option_*</code>, <code>lm_compat_*</code>, <code>bitlocker_*</code>)</li>
+    </ul>
+  </div>
+
+  <div class="page-block" id="sh-version">
+    <h3>Version</h3>
+    <div class="file">shared/version.py</div>
+    <div class="desc">Single source of truth for the version string displayed in the GUI banner and report headers.</div>
+    <div class="label">Constant</div>
+    <p><code>DTLKNOWSWHY_VERSION = "2.1.0"</code></p>
+  </div>
+
+  <div class="page-block" id="sh-logger">
+    <h3>Logger</h3>
+    <div class="file">shared/logger.py</div>
+    <div class="desc">Application-wide Python logger. Writes to <code>dtlknowswhy.log</code> in the current directory at <code>INFO</code> level.</div>
+    <div class="label">Usage</div>
+    <p><code>from shared.logger import logger</code> &mdash; the singleton is ready to use. Handlers are attached only once (idempotent). Every <code>run_command()</code> call logs the command string at <code>INFO</code>; timeouts and exceptions log at <code>ERROR</code> with tracebacks.</p>
+  </div>
+
+  <h2 id="expert-section">Expert Modules</h2>
+
+  <div class="page-block" id="ex-rules">
+    <h3>Rules engine</h3>
+    <div class="file">expert/rules_engine.py</div>
+    <div class="desc">Core diagnostic logic. Applies a sequential set of rules to a snapshot dict and returns a list of finding dicts. In v2.1, <code>analyze()</code> accepts a <code>lang</code> parameter and all messages are returned in the requested language via <code>tr()</code>.</div>
+    <div class="label">Function</div>
+    <p><code>analyze(snapshot: dict, lang: str = "en") &rarr; list[dict]</code></p>
+    <p>Each finding dict: <code>{"level": str, "message": str, "remediation": str|None, "case": str|None}</code></p>
+    <div class="label">Rules applied (summary)</div>
+    <table>
+      <thead><tr><th>Case</th><th>Level</th><th>Condition</th></tr></thead>
+      <tbody>
+        <tr><td>&mdash;</td><td>WARN</td><td><code>is_admin</code> is False</td></tr>
+        <tr><td>&mdash;</td><td>FAIL / OK</td><td>Gateway ping result</td></tr>
+        <tr><td>&mdash;</td><td>WARN</td><td>Network profile is Public</td></tr>
+        <tr><td>&mdash;</td><td>FAIL</td><td>LanmanServer or LanmanWorkstation stopped</td></tr>
+        <tr><td>RÈGLE-001</td><td>INFO</td><td>FDResPub running but machine may be invisible (SMB-001)</td></tr>
+        <tr><td>RÈGLE-003</td><td>WARN</td><td>Profile Private + fdPHost running but FDResPub stopped</td></tr>
+        <tr><td>RÈGLE-005-006-014</td><td>INFO</td><td>TCP 445 open on probable_windows target &mdash; auth error guidance</td></tr>
+        <tr><td>RÈGLE-007</td><td>WARN / INFO</td><td>LmCompatibilityLevel present and noteworthy (0 or &ge;5)</td></tr>
+        <tr><td>RÈGLE-008-013</td><td>FAIL</td><td>Ping OK but TCP 445 closed on target</td></tr>
+        <tr><td>RÈGLE-009</td><td>INFO</td><td>Ping OK, no TCP, no MAC &mdash; possible IPv6-only resolution</td></tr>
+        <tr><td>RÈGLE-010</td><td>INFO</td><td>TCP 445 open but no resolved name &mdash; slow hostname enumeration</td></tr>
+        <tr><td>RÈGLE-011</td><td>INFO</td><td>HTTP/HTTPS open but no SMB &mdash; TTL may indicate appliance</td></tr>
+        <tr><td>RÈGLE-012</td><td>WARN</td><td>BitLocker active on one or more drives</td></tr>
+        <tr><td>&mdash;</td><td>FAIL / INFO</td><td>Remote target type rules (unreachable, mobile, device, etc.)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><strong>Rules RÈGLE-002, 004, 015</strong> are documented in the knowledge base markdown but not implemented as active rules: their conditions (firewall rule enumeration, GPO result, GLPI config) are not collected in the current snapshot schema.</div>
+  </div>
+
+  <div class="page-block" id="ex-compare">
+    <h3>Comparative analyser module</h3>
+    <div class="file">expert/compare.py</div>
+    <div class="desc">Contains <code>compare_causal()</code> and <code>compare_remote_target()</code>. Compares two snapshot dicts and returns a list of finding dicts with level, title, evidence list, cause, and optional remediation. All strings resolved via <code>tr(key, lang)</code>.</div>
+    <div class="label">Functions</div>
+    <p><code>compare_causal(reference: dict, target: dict, lang: str = "fr") &rarr; list[dict]</code></p>
+    <p><code>compare_remote_target(snapshot: dict, lang: str = "fr") &rarr; list[dict]</code></p>
+    <div class="label">Comparison areas</div>
+    <ul>
+      <li>Network profile (Public on target)</li>
+      <li>LanmanServer and LanmanWorkstation status</li>
+      <li>FDResPub and fdPHost status</li>
+      <li>Gateway reachability</li>
+      <li>NetBIOS option</li>
+      <li>DNS servers</li>
+      <li>IP topology (gateway and subnet mask)</li>
+      <li>TCP 445 accessibility</li>
+      <li>Bitdefender presence and fltmc filter stack</li>
+      <li>SMB client and server configuration parameters</li>
+      <li>Accessible SMB shares</li>
+      <li>Identity context (local, domain, AzureAD Joined)</li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       APPENDICES
+       ═══════════════════════════════════════════════════════════════════ -->
+  <h2 id="appendices">Appendices</h2>
+
+  <h2 id="snapshot-format">Appendix A &mdash; Snapshot Format</h2>
+  <p>The JSON snapshot produced by <code>export_snapshot()</code> has the following top-level structure in v2.1:</p>
+  <pre><code>{
+  "metadata": {
+    "generated_at":       "2026-06-07T09:34:42",
+    "generated_at_local": "07/06/2026 09:34:42",
+    "role":               "local",
+    "target":             "PC-BEN-002"
+  },
+  "system": {
+    "hostname":               "PREDATOR",
+    "username":               "didier",
+    "is_admin":               true,
+    "windows_product_name":   "Windows 11 Pro",
+    "windows_version":        "23H2",
+    "windows_build":          "22631",
+    "lm_compatibility_level": null,
+    "bitlocker_status":       { "C:": "FullyEncrypted" }
+  },
+  "network": {
+    "active_adapter_profile": "Réseau",
+    "network_category":       "Private",
+    "ipv4":                   "172.17.7.10",
+    "subnet_mask":            "255.255.255.0",
+    "default_gateway":        "172.17.7.1",
+    "dns_servers":            ["172.17.7.1"],
+    "dhcp_enabled":           false,
+    "netbios_option":         0,
+    "netbios_enabled":        true
+  },
+  "tests":    { "ping_localhost": true, "ping_self": true, "ping_gateway": true },
+  "services": { "LanmanServer": "Running", "LanmanWorkstation": "Running",
+                "FDResPub": "Running", "fdPHost": "Running", "lmhosts": "Running" },
+  "remote_tests": {
+    "target": "172.17.7.3", "resolved_name": "PC-BEN-002",
+    "ping_target": true, "tcp_80": false, "tcp_139": true,
+    "tcp_443": false, "tcp_445": true,
+    "mac_address": "B0:7B:25:7B:C7:58", "target_type": "probable_windows"
+  },
+  "diagnosis":         [...],
+  "causal_comparison": [...],
+  "remote_agent_snapshot": { ... }
+}</code></pre>
+  <p><code>remote_tests</code> is absent if no <code>--target</code> was specified. <code>remote_agent_snapshot</code> is absent if the agent was unreachable. <code>causal_comparison</code> is always present when <code>target</code> is set.</p>
+
+  <h2 id="classification">Appendix B &mdash; Target Classification</h2>
+  <p>After remote tests complete, <code>classify_target()</code> in <code>remote_tests.py</code> assigns a <code>target_type</code> string. Rules are applied in order; the first match wins:</p>
+  <table>
+    <thead><tr><th>target_type</th><th>Condition</th><th>Badge</th></tr></thead>
+    <tbody>
+      <tr><td>probable_mobile_apple</td><td>Resolved hostname contains <em>iphone</em> or <em>ipad</em></td><td style="color:#79b8ff">Blue</td></tr>
+      <tr><td>probable_mobile_android</td><td>Resolved hostname contains <em>android</em></td><td style="color:#79b8ff">Blue</td></tr>
+      <tr><td>probable_windows</td><td>TCP 445 or TCP 139 open</td><td style="color:#3fb950">Green</td></tr>
+      <tr><td>probable_device</td><td>TCP 80 or TCP 443 open</td><td style="color:#e3b341">Orange</td></tr>
+      <tr><td>unknown_network_device</td><td>MAC resolved but no open ports</td><td style="color:#e3b341">Orange</td></tr>
+      <tr><td>unknown_host</td><td>Ping succeeded but no MAC and no open ports</td><td style="color:#8b949e">Grey</td></tr>
+      <tr><td>unreachable</td><td>Ping failed</td><td style="color:#f85149">Red</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Priority:</strong> Hostname-based classification (Apple, Android) takes priority over port-based. A device with TCP 445 open whose hostname contains <em>iphone</em> is classified <code>probable_mobile_apple</code>.</div>
+
+  <h2 id="firewall">Appendix C &mdash; Firewall Configuration</h2>
+  <p>DTLknowsWhy-Agent listens on TCP 5050. Create the inbound rule on the target machine from an elevated command prompt:</p>
+  <pre><code>netsh advfirewall firewall add rule name="DTLknowsWhy Agent" ^
+  dir=in action=allow protocol=TCP localport=5050</code></pre>
+  <p>Alternatively, use Windows Defender Firewall &rarr; Advanced Settings &rarr; Inbound Rules &rarr; New Rule &rarr; Port &rarr; TCP 5050 &rarr; Allow.</p>
+
+  <h2 id="smartscreen">Appendix D &mdash; SmartScreen Warning</h2>
+  <p>On first execution, Windows Defender SmartScreen may display:</p>
+  <pre><code>Windows protected your PC.
+Microsoft Defender SmartScreen prevented an unrecognized app from starting.</code></pre>
+  <p>This is expected for unsigned executables. To proceed: verify the file originates from the official DTLknowsWhy repository; click <strong>More info</strong>; click <strong>Run anyway</strong>. In corporate environments, request digital signing or explicit approval from your security team before wide deployment.</p>
+
+  <h2 id="lm-compat">Appendix E &mdash; LmCompatibilityLevel</h2>
+  <p>This registry value controls the NTLM authentication negotiation level. A missing key (<code>null</code> in the snapshot) means Windows uses its compiled-in default.</p>
+  <table>
+    <thead><tr><th>Value</th><th>Client sends</th><th>Server accepts</th><th>Expert finding</th></tr></thead>
+    <tbody>
+      <tr><td><code>null</code> (absent)</td><td>NTLMv2 only (W10/11 default)</td><td>NTLMv2</td><td>INFO (no finding)</td></tr>
+      <tr><td>0</td><td>LM and NTLM</td><td>LM, NTLM, NTLMv2</td><td>WARN &mdash; security risk</td></tr>
+      <tr><td>1</td><td>LM+NTLM; NTLMv2 if negotiated</td><td>LM, NTLM, NTLMv2</td><td>INFO</td></tr>
+      <tr><td>2</td><td>NTLM only</td><td>LM, NTLM, NTLMv2</td><td>INFO</td></tr>
+      <tr><td>3</td><td>NTLMv2 only</td><td>LM, NTLM, NTLMv2</td><td>INFO</td></tr>
+      <tr><td>4</td><td>NTLMv2 only</td><td>NTLM, NTLMv2 (refuse LM)</td><td>INFO</td></tr>
+      <tr><td>5</td><td>NTLMv2 only</td><td>NTLMv2 only (refuse LM+NTLM)</td><td>WARN &mdash; may block Workgroup SMB</td></tr>
+    </tbody>
+  </table>
+  <p>To set the value from an elevated PowerShell prompt:</p>
+  <pre><code>Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" `
+  -Name LmCompatibilityLevel -Value 3 -Type DWord</code></pre>
+
+  <h2 id="limitations">Appendix F &mdash; Known Limitations</h2>
+  <ul>
+    <li><strong>Windows only.</strong> The tool imports <code>ctypes.windll</code> and calls Windows-specific commands. It will not run on Linux or macOS.</li>
+    <li><strong>Single active adapter.</strong> Collectors return values from the first matching adapter. On multi-adapter machines, secondary adapters are ignored.</li>
+    <li><strong>ARP MAC lookup requires LAN adjacency.</strong> The target must be on the same Layer 2 segment or have been recently contacted.</li>
+    <li><strong>Remote tests can be slow.</strong> Each TCP port probe has a 15-second timeout via PowerShell. Up to 60 seconds total if all four ports time out.</li>
+    <li><strong>Server mode writes files on every request.</strong> Each <code>GET /snapshot</code> triggers a full collection and writes new JSON, TXT, and HTML files on the agent machine.</li>
+    <li><strong>API key in plain text.</strong> <code>API_KEY</code> is hardcoded in <code>server.py</code>. No TLS. Trusted networks only.</li>
+    <li><strong>BitLocker collection requires elevation.</strong> <code>Get-BitLockerVolume</code> requires administrator privileges; the fallback <code>manage-bde</code> also requires elevation. Without admin, <code>bitlocker_status</code> will be <code>null</code>.</li>
+    <li><strong>compare.py is directional.</strong> Only PC B deviations from PC A are reported. Swap arguments for reverse comparison.</li>
+    <li><strong>HTML report logo path is relative.</strong> Place <code>netdtl_logo.png</code> in the same directory as the HTML report.</li>
+    <li><strong>Log file in current directory.</strong> <code>dtlknowswhy.log</code> is written to the invocation directory; logging silently fails if write permission is absent.</li>
+  </ul>
+
+  <h2 id="history">Appendix G &mdash; Version History</h2>
+  <table>
+    <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+    <tbody>
+      <tr><td>2.1.0</td><td>7 June 2026</td><td>Language-independent network collection (PowerShell/CIM replaces <code>ipconfig /all</code>); Tkinter GUI with language selector; <code>lm_compatibility_level</code> and <code>bitlocker_status</code> collector keys; fully internationalised comparator and expert engine; 15 knowledge-base rules from operational sessions; 280+ i18n keys; backward-compatible JSON format</td></tr>
+      <tr><td>2.0.0</td><td>6 June 2026</td><td>Remote agent support; Windows service; HTTP snapshot endpoint; local/remote causal comparison; enhanced HTML reports; expert rule engine</td></tr>
+      <tr><td>1.2.0</td><td>&mdash;</td><td>Experimental remote snapshot server</td></tr>
+      <tr><td>1.0.0</td><td>&mdash;</td><td>Initial release: local diagnostics and reporting</td></tr>
+    </tbody>
+  </table>
+
+</main>
+
+<script>
+  const sections = document.querySelectorAll('[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

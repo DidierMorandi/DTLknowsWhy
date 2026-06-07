@@ -11,6 +11,24 @@ LEVELS_EN = {
     "OBSERVE": "OBSERVED",
 }
 
+LEVELS_FR = {
+    "A VERIFIER": "À VÉRIFIER",
+    "A VÉRIFIER": "À VÉRIFIER",
+    "Ã€ VÃ‰RIFIER": "À VÉRIFIER",
+    "INFORMATION MANQUANTE": "INFORMATION MANQUANTE",
+    "OBSERVE": "OBSERVÉ",
+    "OBSERVED": "OBSERVÉ",
+}
+
+SUBSTRINGS_FR = (
+    ("cote client", "côté client"),
+    ("difference", "différence"),
+    ("invite", "invité"),
+    ("present", "présent"),
+    ("filtre, ferme", "filtré, fermé"),
+    ("adaptees", "adaptées"),
+)
+
 
 TEXT_EN = {
     "Exécution sans privilèges administrateur. Certaines vérifications peuvent être incomplètes.": (
@@ -204,6 +222,14 @@ SUBSTRINGS_EN = (
 
 
 def translate_text(value, lang):
+    if lang == "fr" and isinstance(value, str):
+        translated = value
+
+        for source, target in SUBSTRINGS_FR:
+            translated = translated.replace(source, target)
+
+        return translated
+
     if lang != "en" or not isinstance(value, str):
         return value
 
@@ -223,11 +249,17 @@ def translate_text(value, lang):
 
 
 def translate_finding(finding, lang):
-    if lang != "en":
-        return finding
-
     translated = dict(finding)
-    translated["level"] = LEVELS_EN.get(translated.get("level"), translated.get("level"))
+    if lang == "fr":
+        translated["level"] = LEVELS_FR.get(
+            translated.get("level"),
+            translated.get("level"),
+        )
+    elif lang == "en":
+        translated["level"] = LEVELS_EN.get(
+            translated.get("level"),
+            translated.get("level"),
+        )
 
     for key in ("message", "remediation", "title", "cause"):
         if key in translated:

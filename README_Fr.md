@@ -1,232 +1,221 @@
-# DTLknowsWhy
+# DTLknowsWhy 2.1
 
 ## Présentation
 
-DTLknowsWhy est un moteur expert de diagnostic et d'analyse causale pour Windows, conçu pour identifier les causes les plus probables des problèmes de réseau, de partage SMB et de configuration des postes de travail.
+DTLknowsWhy est un outil de diagnostic et d'analyse experte pour Windows conçu pour aider les administrateurs, techniciens et ingénieurs support à comprendre non seulement **ce qui** se passe sur un système, mais également **pourquoi** cela se produit.
 
-Contrairement aux outils de diagnostic traditionnels qui se contentent de collecter des informations, DTLknowsWhy compare les environnements, détecte les différences significatives et propose des causes probables accompagnées d'actions correctives.
+Le projet combine l'inventaire automatisé du système, l'analyse de configuration et une base de connaissances experte afin d'identifier les causes probables des problèmes Windows courants liés au réseau, aux services, aux partages SMB, à la résolution de noms, aux produits de sécurité et à la configuration système.
 
-Version : 2.0.0 du 6 juin 2026 Didier DTL Morandi (http://www.didiermorandi.com/netdtl)
+DTLknowsWhy a vocation à évoluer d'un simple outil de collecte d'informations vers un véritable assistant de dépannage capable d'expliquer les symptômes observés et de suggérer les causes les plus probables.
+
+Version 2.1.0 - 7 juin 2026
+Didier DTL Morandi
+[www.didiermorandi.com/netdtl](http://www.didiermorandi.com/netdtl)
+
+---
+
+## Nouveautés de la version 2.1
+
+### Collecte réseau internationalisée
+
+Les versions précédentes reposaient sur l'analyse du résultat de :
+
+```text
+ipconfig /all
+```
+
+Cette approche dépendait des libellés localisés de Windows et ne fonctionnait donc de manière fiable que sur les installations Windows françaises.
+
+La version 2.1 introduit un tout nouveau moteur de collecte réseau basé sur des données PowerShell et CIM structurées.
+
+Avantages :
+
+* Fonctionnement indépendant de la langue du système
+* Compatible avec les éditions Windows françaises, anglaises et autres
+* Collecte des informations réseau plus fiable
+* Suppression des analyses textuelles fragiles
+* Meilleure compatibilité avec les futures évolutions de Windows
+
+Les informations réseau sont désormais obtenues à partir d'objets Windows structurés plutôt qu'à partir de la sortie localisée de commandes système.
+
+### Sélection de la langue dans l'interface graphique
+
+À partir de la version 2.1, l'interface graphique permet à l'utilisateur de choisir sa langue au démarrage.
+
+La langue sélectionnée est utilisée pour :
+
+* Les éléments de l'interface utilisateur
+* Les menus et boîtes de dialogue
+* Les rapports générés
+* Les messages de diagnostic
+* Les futures explications du moteur expert
+
+Les langues actuellement prises en charge sont :
+
+* Français
+* Anglais
+
+L'infrastructure d'internationalisation a été conçue afin de permettre l'ajout de nouvelles langues avec un minimum de modifications du code.
+
+Cette fonctionnalité est indépendante de la langue du système d'exploitation. Il est ainsi possible d'exécuter DTLknowsWhy en anglais sur un Windows français, ou en français sur un Windows anglais.
+
+Associée au nouveau moteur de collecte réseau indépendant de la langue, cette évolution permet à DTLknowsWhy de fonctionner de manière cohérente dans des environnements Windows multilingues.
+
+---
+
+### Compatibilité ascendante
+
+Bien que le mécanisme de collecte ait été entièrement repensé, la structure JSON générée reste inchangée.
+
+Les éléments suivants continuent donc de fonctionner sans modification :
+
+* Règles expertes
+* Rapports HTML
+* Rapports PDF
+* Modules d'analyse
 
 ---
 
 ## Fonctionnalités principales
 
-### Diagnostic local
+### Inventaire système
 
-* Inventaire du poste Windows
-* Analyse de la configuration réseau
-* Diagnostic du client et du serveur SMB
-* Analyse DNS et résolution de noms
-* Contrôle des services Windows
-* Tests de connectivité
-* Génération d'un snapshot local
+Collecte des informations détaillées concernant :
 
-### Diagnostic distant
+* Le système d'exploitation
+* La configuration matérielle
+* Les logiciels installés
+* Les services
+* La configuration réseau
+* Les ressources partagées
+* Les produits de sécurité
+* Les périphériques de stockage
+* Les événements système
 
-* Collecte de snapshots distants
-* Support de DTLknowsWhy-Agent
-* Acquisition distante via HTTP
-* Exécution de l'agent en tant que service Windows
-* Inventaire d'une machine distante
+### Diagnostic réseau
 
-### Analyse comparative
+Collecte et analyse :
 
-* Comparaison poste local / poste distant
-* Détection des différences de configuration
-* Comparaison des paramètres SMB
-* Analyse du contexte d'identité et d'authentification
-* Comparaison DNS et profils réseau
-* Moteur expert basé sur des règles causales
+* Configuration IPv4
+* Masques de sous-réseau
+* Passerelles par défaut
+* Serveurs DNS
+* État DHCP
+* Paramètres NetBIOS
+* Interfaces réseau actives
 
-### Rapports
+### Détection des produits de sécurité
 
-* Rapports TXT lisibles par un technicien
-* Rapports HTML enrichis
-* Support du français et de l'anglais
-* Visualisation distincte des systèmes local et distant
-* Présentation des causes probables et actions recommandées
+Détection :
+
+* Des antivirus enregistrés
+* Des entrées du Centre de sécurité Windows
+* Des inscriptions antivirus orphelines
+* De l'état de Windows Defender
+
+### Analyse SMB et partage de fichiers
+
+Aide à identifier les problèmes liés à :
+
+* Dossiers partagés
+* Résolution de noms
+* Accessibilité SMB
+* Découverte réseau
+* Function Discovery Resource Publication (FDResPub)
+
+### Moteur de connaissances expert
+
+DTLknowsWhy est conçu pour mettre en relation les informations collectées avec des cas de dépannage connus et des bonnes pratiques.
+
+Exemples :
+
+* Accès SMB rapide par IP mais lent par nom
+* Machine absente du voisinage réseau alors que SMB fonctionne
+* Problèmes de configuration DNS
+* Inscriptions antivirus orphelines
+* Mauvaises configurations de services Windows
 
 ---
 
 ## Architecture
 
-### Poste d'analyse
+```text
+Système Windows
+       |
+       v
+Collecte des données
+       |
+       v
+Inventaire JSON structuré
+       |
+       v
+Moteur d'analyse expert
+       |
+       v
+Diagnostic compréhensible par l'humain
+```
 
-DTLknowsWhy s'exécute sur un poste d'administration et peut :
-
-* collecter un snapshot local ;
-* collecter un snapshot distant via DTLknowsWhy-Agent ;
-* comparer les deux environnements ;
-* générer des rapports de diagnostic.
-
-### Agent distant
-
-DTLknowsWhy-Agent peut fonctionner :
-
-* en mode interactif ;
-* en tant que service Windows.
-
-L'agent génère un snapshot local sur la machine cible puis le transmet au poste d'analyse.
-
----
-
-## Scénario d'utilisation typique
-
-1. Lancer DTLknowsWhy sur un poste de référence.
-2. Interroger une machine distante via DTLknowsWhy-Agent.
-3. Récupérer le snapshot distant.
-4. Comparer les deux environnements.
-5. Identifier les causes probables.
-6. Générer les rapports HTML et TXT.
-
----
-
-## Exemple
-
-Poste de référence :
-
-PREDATOR
-
-Poste cible :
-
-PC-BEN-002
-
-Différence détectée :
-
-La signature SMB est obligatoire sur la machine cible mais pas sur la machine de référence.
-
-Cause probable :
-
-Des stratégies de sécurité SMB différentes peuvent affecter l'accès aux partages, l'authentification, les performances ou l'interopérabilité.
-
-Action recommandée :
-
-Vérifier les paramètres de signature SMB et harmoniser les configurations si nécessaire.
+L'objectif n'est pas simplement de présenter des données système, mais de transformer les observations en explications exploitables.
 
 ---
 
 ## Prérequis
 
-* Windows 10 ou Windows 11
-* Python 3.10 ou version ultérieure
-* Droits administrateur recommandés
+* Windows 10
+* Windows 11
+* PowerShell 5.1 ou supérieur
+* Droits administrateur recommandés pour un diagnostic complet
 
 ---
 
-## Utilisation
+## Cas d'utilisation typiques
 
-### Génération d'un snapshot local
-
-```cmd
-python -m agent.agent --snapshot --lang fr
-```
-
-### Analyse d'une machine distante
-
-```cmd
-python -m agent.agent --target PC-BEN-002 --lang fr
-```
-
-### Démarrage de l'agent distant
-
-```cmd
-DTLknowsWhy-Agent.exe --listen
-```
-
-### Installation de l'agent en tant que service Windows
-
-```cmd
-DTLknowsWhy-Agent.exe install
-DTLknowsWhy-Agent.exe start
-```
-
-## Dépannage de l'agent distant
-
-### Ouverture du port TCP 5050
-
-Par défaut, DTLknowsWhy-Agent écoute sur le port TCP 5050.
-
-Pour permettre à un poste d'administration de récupérer un snapshot distant, ce port doit être autorisé dans le pare-feu Windows de la machine cible.
-
-Lors des tests de validation de la version 2.0.0, l'ouverture du port 5050 a été nécessaire sur PC-BEN-002 afin de permettre la communication avec DTLknowsWhy-Agent.
-
-Exemple de création de la règle depuis une invite de commandes administrateur :
-
-```cmd
-netsh advfirewall firewall add rule name="DTLknowsWhy Agent" dir=in action=allow protocol=TCP localport=5050
-```
-
-Vous pouvez également créer cette règle depuis :
-
-```text
-Pare-feu Windows Defender
-→ Paramètres avancés
-→ Règles de trafic entrant
-→ Nouvelle règle
-→ Port TCP 5050
-→ Autoriser la connexion
-```
-
-### Avertissement de sécurité Windows
-
-Selon la configuration de sécurité du poste, Windows peut afficher un message similaire à :
-
-```text
-Windows a protégé votre ordinateur.
-
-Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.
-```
-
-ou :
-
-```text
-La stratégie de sécurité de votre organisation empêche l'exécution ou l'installation de cette application.
-```
-
-Ce comportement est normal lorsque l'exécutable n'est pas signé numériquement ou lorsqu'une politique de sécurité restrictive est appliquée.
-
-Pour poursuivre l'installation :
-
-1. Vérifier que l'exécutable provient bien du dépôt officiel DTLknowsWhy.
-2. Cliquer sur « Informations complémentaires » si cette option est proposée.
-3. Cliquer sur « Exécuter quand même » ou autoriser explicitement l'installation selon la politique de sécurité en vigueur.
-
-Dans un environnement d'entreprise, il peut être nécessaire de faire approuver ou signer l'exécutable avant son déploiement à grande échelle.
+* Dépannage de postes de travail
+* Diagnostic réseau
+* Problèmes d'accès SMB
+* Investigations DNS
+* Vérification des produits de sécurité
+* Audits de configuration Windows
+* Préparation d'escalades vers le support
 
 ---
 
-## Historique des versions
+## Feuille de route
 
-### Version 2.0.0
+Améliorations prévues :
 
-* Support des agents distants
-* Support des services Windows
-* Collecte de snapshots distants
-* Comparaison causale locale / distante
-* Rapports HTML enrichis
-* Amélioration du moteur expert
-* Distinction visuelle entre système local et système distant
-
-### Version 1.2.0
-
-* Serveur expérimental de snapshots distants
-
-### Version 1.0.0
-
-* Diagnostic local et génération de rapports
+* Extension de la base de règles expertes
+* Moteur de corrélation avancé
+* Prise en charge de langues supplémentaires
+* Intégration d'une base de connaissances
+* Recommandations de remédiation enrichies
+* Capacités de reporting améliorées
 
 ---
 
-## Objectif du projet
+## Philosophie
 
-DTLknowsWhy cherche à répondre à une question simple :
+La plupart des outils de diagnostic répondent à la question :
 
-« Pourquoi cela fonctionne-t-il sur une machine et pas sur une autre ? »
+> « Quelle est la configuration de cette machine ? »
 
 L'objectif du projet est d'identifier les causes des problèmes plutôt que de simplement constater leurs symptômes.
 
+DTLknowsWhy cherche à répondre à la question :
+
+> « Pourquoi ce problème se produit-il ? »
+
+Cette différence constitue l'objectif fondamental du projet.
+
+---
+
 ## Documentation
 
-Les documents DTLknowsWhy Manuel de référence v2.1 et Guide Utilisateur v2.1 sont disponibles dans notre dépôt documentaire NetDTL à l'adresse :
-https://didiermorandi.com/netdtl/doc/
+Les documents DTLknowsWhy Manuel de référence v2.1 et Guide Utilisateur v2.1 sont disponibles dans notre dépôt documentaire NetDTL à l'adresse : https://didiermorandi.com/netdtl/doc/
+
+---
+
+## Version
+
+Version actuelle : **DTLknowsWhy 2.1**
+

@@ -14,6 +14,7 @@ from agent.collectors.network import collect_network_info
 from agent.collectors.tests import collect_basic_tests
 from agent.collectors.remote_tests import collect_remote_tests
 from agent.collectors.services import collect_services
+from agent.collectors.glpi import collect_glpi_info
 from expert.compare import compare_causal
 from expert.compare import compare_remote_target
 from expert.rules_engine import analyze
@@ -140,6 +141,9 @@ def create_snapshot(target=None, lang="fr", save_outputs=True):
     print(tr("cli_inspect_services", lang))
     services = collect_services()
 
+    print(tr("cli_collect_glpi", lang))
+    glpi = collect_glpi_info()
+
     snapshot = {
         "metadata": {
             "generated_at": snapshot_time.isoformat(timespec="seconds"),
@@ -150,7 +154,8 @@ def create_snapshot(target=None, lang="fr", save_outputs=True):
         "system": system,
         "network": network,
         "tests": tests,
-        "services": services
+        "services": services,
+        "glpi": glpi,
     }
 
     if target:

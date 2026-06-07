@@ -1,4 +1,5 @@
 from expert.rule_translation import translate_findings
+from shared.i18n import tr
 
 
 def looks_like_ipv4(value):
@@ -24,6 +25,17 @@ def analyze(snapshot, lang="fr"):
     services = snapshot.get("services", {})
     remote = snapshot.get("remote_tests", {})
     system = snapshot.get("system", {})
+    glpi = snapshot.get("glpi", {})
+
+    # Interpréter netbios_option si netbios_enabled est None (snapshot v2.1+)
+    # TcpipNetbiosOptions : 0=via DHCP (actif), 1=actif explicitement, 2=désactivé
+    netbios_enabled = network.get("netbios_enabled")
+    if netbios_enabled is None:
+        netbios_opt = network.get("netbios_option")
+        if netbios_opt == 2:
+            netbios_enabled = False
+        elif netbios_opt in (0, 1):
+            netbios_enabled = True
 
     if not system.get("is_admin", False):
         findings.append({
@@ -157,7 +169,7 @@ def analyze(snapshot, lang="fr"):
 
     if (
         name_resolution_risk
-        or network.get("netbios_enabled") is False
+        or netbios_enabled is False
         or not network.get("dns_servers")
         or services.get("FDResPub") != "Running"
     ):
@@ -264,5 +276,258 @@ def analyze(snapshot, lang="fr"):
                     "Vérifier alimentation, connexion réseau et pare-feu."
                 )
             })
+
+    # ── RÈGLE-007 : LmCompatibilityLevel manquant ou trop restrictif ──────
+    # Activée si la clé est présente dans le snapshot (collecteur v2.1+)
+    lm_level = system.get("lm_compatibility_level")
+    if lm_level is not None:
+        if lm_level >= 5:
+            findings.append({
+                "case": "RÈGLE-007-STRICT",
+                "level": "WARN",
+                "message": (
+                    f"CAS RÈGLE-007 — LmCompatibilityLevel = {lm_level} : "
+                    "authentification maximalement restrictive (NTLMv2 uniquement, "
+                    "refus LM et NTLM). Des accès SMB vers des serveurs anciens "
+                    "ou des Workgroups non-AD peuvent échouer avec erreur 1326."
+                ),
+                "remediation": (
+                    "Pour compatibilité Workgroup : régler LmCompatibilityLevel à 1 ou 3. "
+                    "Commande admin PowerShell : "
+                    "Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' "
+                    "-Name LmCompatibilityLevel -Value 3 -Type DWord"
+                )
+            })
+        elif lm_level == 0:
+            findings.append({
+                "case": "RÈGLE-007-WEAK",
+                "level": "WARN",
+                "message": (
+                    f"CAS RÈGLE-007 — LmCompatibilityLevel = {lm_level} : "
+                    "authentification LM activée (très permissive). "
+                    "Risque de sécurité : LM transmet des hash faibles sur le réseau."
+                ),
+                "remediation": (
+                    "Recommandé : régler à 3 (NTLMv2 uniquement côté client). "
+                    "Commande admin PowerShell : "
+                    "Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' "
+                    "-Name LmCompatibilityLevel -Value 3 -Type DWord"
+                )
+            })
+        else:
+            findings.append({
+                "case": "RÈGLE-007-INFO",
+                "level": "INFO",
+                "message": (
+                    f"LmCompatibilityLevel = {lm_level} "
+                    f"({'LM+NTLM' if lm_level == 1 else 'NTLM seulement' if lm_level == 2 else 'NTLMv2 client' if lm_level == 3 else 'NTLMv2, refus LM serveur' if lm_level == 4 else str(lm_level)}). "
+                    "Valeur explicitement définie dans le registre."
+                ),
+                "remediation": None
+            })
+    # lm_level is None = clé absente = défaut Windows (NTLMv2 sur W10/11 récent)
+    # Pas de finding : comportement standard attendu.
+
+    # ── RÈGLE-012 : BitLocker actif — avertissement avant modif système ─────
+    # Activée si la clé est présente dans le snapshot (collecteur v2.1+)
+    bitlocker = system.get("bitlocker_status")
+    if bitlocker:
+        encrypted_drives = [
+            drive for drive, status in bitlocker.items()
+            if "Encrypted" in str(status) and "Decrypted" not in str(status)
+        ]
+        if encrypted_drives:
+            findings.append({
+                "case": "RÈGLE-012",
+                "level": "WARN",
+                "message": (
+                    f"CAS RÈGLE-012 — BitLocker actif sur : {', '.join(encrypted_drives)}. "
+                    "Toute modification de configuration système (groupe de travail, "
+                    "nom de domaine, démarrage en mode réparation) peut déclencher "
+                    "une demande de clé de récupération au prochain démarrage."
+                ),
+                "remediation": (
+                    "Avant toute modification : récupérer la clé BitLocker via "
+                    "manage-bde -protectors -get C: ou "
+                    "https://account.microsoft.com/devices/recoverykey ou Entra ID / AD. "
+                    "Ne jamais forcer la réinitialisation sans la clé."
+                )
+            })
+
+    # ── RÈGLE-001 : FDResPub actif mais SMB-001 potentiel ─────────────────
+    # Services FDResPub Running mais aucun accès distant à confirmer :
+    # détecter le cas où SMB fonctionne mais visibilité Explorer absente.
+    # Condition : FDResPub Running + aucun remote_tests → simple info préventive.
+    # RÈGLE-015 : GLPI Agent configuré avec chemin UNC au lieu d'une URL HTTP.
+    if glpi.get("server_uses_unc_path"):
+        unc_servers = glpi.get("unc_servers") or []
+        evidence = [
+            f"{item.get('file')}:{item.get('line')} server = {item.get('value')}"
+            for item in unc_servers
+        ]
+        findings.append({
+            "case": "RÈGLE-015",
+            "level": "WARN",
+            "message": tr("rule015_message", lang),
+            "remediation": tr("rule015_remediation", lang),
+            "evidence": evidence,
+        })
+
+    if services.get("FDResPub") == "Running" and not remote:
+        findings.append({
+            "case": "SMB-001-INFO",
+            "level": "INFO",
+            "message": (
+                "FDResPub est actif : la machine devrait être visible dans "
+                "le voisinage réseau, sous réserve du profil réseau et du pare-feu. "
+                "Si elle n'apparaît pas dans l'Explorateur malgré un accès SMB "
+                "fonctionnel, vérifier les règles pare-feu du groupe "
+                "'Découverte du réseau' (RÈGLE-003)."
+            ),
+            "remediation": None
+        })
+
+    # ── RÈGLE-002 : Erreur 6118 net view (non collectée directement) ───────
+    # Règle documentaire — rappel dans les findings si FDResPub arrêté
+    # et remote_tests présents (le cas est détecté par SMB-001 existant).
+
+    # ── RÈGLE-003 : Règles pare-feu Network Discovery absentes ────────────
+    # Détectable si FDResPub Running ET profil Privé ET découverte impossible.
+    # La condition exacte ne peut être évaluée sans collecte des règles FW.
+    # On émet un INFO préventif si profil = Private mais FDResPub arrêté.
+    if (
+        network.get("network_category") == "Private"
+        and services.get("FDResPub") != "Running"
+        and services.get("fdPHost") == "Running"
+    ):
+        findings.append({
+            "case": "RÈGLE-003",
+            "level": "WARN",
+            "message": (
+                "CAS RÈGLE-003 — Profil réseau Privé et fdPHost actif, "
+                "mais FDResPub arrêté. Si la découverte réseau se désactive "
+                "spontanément malgré le profil Privé, les règles pare-feu "
+                "du groupe 'Découverte du réseau' ont peut-être été supprimées."
+            ),
+            "remediation": (
+                "Vérifier : Get-NetFirewallRule | Where-Object { "
+                "$_.DisplayGroup -like '*découverte*' } | "
+                "Select DisplayName, DisplayGroup, Enabled. "
+                "Si seules les règles Wi-Fi Direct apparaissent, exécuter : "
+                "netsh advfirewall firewall set rule "
+                "group=\"Découverte du réseau\" new enable=Yes."
+            )
+        })
+
+    # ── RÈGLE-005/006/014 : Authentification SMB — erreurs 86 et 1326 ─────
+    # Détectable si tcp_445 True ET ping OK ET accès SMB échoue.
+    # Ces règles émettent un rappel de diagnostic dans le contexte remote.
+    if remote and remote.get("tcp_445") and remote.get("target_type") == "probable_windows":
+        findings.append({
+            "case": "RÈGLE-005-006-014",
+            "level": "INFO",
+            "message": (
+                "CAS AUTH-SMB — TCP 445 accessible. Si l'authentification échoue "
+                "(erreur 86 ou 1326) depuis ce poste alors qu'elle fonctionne "
+                "depuis d'autres PC, vérifier dans cet ordre : "
+                "(1) Gestionnaire d'identification (entrées MicrosoftAccount), "
+                "(2) format du compte (DOMAINE\\utilisateur vs MACHINE\\utilisateur), "
+                "(3) LmCompatibilityLevel dans le registre LSA."
+            ),
+            "remediation": (
+                "net use * /delete /y puis retester avec le bon format : "
+                "net use \\\\MACHINE\\IPC$ /user:DOMAINE\\prenom.nom. "
+                "Si erreur 1326 persiste : vérifier "
+                "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa LmCompatibilityLevel."
+            )
+        })
+
+    # ── RÈGLE-008/013 : TCP 445 inaccessible — LanmanServer ou pare-feu ───
+    if remote and not remote.get("tcp_445") and remote.get("ping_target"):
+        findings.append({
+            "case": "RÈGLE-008-013",
+            "level": "FAIL",
+            "message": (
+                "CAS RÈGLE-008 — La cible répond au ping mais TCP 445 "
+                "est inaccessible (équivalent erreur 53 sur net view par IP). "
+                "SMB bloqué au niveau transport."
+            ),
+            "remediation": (
+                "Sur la cible : sc query lanmanserver. "
+                "Si arrêté : sc start lanmanserver. "
+                "Vérifier les règles pare-feu entrantes TCP 445 sur la cible."
+            )
+        })
+
+    # ── RÈGLE-009 : Ping IPv6 link-local uniquement ────────────────────────
+    if (
+        remote
+        and remote.get("ping_target")
+        and not remote.get("tcp_445")
+        and not remote.get("tcp_139")
+        and remote.get("resolved_name") is None
+    ):
+        findings.append({
+            "case": "RÈGLE-009",
+            "level": "INFO",
+            "message": (
+                "CAS RÈGLE-009 — Si le ping a répondu uniquement sur une adresse "
+                "IPv6 link-local (fe80::), SMB sur IPv4 n'est pas garanti. "
+                "Un ping fe80:: réussi ne suffit pas à valider l'accessibilité réseau."
+            ),
+            "remediation": (
+                "Exécuter : ping -4 NOM_MACHINE pour obtenir l'IPv4, "
+                "puis : Test-NetConnection IP -Port 445."
+            )
+        })
+
+    # ── RÈGLE-010 : Accès lent à \\NOM_MACHINE avant mappage ──────────────
+    if (
+        remote
+        and remote.get("tcp_445")
+        and remote.get("target_type") == "probable_windows"
+        and not remote.get("resolved_name")
+    ):
+        findings.append({
+            "case": "RÈGLE-010",
+            "level": "INFO",
+            "message": (
+                "CAS RÈGLE-010 — Nom d'hôte distant non résolu alors que TCP 445 "
+                "est accessible. L'accès à \\\\\\\\NOM_MACHINE dans l'Explorateur "
+                "peut être très lent (sablier) avant le premier mappage de partage. "
+                "Windows effectue une énumération complète via LLMNR/NetBIOS "
+                "avant d'afficher les partages."
+            ),
+            "remediation": (
+                "Mapper les partages directement au démarrage : "
+                "net use Z: \\\\\\\\MACHINE\\\\PARTAGE /persistent:yes. "
+                "Vérifier le Gestionnaire d'identification pour des tokens périmés."
+            )
+        })
+
+    # ── RÈGLE-011 : TTL ~62 sur cible supposée PC ─────────────────────────
+    # Non collecté directement dans le snapshot — règle documentaire.
+    # Si target_type est probable_windows mais MAC inconnue et ports 80/443 ouverts,
+    # émettre un avertissement sur la classification.
+    if (
+        remote
+        and remote.get("tcp_80") or remote and remote.get("tcp_443")
+        and not remote.get("tcp_445")
+        and not remote.get("tcp_139")
+    ):
+        findings.append({
+            "case": "RÈGLE-011",
+            "level": "INFO",
+            "message": (
+                "CAS RÈGLE-011 — La cible expose HTTP/HTTPS mais pas SMB. "
+                "Si le ping retourne un TTL ~62 (visible dans Nmap ou ping verbose), "
+                "il s'agit probablement d'un équipement réseau (Linux, appliance) "
+                "et non d'un PC Windows (TTL Windows = 128)."
+            ),
+            "remediation": (
+                "Vérifier la MAC (arp -a) pour identifier le constructeur. "
+                "TTL 62-63 → probable_device ou unknown_network_device."
+            )
+        })
 
     return translate_findings(findings, lang)
