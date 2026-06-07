@@ -225,3 +225,8 @@ DTLknowsWhy cherche à répondre à une question simple :
 « Pourquoi cela fonctionne-t-il sur une machine et pas sur une autre ? »
 
 L'objectif du projet est d'identifier les causes des problèmes plutôt que de simplement constater leurs symptômes.
+
+## Documentation
+
+Les documents DTLknowsWhy Manuel de référence v2.1 et Guide Utilisateur v2.1 sont disponibles dans notre dépôt documentaire NetDTL à l'adresse :
+https://didiermorandi.com/netdtl/doc/
