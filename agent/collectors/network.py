@@ -1,6 +1,9 @@
 import base64
 import json
+import subprocess
 
+from shared.commands import decode_output
+from shared.commands import NO_WINDOW_FLAGS
 from shared.commands import run_command
 
 
@@ -52,6 +55,9 @@ def collect_network_info() -> dict:
         "subnet_mask": structured.get("subnet_mask"),
         "default_gateway": structured.get("default_gateway"),
         "dns_servers": structured.get("dns_servers"),
+        "manual_dns_servers": structured.get("manual_dns_servers"),
+        "dhcp_dns_servers": structured.get("dhcp_dns_servers"),
+        "dns_source": structured.get("dns_source"),
         "dhcp_enabled": structured.get("dhcp_enabled"),
         "netbios_enabled": structured.get("netbios_enabled"),
         "adapter_description": structured.get("adapter_description"),
@@ -74,17 +80,75 @@ def collect_structured_network_info():
 $ErrorActionPreference = 'SilentlyContinue'
 $ipv4Regex = '^(?:\d{1,3}\.){3}\d{1,3}$'
 
+function Has-Value($value) {
+    if ($null -eq $value) {
+        return $false
+    }
+
+    if ($value -is [array]) {
+        return @($value | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }).Count -gt 0
+    }
+
+    return -not [string]::IsNullOrWhiteSpace([string]$value)
+}
+
+function Split-DnsServers($value) {
+    if (-not (Has-Value $value)) {
+        return @()
+    }
+
+    return @([string]$value -split '[,\s]+' | Where-Object { $_ })
+}
+
+function Get-DnsRegistry($settingId) {
+    if (-not $settingId) {
+        return $null
+    }
+
+    $path = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$settingId"
+    return Get-ItemProperty -Path $path -ErrorAction SilentlyContinue
+}
+
+function Get-DnsSource($adapter, $interface) {
+    if (-not $interface) {
+        if ($adapter.DHCPEnabled -and (Has-Value ($adapter.DNSServerSearchOrder))) {
+            return 'DHCP'
+        }
+
+        return 'Unknown'
+    }
+
+    if (Has-Value $interface.NameServer) {
+        return 'Manual'
+    }
+
+    if (Has-Value $interface.DhcpNameServer) {
+        return 'DHCP'
+    }
+
+    if ($adapter.DHCPEnabled -and (Has-Value ($adapter.DNSServerSearchOrder))) {
+        return 'DHCP'
+    }
+
+    return 'Unknown'
+}
+
 $adapters = @(
     Get-CimInstance Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True' |
     ForEach-Object {
+        $dnsRegistry = Get-DnsRegistry $_.SettingID
         [pscustomobject]@{
             Description = $_.Description
+            SettingID = $_.SettingID
             Index = $_.Index
             InterfaceIndex = $_.InterfaceIndex
             IPv4 = @($_.IPAddress | Where-Object { $_ -match $ipv4Regex })
             SubnetMask = @($_.IPSubnet | Where-Object { $_ -match $ipv4Regex })
             DefaultGateway = @($_.DefaultIPGateway | Where-Object { $_ -match $ipv4Regex })
             DnsServers = @($_.DNSServerSearchOrder | Where-Object { $_ })
+            ManualDnsServers = Split-DnsServers $dnsRegistry.NameServer
+            DhcpDnsServers = Split-DnsServers $dnsRegistry.DhcpNameServer
+            DnsSource = Get-DnsSource $_ $dnsRegistry
             DhcpEnabled = $_.DHCPEnabled
             TcpipNetbiosOptions = $_.TcpipNetbiosOptions
         }
@@ -108,6 +172,7 @@ if (-not $adapters -or $adapters.Count -eq 0) {
 
             [pscustomobject]@{
                 Description = $_.Description
+                SettingID = $null
                 Index = $ipv4Properties.Index
                 InterfaceIndex = $ipv4Properties.Index
                 IPv4 = @(
@@ -130,6 +195,9 @@ if (-not $adapters -or $adapters.Count -eq 0) {
                     Where-Object { $_.AddressFamily -eq 'InterNetwork' } |
                     ForEach-Object { $_.IPAddressToString }
                 )
+                ManualDnsServers = @()
+                DhcpDnsServers = @()
+                DnsSource = 'Unknown'
                 DhcpEnabled = $ipv4Properties.IsDhcpEnabled
                 TcpipNetbiosOptions = $null
             }
@@ -176,6 +244,9 @@ $profiles = @(
         "subnet_mask": first_value(adapter.get("SubnetMask")),
         "default_gateway": first_value(adapter.get("DefaultGateway")),
         "dns_servers": as_list(adapter.get("DnsServers")),
+        "manual_dns_servers": as_list(adapter.get("ManualDnsServers")),
+        "dhcp_dns_servers": as_list(adapter.get("DhcpDnsServers")),
+        "dns_source": adapter.get("DnsSource"),
         "dhcp_enabled": adapter.get("DhcpEnabled"),
         "netbios_enabled": netbios_enabled(adapter.get("TcpipNetbiosOptions")),
         "adapter_description": adapter.get("Description"),
@@ -200,6 +271,9 @@ def empty_network_info(profile=None):
         "subnet_mask": None,
         "default_gateway": None,
         "dns_servers": [],
+        "manual_dns_servers": [],
+        "dhcp_dns_servers": [],
+        "dns_source": "Unknown",
         "dhcp_enabled": None,
         "netbios_enabled": None,
         "adapter_description": None,
@@ -243,10 +317,29 @@ def select_profile_for_adapter(profiles, adapter):
 
 def powershell_json_script(script, timeout=10):
     encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
-    result = run_command(
-        f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}",
-        timeout=timeout,
-    )
+    command = [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-EncodedCommand",
+        encoded,
+    ]
+
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            timeout=timeout,
+            creationflags=NO_WINDOW_FLAGS,
+        )
+        result = {
+            "stdout": decode_output(completed.stdout),
+            "stderr": decode_output(completed.stderr),
+            "exit_code": completed.returncode,
+        }
+    except subprocess.TimeoutExpired:
+        return None
 
     if not result["stdout"]:
         return None

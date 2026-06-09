@@ -46,6 +46,25 @@ def has_value(value):
     return value not in UNKNOWN_VALUES
 
 
+def infer_dns_source(snapshot):
+    network = snapshot.get("network", {})
+    value = network.get("dns_source")
+
+    if value in ("Manual", "DHCP"):
+        return value
+
+    if network.get("manual_dns_servers"):
+        return "Manual"
+
+    if network.get("dhcp_dns_servers"):
+        return "DHCP"
+
+    if network.get("dhcp_enabled") is True and network.get("dns_servers"):
+        return "DHCP"
+
+    return value
+
+
 def as_bool(value):
     if isinstance(value, bool):
         return value
@@ -167,6 +186,16 @@ def share_names(shares):
             names.append(str(share))
 
     return names
+
+
+def dns_source_name(value, lang="fr"):
+    if value == "Manual":
+        return "Manuel" if lang == "fr" else "Manual"
+
+    if value == "DHCP":
+        return "DHCP"
+
+    return "Inconnu" if lang == "fr" else "Unknown"
 
 
 def add_cause(findings, level, title, evidence, cause, remediation=None):
@@ -313,6 +342,61 @@ def compare_causal(reference, target, lang="fr"):
                 "même si SMB fonctionne par adresse IP."
             ),
             "Comparer nslookup NOM_MACHINE et ping NOM_MACHINE sur les deux postes."
+        )
+
+    dhcp_dns_ref, dhcp_dns_target = compare_field(
+        reference, target, "network.dhcp_dns_servers"
+    )
+
+    if (
+        dhcp_dns_ref != dhcp_dns_target
+        and has_value(dhcp_dns_ref)
+        and has_value(dhcp_dns_target)
+    ):
+        add_cause(
+            findings,
+            "À VÉRIFIER",
+            "DNS fournis par DHCP différents",
+            [
+                f"{ref_name} : DNS DHCP = {dhcp_dns_ref}",
+                f"{target_name} : DNS DHCP = {dhcp_dns_target}"
+            ],
+            (
+                "Les deux machines ne reçoivent pas les mêmes serveurs DNS "
+                "via DHCP. Cela peut révéler un bail DHCP, un VLAN ou une "
+                "configuration réseau différente."
+            ),
+            (
+                "Comparer ipconfig /all sur les deux postes et renouveler le "
+                "bail DHCP si les valeurs sont obsolètes."
+            )
+        )
+
+    dns_source_ref = infer_dns_source(reference)
+    dns_source_target = infer_dns_source(target)
+
+    if (
+        dns_source_ref != dns_source_target
+        and has_value(dns_source_ref)
+        and has_value(dns_source_target)
+    ):
+        add_cause(
+            findings,
+            "CAUSE POSSIBLE",
+            "Mode de configuration DNS différent",
+            [
+                f"{ref_name} : mode DNS = {dns_source_name(dns_source_ref, lang)}",
+                f"{target_name} : mode DNS = {dns_source_name(dns_source_target, lang)}"
+            ],
+            (
+                "Une machine peut utiliser des DNS fournis par DHCP tandis "
+                "que l'autre utilise des DNS configurés manuellement. Cela "
+                "peut expliquer des résolutions de noms différentes."
+            ),
+            (
+                "Comparer Get-DnsClientServerAddress et les propriétés IPv4 "
+                "de l'adaptateur sur les deux machines."
+            )
         )
 
     gateway_ref, gateway_target = compare_field(

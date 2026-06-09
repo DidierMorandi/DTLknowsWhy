@@ -67,6 +67,11 @@ TRANSLATIONS = {
         "subnet_mask": "Masque",
         "gateway": "Passerelle",
         "dns_servers": "Serveurs DNS",
+        "manual_dns_servers": "DNS configurés manuellement",
+        "dhcp_dns_servers": "DNS fournis par DHCP",
+        "dns_mode": "Mode DNS",
+        "dns_source_manual": "Manuel",
+        "dns_source_dhcp": "DHCP",
         "dhcp": "DHCP",
         "netbios": "NetBIOS",
 
@@ -249,6 +254,15 @@ TRANSLATIONS = {
             "server = http://IP/glpi/front/inventory.php "
             "(ou /marketplace/glpiinventory/ selon la version GLPI). "
             "Vérifier : dir \"C:\\Program Files\\GLPI-Agent\\etc\\conf.d\"",
+        "rule016_message":
+            "CAS RÈGLE-016 — Agent DTLknowsWhy inaccessible malgré service démarré : "
+            "la cible répond au ping, mais le port TCP 5050 n'est pas joignable et "
+            "la demande de snapshot échoue. Cause probable : aucune règle pare-feu "
+            "Windows n'autorise DTLknowsWhy-Agent.exe.",
+        "rule016_remediation":
+            "Créer sur la cible une règle entrante autorisant TCP 5050 pour "
+            "DTLknowsWhy-Agent.exe. Validation : "
+            "Test-NetConnection <IP> -Port 5050 doit retourner TcpTestSucceeded : True.",
 
         # ── Interface graphique (GUI) ─────────────────────────────────────────
         "gui_subtitle":
@@ -260,7 +274,7 @@ TRANSLATIONS = {
         # Sélecteur de langue
         "gui_lang_fr":          "Français",
         "gui_lang_en":          "English",
-        "gui_preferred_language": "Langue de l'interface et des rapports",
+        "gui_preferred_language": "Langue par défaut de l'interface et des rapports",
 
         # Situations connues — titres
         "gui_smb_001_title":        "Machine invisible dans le voisinage réseau",
@@ -336,6 +350,9 @@ TRANSLATIONS = {
         "rule_011_title": "RÈGLE-011 - Cible probablement non Windows",
         "rule_011_desc":
             "HTTP/HTTPS est exposé sans SMB ; la cible peut être un équipement réseau plutôt qu'un PC Windows.",
+        "rule_016_title": "RÈGLE-016 - Agent DTLknowsWhy inaccessible",
+        "rule_016_desc":
+            "Le service agent peut être démarré localement, mais bloqué à distance par le pare-feu Windows.",
         "rule_012_title": "RÈGLE-012 - BitLocker actif",
         "rule_012_desc":
             "Avertit avant modification système lorsque BitLocker est actif sur un volume.",
@@ -372,6 +389,7 @@ TRANSLATIONS = {
 
         # Boutons
         "gui_run":                  "Lancer le diagnostic",
+        "gui_gitscan_run":          "GitScan automatique",
         "gui_open_html":            "Ouvrir le rapport HTML",
 
         # Zone résultats
@@ -379,9 +397,11 @@ TRANSLATIONS = {
         "gui_findings":             "Résultats",
         "gui_known_situations":     "Règles de diagnostic",
         "gui_selected_situations":  "Règles sélectionnées : ",
+        "gui_gitscan_findings":     "GitScan automatique : anomalies et écarts détectés",
         "gui_check_action":         "Action",
         "gui_no_significant_issue": "Aucun problème significatif détecté pour les situations sélectionnées.",
         "gui_diagnosis_running":    "Diagnostic en cours…",
+        "gui_gitscan_running":      "GitScan automatique en cours…",
 
         # Boîtes de dialogue
         "gui_admin_title":          "Droits administrateur",
@@ -394,6 +414,9 @@ TRANSLATIONS = {
         "gui_missing_target_message":
             "La situation sélectionnée nécessite une machine cible. "
             "Renseignez une adresse IP ou un nom d'hôte.",
+        "gui_gitscan_missing_target_message":
+            "GitScan compare le PC local avec une cible. "
+            "Renseignez une adresse IP ou un nom d'hôte cible.",
         "gui_diagnosis_failed":     "Erreur de diagnostic",
         "gui_report_missing_title": "Rapport introuvable",
         "gui_report_missing_message":
@@ -726,6 +749,11 @@ TRANSLATIONS = {
         "subnet_mask": "Subnet Mask",
         "gateway": "Gateway",
         "dns_servers": "DNS Servers",
+        "manual_dns_servers": "Manually configured DNS",
+        "dhcp_dns_servers": "DHCP-provided DNS",
+        "dns_mode": "DNS mode",
+        "dns_source_manual": "Manual",
+        "dns_source_dhcp": "DHCP",
         "dhcp": "DHCP",
         "netbios": "NetBIOS",
 
@@ -802,7 +830,7 @@ TRANSLATIONS = {
         # Language selector
         "gui_lang_fr":          "Français",
         "gui_lang_en":          "English",
-        "gui_preferred_language": "Interface and report language",
+        "gui_preferred_language": "Default interface and report language",
 
         # Known situations — titles
         "gui_smb_001_title":        "Machine invisible in network neighbourhood",
@@ -878,6 +906,9 @@ TRANSLATIONS = {
         "rule_011_title": "RULE-011 - Target probably not Windows",
         "rule_011_desc":
             "HTTP/HTTPS is exposed without SMB; the target may be a network device rather than a Windows PC.",
+        "rule_016_title": "RULE-016 - DTLknowsWhy agent unreachable",
+        "rule_016_desc":
+            "The agent service may be running locally, but blocked remotely by Windows Firewall.",
         "rule_012_title": "RULE-012 - BitLocker active",
         "rule_012_desc":
             "Warns before system changes when BitLocker is active on a volume.",
@@ -914,6 +945,7 @@ TRANSLATIONS = {
 
         # Buttons
         "gui_run":                  "Run diagnosis",
+        "gui_gitscan_run":          "Automatic GitScan",
         "gui_open_html":            "Open HTML report",
 
         # Results area
@@ -921,9 +953,11 @@ TRANSLATIONS = {
         "gui_findings":             "Findings",
         "gui_known_situations":     "Diagnostic rules",
         "gui_selected_situations":  "Selected rules: ",
+        "gui_gitscan_findings":     "Automatic GitScan: detected anomalies and differences",
         "gui_check_action":         "Action",
         "gui_no_significant_issue": "No significant issue detected for the selected situations.",
         "gui_diagnosis_running":    "Diagnosis running…",
+        "gui_gitscan_running":      "Automatic GitScan running…",
 
         # Dialogs
         "gui_admin_title":          "Administrator rights",
@@ -936,6 +970,9 @@ TRANSLATIONS = {
         "gui_missing_target_message":
             "The selected situation requires a target machine. "
             "Enter an IP address or hostname.",
+        "gui_gitscan_missing_target_message":
+            "GitScan compares the local PC with a target. "
+            "Enter a target IP address or hostname.",
         "gui_diagnosis_failed":     "Diagnosis error",
         "gui_report_missing_title": "Report not found",
         "gui_report_missing_message":
@@ -1310,6 +1347,15 @@ TRANSLATIONS = {
             "server = http://IP/glpi/front/inventory.php "
             "(or /marketplace/glpiinventory/ depending on GLPI version). "
             "Check: dir \"C:\\Program Files\\GLPI-Agent\\etc\\conf.d\"",
+        "rule016_message":
+            "CASE RULE-016 — DTLknowsWhy agent unreachable despite the service running: "
+            "the target answers ping, but TCP port 5050 is not reachable and the "
+            "snapshot request fails. Likely cause: no Windows Firewall rule allows "
+            "DTLknowsWhy-Agent.exe.",
+        "rule016_remediation":
+            "On the target, create an inbound rule allowing TCP 5050 for "
+            "DTLknowsWhy-Agent.exe. Validation: "
+            "Test-NetConnection <IP> -Port 5050 must return TcpTestSucceeded: True.",
     }
 }
 

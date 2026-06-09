@@ -240,6 +240,16 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--gitscan",
+        type=str,
+        metavar="TARGET",
+        help=(
+            "Run automatic anomaly detection between the local PC and "
+            "the target, without selecting diagnostic rules."
+        )
+    )
+
+    parser.add_argument(
         "--listen",
         action="store_true",
         help="Listen for remote snapshot requests"
@@ -266,7 +276,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lang",
         choices=["fr", "en"],
-        default="en",
+        default=None,
         help="Language"
     )
 
@@ -275,7 +285,15 @@ if __name__ == "__main__":
     if not is_cli_executable():
         from agent.gui import run_gui
 
-        if args.target:
+        if args.gitscan:
+            run_gui(
+                create_snapshot,
+                initial_target=args.gitscan,
+                auto_start=True,
+                lang=args.lang,
+                auto_scan=True,
+            )
+        elif args.target:
             run_gui(
                 create_snapshot,
                 initial_target=args.target,
@@ -286,13 +304,17 @@ if __name__ == "__main__":
             run_gui(create_snapshot, lang=args.lang)
 
     elif args.listen:
-        require_administrator(args.lang)
+        require_administrator(args.lang or "en")
         from agent.server import run as run_server
         run_server(once=args.once)
 
+    elif args.gitscan:
+        require_administrator(args.lang or "en")
+        create_snapshot(args.gitscan, args.lang or "en")
+
     elif args.snapshot or args.target:
-        require_administrator(args.lang)
-        create_snapshot(args.target, args.lang)
+        require_administrator(args.lang or "en")
+        create_snapshot(args.target, args.lang or "en")
 
     else:
         from agent.gui import run_gui

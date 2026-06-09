@@ -37,6 +37,30 @@ def analyze(snapshot, lang="fr"):
         elif netbios_opt in (0, 1):
             netbios_enabled = True
 
+    manual_dns = set(network.get("manual_dns_servers") or [])
+    dhcp_dns = set(network.get("dhcp_dns_servers") or [])
+
+    if (
+        network.get("dhcp_enabled") is True
+        and network.get("dns_source") == "Manual"
+        and manual_dns
+        and dhcp_dns
+        and manual_dns != dhcp_dns
+    ):
+        findings.append({
+            "level": "WARN",
+            "message": (
+                "DNS actifs configurés manuellement alors que l'interface "
+                "est en DHCP. Les DNS fournis par DHCP sont différents des "
+                "DNS utilisés actuellement."
+            ),
+            "remediation": (
+                "Vérifier les propriétés IPv4 de l'adaptateur. Si le poste "
+                "doit suivre le DHCP, remettre les DNS en automatique puis "
+                "renouveler le bail avec ipconfig /release et ipconfig /renew."
+            )
+        })
+
     if not system.get("is_admin", False):
         findings.append({
             "level": "WARN",
@@ -192,6 +216,23 @@ def analyze(snapshot, lang="fr"):
 
     if remote:
         target_type = remote.get("target_type")
+
+        if (
+            remote.get("ping_target")
+            and remote.get("tcp_5050") is False
+            and snapshot.get("remote_agent_snapshot_received") is False
+        ):
+            findings.append({
+                "case": "RÈGLE-016",
+                "level": "WARN",
+                "message": tr("rule016_message", lang),
+                "remediation": tr("rule016_remediation", lang),
+                "evidence": [
+                    f"Ping cible : {remote.get('ping_target')}",
+                    f"TCP 5050 : {remote.get('tcp_5050')}",
+                    "Snapshot agent distant : non reçu",
+                ],
+            })
 
         if target_type == "probable_mobile_apple":
             findings.append({

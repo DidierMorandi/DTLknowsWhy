@@ -12,7 +12,8 @@ PORT_LABELS = {
     80: "HTTP",
     139: "NetBIOS",
     443: "HTTPS",
-    445: "SMB"
+    445: "SMB",
+    5050: "Agent"
 }
 
 def progress_bar(current, total, label):
@@ -158,6 +159,7 @@ def collect_remote_tests(target):
         "tcp_139": False,
         "tcp_443": False,
         "tcp_445": False,
+        "tcp_5050": False,
         "mac_address": None,
         "accessible_smb_shares": None
     }
@@ -165,13 +167,14 @@ def collect_remote_tests(target):
     if results["ping_target"]:
         results["resolved_name"] = resolve_hostname(target)
 
-        ports = [80, 139, 443, 445]
+        ports = [80, 139, 443, 445, 5050]
         total = len(ports)
 
         results["tcp_80"] = test_tcp_port(target, 80, 1, total)
         results["tcp_139"] = test_tcp_port(target, 139, 2, total)
         results["tcp_443"] = test_tcp_port(target, 443, 3, total)
         results["tcp_445"] = test_tcp_port(target, 445, 4, total)
+        results["tcp_5050"] = test_tcp_port(target, 5050, 5, total)
 
         results["mac_address"] = get_mac_address(target)
 

@@ -87,6 +87,12 @@ RULE_CATEGORIES = [
                 "description_key": "rule_011_desc",
                 "requires_target": True,
             },
+            {
+                "id": "RÈGLE-016",
+                "title_key": "rule_016_title",
+                "description_key": "rule_016_desc",
+                "requires_target": True,
+            },
         ],
     },
     {

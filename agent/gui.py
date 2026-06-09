@@ -2,10 +2,12 @@
 
 import contextlib
 import io
+import json
 import os
 import queue
 import threading
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox
 from tkinter import ttk
 
@@ -47,8 +49,53 @@ LEVEL_COLORS = {
     "POSSIBLE CAUSE": COLORS["warn"],
     "TO CHECK": COLORS["info"],
     "OBSERVED": COLORS["ok"],
+    "INFORMATION MANQUANTE": COLORS["warn"],
     "MISSING INFORMATION": COLORS["warn"],
 }
+
+LEVEL_COLORS.update({
+    "À VÉRIFIER": COLORS["info"],
+    "OBSERVÉ": COLORS["ok"],
+})
+
+
+GITSCAN_SELECTED_ID = "GITSCAN"
+SETTINGS_DIR = Path(os.environ.get("APPDATA") or ".") / "DTLknowsWhy"
+SETTINGS_FILE = SETTINGS_DIR / "settings.json"
+
+
+def load_gui_settings():
+    try:
+        with SETTINGS_FILE.open("r", encoding="utf-8") as handle:
+            settings = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    return settings if isinstance(settings, dict) else {}
+
+
+def save_gui_settings(settings):
+    try:
+        SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
+        with SETTINGS_FILE.open("w", encoding="utf-8") as handle:
+            json.dump(settings, handle, indent=2)
+    except OSError:
+        return
+
+
+def load_default_language(fallback="en"):
+    settings = load_gui_settings()
+    lang = settings.get("default_language")
+    return lang if lang in ("fr", "en") else fallback
+
+
+def save_default_language(lang):
+    if lang not in ("fr", "en"):
+        return
+
+    settings = load_gui_settings()
+    settings["default_language"] = lang
+    save_gui_settings(settings)
 
 
 class QueueWriter(io.TextIOBase):
@@ -65,11 +112,19 @@ class QueueWriter(io.TextIOBase):
 
 
 class DTLknowsWhyGui:
-    def __init__(self, create_snapshot, initial_target=None, auto_start=False, lang="en"):
+    def __init__(
+        self,
+        create_snapshot,
+        initial_target=None,
+        auto_start=False,
+        lang=None,
+        auto_scan=False,
+    ):
         self.create_snapshot = create_snapshot
         self.initial_target = initial_target
         self.auto_start = auto_start
-        self.lang = lang if lang in ("fr", "en") else "en"
+        self.auto_scan = auto_scan
+        self.lang = lang if lang in ("fr", "en") else load_default_language("en")
         self.output_queue = queue.Queue()
         self.latest_snapshot = None
         self.selected_vars = {}
@@ -180,14 +235,14 @@ class DTLknowsWhyGui:
             foreground="#ffffff",
             background=COLORS["accent"],
             bordercolor=COLORS["accent"],
-            padding=(10, 8),
+            padding=(6, 2),
         )
         style.map(
             "Run.TButton",
             background=[("active", COLORS["accent_dark"]), ("disabled", "#9ebbd6")],
         )
-        style.configure("TButton", padding=(10, 7))
-        style.configure("TEntry", fieldbackground="#ffffff", padding=(6, 4))
+        style.configure("TButton", padding=(6, 2))
+        style.configure("TEntry", fieldbackground="#ffffff", padding=(5, 2))
         style.configure("TPanedwindow", background=COLORS["bg"])
 
     def _build_layout(self):
@@ -242,13 +297,13 @@ class DTLknowsWhyGui:
         self.situations_frame.columnconfigure(0, weight=1)
 
         for row, category in enumerate(RULE_CATEGORIES):
-            expanded = tk.BooleanVar(value=True)
+            expanded = tk.BooleanVar(value=False)
             category_frame = ttk.Frame(
                 self.situations_frame,
-                padding=(10, 8),
+                padding=(10, 6),
                 style="Card.TFrame",
             )
-            category_frame.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+            category_frame.grid(row=row, column=0, sticky="ew", pady=(0, 6))
             category_frame.columnconfigure(0, weight=1)
 
             header = ttk.Checkbutton(
@@ -266,6 +321,7 @@ class DTLknowsWhyGui:
             )
             rules_frame.grid(row=1, column=0, sticky="ew", pady=(4, 0))
             rules_frame.columnconfigure(0, weight=1)
+            rules_frame.grid_remove()
 
             self.category_widgets.append({
                 "category": category,
@@ -316,10 +372,10 @@ class DTLknowsWhyGui:
 
         self.target_frame = ttk.LabelFrame(
             top,
-            padding=12,
+            padding=8,
             style="Section.TLabelframe",
         )
-        self.target_frame.grid(row=0, column=1, sticky="nsew")
+        self.target_frame.grid(row=0, column=1, sticky="new")
         self.target_frame.columnconfigure(0, weight=1)
 
         self.language_label = ttk.Label(
@@ -336,7 +392,7 @@ class DTLknowsWhyGui:
             state="readonly",
             values=("English", "Français"),
         )
-        self.language_combo.grid(row=1, column=0, sticky="ew", pady=(4, 10))
+        self.language_combo.grid(row=1, column=0, sticky="ew", pady=(2, 6))
         self.language_combo.bind("<<ComboboxSelected>>", self._on_language_changed)
 
         self.target_label = ttk.Label(
@@ -350,7 +406,7 @@ class DTLknowsWhyGui:
         ttk.Entry(
             self.target_frame,
             textvariable=self.target_var,
-        ).grid(row=3, column=0, sticky="ew", pady=(4, 8))
+        ).grid(row=3, column=0, sticky="ew", pady=(2, 4))
 
         self.target_hint = ttk.Label(
             self.target_frame,
@@ -361,10 +417,10 @@ class DTLknowsWhyGui:
 
         self.summary_frame = ttk.LabelFrame(
             self.target_frame,
-            padding=10,
+            padding=6,
             style="Section.TLabelframe",
         )
-        self.summary_frame.grid(row=5, column=0, sticky="ew", pady=(14, 0))
+        self.summary_frame.grid(row=5, column=0, sticky="ew", pady=(6, 0))
         self.summary_frame.columnconfigure(0, weight=1)
 
         self.summary_items = {
@@ -379,17 +435,24 @@ class DTLknowsWhyGui:
             style="Run.TButton",
             command=self._start_diagnosis,
         )
-        self.run_button.grid(row=6, column=0, sticky="ew", pady=(14, 6))
+        self.run_button.grid(row=6, column=0, sticky="ew", pady=(6, 2))
+
+        self.gitscan_button = ttk.Button(
+            self.target_frame,
+            style="Run.TButton",
+            command=self._start_gitscan,
+        )
+        self.gitscan_button.grid(row=7, column=0, sticky="ew", pady=(0, 2))
 
         self.open_report_button = ttk.Button(
             self.target_frame,
             command=self._open_latest_html_report,
             state="disabled",
         )
-        self.open_report_button.grid(row=7, column=0, sticky="ew")
+        self.open_report_button.grid(row=8, column=0, sticky="ew", pady=(0, 0))
 
         results = ttk.PanedWindow(container, orient="horizontal")
-        results.grid(row=3, column=0, sticky="nsew", pady=(14, 0))
+        results.grid(row=3, column=0, sticky="nsew", pady=(8, 0))
 
         self.log_frame = ttk.LabelFrame(
             results,
@@ -436,7 +499,7 @@ class DTLknowsWhyGui:
             foreground=COLORS["muted"],
             font=("Segoe UI Semibold", 9),
         )
-        label.grid(row=row, column=0, sticky="w", pady=2)
+        label.grid(row=row, column=0, sticky="w", pady=1)
 
         value_label = ttk.Label(
             self.summary_frame,
@@ -444,7 +507,7 @@ class DTLknowsWhyGui:
             foreground=COLORS["muted"],
             font=("Segoe UI", 9),
         )
-        value_label.grid(row=row, column=1, sticky="e", pady=2)
+        value_label.grid(row=row, column=1, sticky="e", pady=1)
         self.summary_rows[label_key] = label
         value_label.value_key = value_key
 
@@ -490,6 +553,7 @@ class DTLknowsWhyGui:
         self.target_label.configure(text=self._t("gui_target_label"))
         self.summary_frame.configure(text=self._t("gui_summary"))
         self.run_button.configure(text=self._t("gui_run"))
+        self.gitscan_button.configure(text=self._t("gui_gitscan_run"))
         self.open_report_button.configure(text=self._t("gui_open_html"))
         self.log_frame.configure(text=self._t("gui_progress"))
         self.findings_frame.configure(text=self._t("gui_findings"))
@@ -544,6 +608,7 @@ class DTLknowsWhyGui:
     def _on_language_changed(self, _event=None):
         selected = self.language_var.get()
         self.lang = "fr" if selected == self._t("gui_lang_fr") else "en"
+        save_default_language(self.lang)
         self._apply_language()
 
     def _toggle_rule_category(self, category_id):
@@ -567,6 +632,14 @@ class DTLknowsWhyGui:
             return
 
         self.target_var.set(self.initial_target)
+
+        if self.auto_scan:
+            self._refresh_target_hint()
+
+            if self.auto_start:
+                self.root.after(300, self._start_gitscan)
+
+            return
 
         for situation in RULES:
             if situation["requires_target"]:
@@ -616,25 +689,57 @@ class DTLknowsWhyGui:
             )
             return
 
-        if not is_admin():
-            continue_without_admin = messagebox.askyesno(
-                self._t("gui_admin_title"),
-                self._t("gui_admin_message"),
+        if not self._confirm_admin_if_needed():
+            return
+
+        self._launch_diagnosis(
+            target,
+            [situation["id"] for situation in selected],
+            self._t("gui_diagnosis_running"),
+        )
+
+    def _start_gitscan(self):
+        target = self.target_var.get().strip() or None
+
+        if not target:
+            messagebox.showwarning(
+                self._t("gui_missing_target_title"),
+                self._t("gui_gitscan_missing_target_message"),
             )
+            return
 
-            if not continue_without_admin:
-                return
+        if not self._confirm_admin_if_needed():
+            return
 
+        self._launch_diagnosis(
+            target,
+            [GITSCAN_SELECTED_ID],
+            self._t("gui_gitscan_running"),
+        )
+
+    def _confirm_admin_if_needed(self):
+        if is_admin():
+            return True
+
+        continue_without_admin = messagebox.askyesno(
+            self._t("gui_admin_title"),
+            self._t("gui_admin_message"),
+        )
+
+        return bool(continue_without_admin)
+
+    def _launch_diagnosis(self, target, selected_ids, message):
         self.run_button.configure(state="disabled")
+        self.gitscan_button.configure(state="disabled")
         self.open_report_button.configure(state="disabled")
         self.log_text.delete("1.0", "end")
         self.findings_text.delete("1.0", "end")
         self._reset_summary()
-        self.output_queue.put(("log", f"{self._t('gui_diagnosis_running')}\n"))
+        self.output_queue.put(("log", f"{message}\n"))
 
         worker = threading.Thread(
             target=self._run_diagnosis,
-            args=(target, [situation["id"] for situation in selected], self.lang),
+            args=(target, selected_ids, self.lang),
             daemon=True,
         )
         worker.start()
@@ -663,9 +768,11 @@ class DTLknowsWhyGui:
                     self.latest_selected_ids = item[2]
                     self._show_findings(item[1], item[2])
                     self.run_button.configure(state="normal")
+                    self.gitscan_button.configure(state="normal")
                     self.open_report_button.configure(state="normal")
                 elif kind == "error":
                     self.run_button.configure(state="normal")
+                    self.gitscan_button.configure(state="normal")
                     messagebox.showerror(self._t("gui_diagnosis_failed"), item[1])
         except queue.Empty:
             pass
@@ -684,21 +791,35 @@ class DTLknowsWhyGui:
 
     def _show_findings(self, snapshot, selected_ids):
         diagnosis = snapshot.get("diagnosis", [])
+        causal = snapshot.get("causal_comparison", [])
         self._show_summary(snapshot)
 
-        focused = [
-            item
-            for item in diagnosis
-            if item.get("case") in selected_ids
-            or (not item.get("case") and item.get("level") in {"FAIL", "WARN"})
-        ]
+        if GITSCAN_SELECTED_ID in selected_ids:
+            focused = [
+                item
+                for item in diagnosis + causal
+                if item.get("level") not in {"OK", "OBSERVE", "OBSERVED"}
+            ]
+
+            if not focused:
+                focused = diagnosis + causal
+        else:
+            focused = [
+                item
+                for item in diagnosis
+                if item.get("case") in selected_ids
+                or (not item.get("case") and item.get("level") in {"FAIL", "WARN"})
+            ]
 
         if not focused:
             focused = diagnosis
 
         self.findings_text.delete("1.0", "end")
-        self.findings_text.insert("end", self._t("gui_selected_situations"), "heading")
-        self.findings_text.insert("end", ", ".join(selected_ids), "heading")
+        if GITSCAN_SELECTED_ID in selected_ids:
+            self.findings_text.insert("end", self._t("gui_gitscan_findings"), "heading")
+        else:
+            self.findings_text.insert("end", self._t("gui_selected_situations"), "heading")
+            self.findings_text.insert("end", ", ".join(selected_ids), "heading")
         self.findings_text.insert("end", "\n\n")
 
         if not focused:
@@ -719,7 +840,7 @@ class DTLknowsWhyGui:
             )
             self.findings_text.insert(
                 "end",
-                f"{item.get('message')}\n",
+                f"{item.get('message') or item.get('title')}\n",
                 "message",
             )
 
@@ -734,6 +855,13 @@ class DTLknowsWhyGui:
                 self.findings_text.insert(
                     "end",
                     f"{self._t('gui_check_action')} : {item.get('remediation')}\n",
+                    "remediation",
+                )
+
+            if item.get("cause"):
+                self.findings_text.insert(
+                    "end",
+                    f"{self._t('cause')} : {item.get('cause')}\n",
                     "remediation",
                 )
 
@@ -807,11 +935,18 @@ class DTLknowsWhyGui:
         os.startfile(os.path.abspath(reports[0]))
 
 
-def run_gui(create_snapshot, initial_target=None, auto_start=False, lang="en"):
+def run_gui(
+    create_snapshot,
+    initial_target=None,
+    auto_start=False,
+    lang=None,
+    auto_scan=False,
+):
     app = DTLknowsWhyGui(
         create_snapshot,
         initial_target=initial_target,
         auto_start=auto_start,
         lang=lang,
+        auto_scan=auto_scan,
     )
     app.run()

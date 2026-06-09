@@ -1,7 +1,13 @@
 import subprocess
+import sys
 from shared.logger import logger
 
 ENCODINGS = ["utf-8", "cp850", "cp1252"]
+NO_WINDOW_FLAGS = (
+    subprocess.CREATE_NO_WINDOW
+    if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW")
+    else 0
+)
 
 
 def decode_output(data: bytes) -> str:
@@ -22,7 +28,8 @@ def run_command(command: str, timeout: int = 15) -> dict:
             command,
             shell=True,
             capture_output=True,
-            timeout=timeout
+            timeout=timeout,
+            creationflags=NO_WINDOW_FLAGS,
         )
 
         return {

@@ -71,6 +71,35 @@ def state(value, lang):
     return tr("unknown", lang)
 
 
+def infer_dns_source(network):
+    value = network.get("dns_source")
+
+    if value in ("Manual", "DHCP"):
+        return value
+
+    if network.get("manual_dns_servers"):
+        return "Manual"
+
+    if network.get("dhcp_dns_servers"):
+        return "DHCP"
+
+    if network.get("dhcp_enabled") is True and network.get("dns_servers"):
+        return "DHCP"
+
+    return value
+
+
+def dns_source_label(value, lang):
+    mapping = {
+        "Manual": "dns_source_manual",
+        "DHCP": "dns_source_dhcp",
+        "Unknown": "unknown",
+        None: "unknown",
+    }
+
+    return tr(mapping.get(value, "unknown"), lang)
+
+
 def translate_share_detail(value, lang):
     if not value or lang != "en":
         return value
@@ -342,6 +371,17 @@ def generate_text_report(snapshot, lang="fr"):
     lines.append(
         f"{T('dns_servers'):<18} : {', '.join(network.get('dns_servers', []))}"
     )
+    if network.get("manual_dns_servers"):
+        lines.append(
+            f"{T('manual_dns_servers'):<18} : "
+            f"{', '.join(network.get('manual_dns_servers', []))}"
+        )
+    if network.get("dhcp_dns_servers"):
+        lines.append(
+            f"{T('dhcp_dns_servers'):<18} : "
+            f"{', '.join(network.get('dhcp_dns_servers', []))}"
+        )
+    lines.append(f"{T('dns_mode'):<18} : {dns_source_label(infer_dns_source(network), lang)}")
     lines.append(f"{T('dhcp'):<18} : {yn(network.get('dhcp_enabled'), lang)}")
     lines.append(f"{T('netbios'):<18} : {yn(network.get('netbios_enabled'), lang)}")
     smb_share_lines = format_smb_shares(network.get("smb_shares"), lang)
@@ -435,6 +475,24 @@ def generate_text_report(snapshot, lang="fr"):
             lines.append(
                 f"{T('remote_machine_ipv4'):<28} : "
                 f"{remote_network.get('ipv4') or remote.get('target') or T('unknown')}"
+            )
+            lines.append(
+                f"{T('dns_servers'):<28} : "
+                f"{', '.join(remote_network.get('dns_servers', [])) or T('unknown')}"
+            )
+            if remote_network.get("manual_dns_servers"):
+                lines.append(
+                    f"{T('manual_dns_servers'):<28} : "
+                    f"{', '.join(remote_network.get('manual_dns_servers', []))}"
+                )
+            if remote_network.get("dhcp_dns_servers"):
+                lines.append(
+                    f"{T('dhcp_dns_servers'):<28} : "
+                    f"{', '.join(remote_network.get('dhcp_dns_servers', []))}"
+                )
+            lines.append(
+                f"{T('dns_mode'):<28} : "
+                f"{dns_source_label(infer_dns_source(remote_network), lang)}"
             )
             lines.append(
                 f"{T('remote_smb_account'):<28} : "

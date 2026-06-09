@@ -74,6 +74,50 @@ def state(value, lang):
     return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
 
 
+def infer_dns_source(network):
+    value = network.get("dns_source")
+
+    if value in ("Manual", "DHCP"):
+        return value
+
+    if network.get("manual_dns_servers"):
+        return "Manual"
+
+    if network.get("dhcp_dns_servers"):
+        return "DHCP"
+
+    if network.get("dhcp_enabled") is True and network.get("dns_servers"):
+        return "DHCP"
+
+    return value
+
+
+def dns_source_label(value, lang):
+    mapping = {
+        "Manual": "dns_source_manual",
+        "DHCP": "dns_source_dhcp",
+        "Unknown": "unknown",
+        None: "unknown",
+    }
+
+    return tr(mapping.get(value, "unknown"), lang)
+
+
+def optional_dns_rows(network, lang):
+    rows = []
+
+    for key in ("manual_dns_servers", "dhcp_dns_servers"):
+        values = network.get(key) or []
+
+        if values:
+            rows.append(
+                f"<tr><td>{tr(key, lang)}</td>"
+                f"<td>{escape(str(', '.join(values)))}</td></tr>"
+            )
+
+    return "".join(rows)
+
+
 def translate_share_detail(value, lang):
     if not value or lang != "en":
         return value
@@ -782,6 +826,8 @@ summary:hover {{
 <tr><td>{T('subnet_mask')}</td><td>{network.get('subnet_mask')}</td></tr>
 <tr><td>{T('gateway')}</td><td>{network.get('default_gateway')}</td></tr>
 <tr><td>{T('dns_servers')}</td><td>{', '.join(network.get('dns_servers', []))}</td></tr>
+{optional_dns_rows(network, lang)}
+<tr><td>{T('dns_mode')}</td><td>{dns_source_label(infer_dns_source(network), lang)}</td></tr>
 <tr><td>{T('dhcp')}</td><td>{yn(network.get('dhcp_enabled'), lang)}</td></tr>
 <tr><td>{T('netbios')}</td><td>{yn(network.get('netbios_enabled'), lang)}</td></tr>
 <tr><td>{T('smb_shares')}</td>
@@ -855,6 +901,9 @@ summary:hover {{
 <tr><td>{T('snapshot_datetime')}</td><td>{escape(str(remote_snapshot_time or T('unknown')))}</td></tr>
 <tr><td>{T('remote_machine_name')}</td><td>{escape(str(remote_system.get('hostname') or T('unknown')))}</td></tr>
 <tr><td>{T('remote_machine_ipv4')}</td><td>{escape(str(remote_network.get('ipv4') or remote.get('target') or T('unknown')))}</td></tr>
+<tr><td>{T('dns_servers')}</td><td>{escape(str(', '.join(remote_network.get('dns_servers', [])) or T('unknown')))}</td></tr>
+{optional_dns_rows(remote_network, lang)}
+<tr><td>{T('dns_mode')}</td><td>{escape(str(dns_source_label(infer_dns_source(remote_network), lang)))}</td></tr>
 <tr><td>{T('remote_smb_account')}</td><td>{escape(str(remote_system.get('smb_recommended_account') or T('unknown')))}</td></tr>
 <tr><td>{T('remote_snapshot_file')}</td><td>{escape(str(snapshot.get('remote_agent_snapshot_file') or T('embedded_json')))}</td></tr>
 </table>
