@@ -340,12 +340,22 @@ def generate_text_report(snapshot, lang="fr"):
         f"{T('smb_recommended_account'):<18} : "
         f"{system.get('smb_recommended_account') or T('unknown')}"
     )
+    if system.get("user_upn"):
+        lines.append(f"{T('user_upn'):<18} : {system.get('user_upn')}")
     lines.append(f"{T('administrator'):<18} : {yn(system.get('is_admin'), lang)}")
     azure_ad = system.get("azure_ad", {})
     lines.append(f"{'AzureAD joined':<18} : {yn(system.get('azure_ad_joined'), lang)}")
     lines.append(f"{'Domain joined':<18} : {yn(system.get('domain_joined'), lang)}")
     if azure_ad.get("tenant_name"):
         lines.append(f"{'Tenant AzureAD':<18} : {azure_ad.get('tenant_name')}")
+    rdp = system.get("rdp", {})
+    lines.append(f"{T('rdp_listener'):<18} : {yn(rdp.get('listener_active'), lang)}")
+    if rdp.get("remote_desktop_users") is not None:
+        members = ", ".join(rdp.get("remote_desktop_users") or []) or T("none")
+        lines.append(f"{T('remote_desktop_users'):<18} : {members}")
+    if rdp.get("administrators") is not None:
+        members = ", ".join(rdp.get("administrators") or []) or T("none")
+        lines.append(f"{T('local_administrators'):<18} : {members}")
     lines.append("")
 
     lines.append(T("system"))

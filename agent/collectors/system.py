@@ -147,6 +147,102 @@ def collect_fltmc_filters():
     return filters
 
 
+def collect_whoami_upn():
+    result = run_command("whoami /upn", timeout=5)
+    value = result["stdout"].strip()
+
+    return value or None
+
+
+def collect_local_group_members(group_name):
+    result = run_command(f'net localgroup "{group_name}"', timeout=5)
+
+    if result["exit_code"] != 0:
+        return None
+
+    if not result["stdout"]:
+        return None
+
+    members = []
+    in_members = False
+
+    for line in result["stdout"].splitlines():
+        stripped = line.strip()
+
+        if not stripped:
+            continue
+
+        if stripped.startswith("---"):
+            in_members = True
+            continue
+
+        if not in_members:
+            continue
+
+        lowered = stripped.lower()
+        if "commande" in lowered or "command" in lowered:
+            break
+
+        members.append(stripped)
+
+    return members
+
+
+def collect_first_local_group(group_names):
+    for group_name in group_names:
+        members = collect_local_group_members(group_name)
+
+        if members is not None:
+            return {
+                "name": group_name,
+                "members": members,
+            }
+
+    return {
+        "name": group_names[0] if group_names else None,
+        "members": None,
+    }
+
+
+def collect_rdp_listener():
+    result = run_command("qwinsta", timeout=5)
+
+    if not result["stdout"]:
+        return None
+
+    for line in result["stdout"].splitlines():
+        normalized = line.lower()
+
+        if "rdp-tcp" not in normalized:
+            continue
+
+        if "écouter" in normalized or "ecouter" in normalized or "listen" in normalized:
+            return True
+
+        return False
+
+    return False
+
+
+def collect_rdp_info():
+    rdp_users = collect_first_local_group([
+        "Utilisateurs du Bureau à distance",
+        "Remote Desktop Users",
+    ])
+    administrators = collect_first_local_group([
+        "Administrateurs",
+        "Administrators",
+    ])
+
+    return {
+        "listener_active": collect_rdp_listener(),
+        "remote_desktop_users_group": rdp_users.get("name"),
+        "remote_desktop_users": rdp_users.get("members"),
+        "administrators_group": administrators.get("name"),
+        "administrators": administrators.get("members"),
+    }
+
+
 def collect_security_info():
     return {
         "antivirus_products": collect_antivirus_products(),
@@ -176,16 +272,23 @@ def collect_system_info() -> dict:
     build = windows_info.get("CurrentBuild", "Unknown")
     whoami = run_command("whoami")
     smb_account = whoami["stdout"].strip() or getpass.getuser()
+    user_upn = collect_whoami_upn()
     azure_ad = collect_azure_ad_info()
+    rdp = collect_rdp_info()
 
     return {
         "dtlknowswhy_version": DTLKNOWSWHY_VERSION,
         "hostname": socket.gethostname(),
         "username": getpass.getuser(),
         "smb_recommended_account": smb_account,
+        "user_upn": user_upn,
         "azure_ad": azure_ad,
         "azure_ad_joined": azure_ad.get("azure_ad_joined"),
         "domain_joined": azure_ad.get("domain_joined"),
+        "rdp": rdp,
+        "rdp_listener_active": rdp.get("listener_active"),
+        "remote_desktop_users": rdp.get("remote_desktop_users"),
+        "local_administrators": rdp.get("administrators"),
         "security": collect_security_info(),
         "windows_product_name": normalize_windows_name(raw_name, build),
         "windows_version": windows_info.get("DisplayVersion", "Unknown"),

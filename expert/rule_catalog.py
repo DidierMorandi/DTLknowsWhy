@@ -96,6 +96,60 @@ RULE_CATEGORIES = [
         ],
     },
     {
+        "id": "remote_desktop",
+        "title_key": "rule_category_remote_desktop",
+        "rules": [
+            {
+                "id": "RÈGLE-RDP-001",
+                "title_key": "rule_rdp_001_title",
+                "description_key": "rule_rdp_001_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-002",
+                "title_key": "rule_rdp_002_title",
+                "description_key": "rule_rdp_002_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-003",
+                "title_key": "rule_rdp_003_title",
+                "description_key": "rule_rdp_003_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-004",
+                "title_key": "rule_rdp_004_title",
+                "description_key": "rule_rdp_004_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-005",
+                "title_key": "rule_rdp_005_title",
+                "description_key": "rule_rdp_005_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-006",
+                "title_key": "rule_rdp_006_title",
+                "description_key": "rule_rdp_006_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-007",
+                "title_key": "rule_rdp_007_title",
+                "description_key": "rule_rdp_007_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "RÈGLE-RDP-008",
+                "title_key": "rule_rdp_008_title",
+                "description_key": "rule_rdp_008_desc",
+                "requires_target": False,
+            },
+        ],
+    },
+    {
         "id": "system_security",
         "title_key": "rule_category_system_security",
         "rules": [

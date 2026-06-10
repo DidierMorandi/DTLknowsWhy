@@ -118,6 +118,37 @@ def optional_dns_rows(network, lang):
     return "".join(rows)
 
 
+def optional_rdp_rows(system, lang):
+    rows = []
+    rdp = system.get("rdp", {})
+
+    if system.get("user_upn"):
+        rows.append(
+            f"<tr><td>{tr('user_upn', lang)}</td>"
+            f"<td>{escape(str(system.get('user_upn')))}</td></tr>"
+        )
+
+    rows.append(
+        f"<tr><td>{tr('rdp_listener', lang)}</td>"
+        f"<td>{yn(rdp.get('listener_active'), lang)}</td></tr>"
+    )
+
+    for key, label_key in (
+        ("remote_desktop_users", "remote_desktop_users"),
+        ("administrators", "local_administrators"),
+    ):
+        values = rdp.get(key)
+
+        if values is not None:
+            text = ", ".join(values) if values else tr("none", lang)
+            rows.append(
+                f"<tr><td>{tr(label_key, lang)}</td>"
+                f"<td>{escape(str(text))}</td></tr>"
+            )
+
+    return "".join(rows)
+
+
 def translate_share_detail(value, lang):
     if not value or lang != "en":
         return value
@@ -804,6 +835,7 @@ summary:hover {{
 <tr><td>{T('administrator')}</td><td>{yn(system.get('is_admin'), lang)}</td></tr>
 <tr><td>AzureAD joined</td><td>{yn(system.get('azure_ad_joined'), lang)}</td></tr>
 <tr><td>Domain joined</td><td>{yn(system.get('domain_joined'), lang)}</td></tr>
+{optional_rdp_rows(system, lang)}
 </table>
 </div>
 

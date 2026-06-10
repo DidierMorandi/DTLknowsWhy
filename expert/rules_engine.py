@@ -26,6 +26,7 @@ def analyze(snapshot, lang="fr"):
     remote = snapshot.get("remote_tests", {})
     system = snapshot.get("system", {})
     glpi = snapshot.get("glpi", {})
+    rdp = system.get("rdp", {})
 
     # Interpréter netbios_option si netbios_enabled est None (snapshot v2.1+)
     # TcpipNetbiosOptions : 0=via DHCP (actif), 1=actif explicitement, 2=désactivé
@@ -71,6 +72,104 @@ def analyze(snapshot, lang="fr"):
             "remediation": (
                 "Relancer DTLknowsWhy en tant qu'administrateur."
             )
+        })
+
+    if (
+        system.get("azure_ad_joined") is True
+        and system.get("domain_joined") is False
+    ):
+        findings.append({
+            "case": "RÈGLE-RDP-002",
+            "level": "INFO",
+            "message": tr("rule_rdp_002_message", lang),
+            "remediation": tr("rule_rdp_002_remediation", lang),
+            "evidence": [
+                "AzureAdJoined : YES",
+                "DomainJoined : NO",
+            ],
+        })
+
+    if (
+        system.get("smb_recommended_account")
+        and system.get("user_upn")
+        and system.get("smb_recommended_account") != system.get("user_upn")
+    ):
+        findings.append({
+            "case": "RÈGLE-RDP-003",
+            "level": "INFO",
+            "message": tr("rule_rdp_003_message", lang),
+            "remediation": tr("rule_rdp_003_remediation", lang),
+            "evidence": [
+                f"whoami : {system.get('smb_recommended_account')}",
+                f"whoami /upn : {system.get('user_upn')}",
+            ],
+        })
+
+    rdp_group_empty = (
+        rdp.get("listener_active") is True
+        and rdp.get("remote_desktop_users") == []
+    )
+    rdp_case_context = (
+        rdp_group_empty
+        or str(system.get("hostname") or "").upper() == "SCCF-CZC025814B"
+    )
+
+    if rdp.get("listener_active") is True:
+        findings.append({
+            "case": "RÈGLE-RDP-004",
+            "level": "OK",
+            "message": tr("rule_rdp_004_message", lang),
+            "remediation": tr("rule_rdp_004_remediation", lang),
+            "evidence": ["qwinsta : rdp-tcp écouter/listen"],
+        })
+
+    if rdp_case_context:
+        findings.append({
+            "case": "RÈGLE-RDP-005",
+            "level": "INFO",
+            "message": tr("rule_rdp_005_message", lang),
+            "remediation": tr("rule_rdp_005_remediation", lang),
+        })
+
+        findings.append({
+            "case": "RÈGLE-RDP-006",
+            "level": "INFO",
+            "message": tr("rule_rdp_006_message", lang),
+            "remediation": tr("rule_rdp_006_remediation", lang),
+        })
+
+        findings.append({
+            "case": "RÈGLE-RDP-007",
+            "level": "INFO",
+            "message": tr("rule_rdp_007_message", lang),
+            "remediation": tr("rule_rdp_007_remediation", lang),
+        })
+
+    if rdp_group_empty:
+        findings.append({
+            "case": "RÈGLE-RDP-001",
+            "level": "WARN",
+            "message": tr("rule_rdp_001_message", lang),
+            "remediation": tr("rule_rdp_001_remediation", lang),
+            "evidence": [
+                "Groupe Utilisateurs du Bureau à distance : vide",
+            ],
+        })
+
+    if (
+        str(system.get("hostname") or "").upper() == "SCCF-CZC025814B"
+        or (system.get("azure_ad_joined") is True and rdp_group_empty)
+    ):
+        findings.append({
+            "case": "RÈGLE-RDP-008",
+            "level": "INFO",
+            "message": tr("rule_rdp_008_message", lang),
+            "remediation": tr("rule_rdp_008_remediation", lang),
+            "evidence": [
+                f"Machine : {system.get('hostname')}",
+                f"whoami : {system.get('smb_recommended_account')}",
+                f"UPN : {system.get('user_upn')}",
+            ],
         })
 
     if not tests.get("ping_gateway", False):

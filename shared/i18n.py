@@ -55,6 +55,10 @@ TRANSLATIONS = {
         "username": "Utilisateur",
         "dtl_version": "Version DTLknowsWhy",
         "smb_recommended_account": "Compte SMB recommandé",
+        "user_upn": "UPN utilisateur",
+        "rdp_listener": "Écoute RDP",
+        "remote_desktop_users": "Utilisateurs Bureau à distance",
+        "local_administrators": "Administrateurs locaux",
         "smb_shares": "Partages SMB exportés",
         "no_smb_shares": "Aucun partage SMB exporté",
         "special_share": "partage spécial",
@@ -263,6 +267,71 @@ TRANSLATIONS = {
             "Créer sur la cible une règle entrante autorisant TCP 5050 pour "
             "DTLknowsWhy-Agent.exe. Validation : "
             "Test-NetConnection <IP> -Port 5050 doit retourner TcpTestSucceeded : True.",
+        "rule_rdp_001_message":
+            "CAS RÈGLE-RDP-001 — Le compte n'est pas autorisé à ouvrir une "
+            "session Bureau à distance. L'utilisateur n'est membre ni du groupe "
+            "Utilisateurs du Bureau à distance, ni d'un groupe autorisé à ouvrir "
+            "une session RDP.",
+        "rule_rdp_001_remediation":
+            "Vérifier : net localgroup \"Utilisateurs du Bureau à distance\". "
+            "Correctif : net localgroup \"Utilisateurs du Bureau à distance\" "
+            "/add NOM_UTILISATEUR. Validation : le message change et "
+            "l'authentification est désormais tentée. Confiance : 100 % "
+            "(cas validé sur SCCF-CZC025814B).",
+        "rule_rdp_002_message":
+            "CAS RÈGLE-RDP-002 — Poste Microsoft Entra ID identifié : "
+            "AzureAdJoined = YES et DomainJoined = NO. Le poste n'est pas "
+            "membre d'un domaine Active Directory classique.",
+        "rule_rdp_002_remediation":
+            "Tenir compte des formes de compte possibles selon l'outil : "
+            "SC\\benevole.010 ou benevole.010@secours-catholique.org. "
+            "Diagnostic : dsregcmd /status. Confiance : 100 %.",
+        "rule_rdp_003_message":
+            "CAS RÈGLE-RDP-003 — Un même utilisateur Entra ID peut être "
+            "représenté différemment selon le composant Windows interrogé.",
+        "rule_rdp_003_remediation":
+            "Ne pas se fier uniquement à whoami. Vérifier aussi whoami /upn "
+            "et net localgroup Administrateurs. Confiance : 100 %.",
+        "rule_rdp_004_message":
+            "CAS RÈGLE-RDP-004 — qwinsta indique rdp-tcp en écoute : le "
+            "service Terminal Server écoute correctement.",
+        "rule_rdp_004_remediation":
+            "Validation : qwinsta doit afficher rdp-tcp    Écouter. "
+            "Confiance : 100 %.",
+        "rule_rdp_005_message":
+            "CAS RÈGLE-RDP-005 — Différencier un problème d'autorisation RDP "
+            "d'un problème d'authentification.",
+        "rule_rdp_005_remediation":
+            "Si le message dit que le compte n'est pas autorisé à ouvrir une "
+            "session à distance : vérifier Administrateurs et Utilisateurs du "
+            "Bureau à distance. Si le message devient \"Vos informations "
+            "d'identification n'ont pas fonctionné\", l'autorisation RDP est "
+            "acquise ; poursuivre sur identité, mot de passe, mécanisme "
+            "d'authentification et client RDP. Confiance : 100 %.",
+        "rule_rdp_006_message":
+            "CAS RÈGLE-RDP-006 — Valider localement le compte avant de poursuivre "
+            "l'investigation RDP.",
+        "rule_rdp_006_remediation":
+            "Tester : runas /user:SC\\benevole.010 cmd. Si la commande est "
+            "acceptée, le compte existe et le mot de passe est valide localement. "
+            "Cela élimine rapidement mot de passe erroné, compte inexistant ou "
+            "compte verrouillé. Confiance : 100 %.",
+        "rule_rdp_007_message":
+            "CAS RÈGLE-RDP-007 — Vérifier l'arrivée effective d'une tentative "
+            "d'authentification après un échec RDP.",
+        "rule_rdp_007_remediation":
+            "Après une tentative RDP, vérifier eventvwr.msc ou "
+            "Get-WinEvent -LogName Security. L'absence d'événement 4625 suggère "
+            "que l'échec survient avant l'ouverture de session Windows proprement "
+            "dite. Confiance : moyenne.",
+        "rule_rdp_008_message":
+            "CAS RÈGLE-RDP-008 — Cas réel SCCF-CZC025814B : poste AzureAdJoined, "
+            "utilisateur SC\\benevole.010 / benevole.010@secours-catholique.org, "
+            "groupe Utilisateurs du Bureau à distance vide.",
+        "rule_rdp_008_remediation":
+            "Correctif validé : ajout de SC\\benevole.010 au groupe "
+            "Utilisateurs du Bureau à distance. Validation : connexion RDP "
+            "réussie depuis le poste de Michel. Confiance : 100 %.",
 
         # ── Interface graphique (GUI) ─────────────────────────────────────────
         "gui_subtitle":
@@ -312,6 +381,7 @@ TRANSLATIONS = {
         "rule_category_network_discovery": "Découverte réseau / SMB",
         "rule_category_smb_authentication": "Authentification SMB",
         "rule_category_remote_target": "Cible distante",
+        "rule_category_remote_desktop": "Bureau à distance / RDP",
         "rule_category_system_security": "Sécurité système",
 
         "rule_smb_001_title": "SMB-001 - Machine invisible dans Réseau",
@@ -353,6 +423,30 @@ TRANSLATIONS = {
         "rule_016_title": "RÈGLE-016 - Agent DTLknowsWhy inaccessible",
         "rule_016_desc":
             "Le service agent peut être démarré localement, mais bloqué à distance par le pare-feu Windows.",
+        "rule_rdp_001_title": "RÈGLE-RDP-001 - Compte non autorisé en RDP",
+        "rule_rdp_001_desc":
+            "Le compte n'est pas membre des groupes autorisés à ouvrir une session Bureau à distance.",
+        "rule_rdp_002_title": "RÈGLE-RDP-002 - Poste Microsoft Entra ID",
+        "rule_rdp_002_desc":
+            "AzureAdJoined YES et DomainJoined NO : le poste utilise Entra ID plutôt qu'un domaine AD classique.",
+        "rule_rdp_003_title": "RÈGLE-RDP-003 - Représentation réelle du compte",
+        "rule_rdp_003_desc":
+            "Comparer whoami, whoami /upn et les groupes locaux pour éviter une erreur d'identité.",
+        "rule_rdp_004_title": "RÈGLE-RDP-004 - Écoute réelle du service RDP",
+        "rule_rdp_004_desc":
+            "qwinsta doit montrer rdp-tcp en écoute.",
+        "rule_rdp_005_title": "RÈGLE-RDP-005 - Autorisation ou authentification",
+        "rule_rdp_005_desc":
+            "Distinguer le refus d'ouverture de session du refus d'identifiants.",
+        "rule_rdp_006_title": "RÈGLE-RDP-006 - Validation locale du compte",
+        "rule_rdp_006_desc":
+            "Utiliser runas pour éliminer mot de passe erroné, compte inexistant ou verrouillé.",
+        "rule_rdp_007_title": "RÈGLE-RDP-007 - Tentative visible dans les événements",
+        "rule_rdp_007_desc":
+            "Après une tentative RDP, vérifier l'événement de sécurité 4625.",
+        "rule_rdp_008_title": "RÈGLE-RDP-008 - Cas réel SCCF-CZC025814B",
+        "rule_rdp_008_desc":
+            "Cas validé : groupe Utilisateurs du Bureau à distance vide, ajout de SC\\benevole.010.",
         "rule_012_title": "RÈGLE-012 - BitLocker actif",
         "rule_012_desc":
             "Avertit avant modification système lorsque BitLocker est actif sur un volume.",
@@ -737,6 +831,10 @@ TRANSLATIONS = {
         "username": "Username",
         "dtl_version": "DTLknowsWhy version",
         "smb_recommended_account": "Recommended SMB account",
+        "user_upn": "User UPN",
+        "rdp_listener": "RDP listener",
+        "remote_desktop_users": "Remote Desktop Users",
+        "local_administrators": "Local administrators",
         "smb_shares": "Exported SMB shares",
         "no_smb_shares": "No exported SMB share",
         "special_share": "special share",
@@ -868,6 +966,7 @@ TRANSLATIONS = {
         "rule_category_network_discovery": "Network discovery / SMB",
         "rule_category_smb_authentication": "SMB authentication",
         "rule_category_remote_target": "Remote target",
+        "rule_category_remote_desktop": "Remote Desktop / RDP",
         "rule_category_system_security": "System security",
 
         "rule_smb_001_title": "SMB-001 - Machine invisible in Network",
@@ -909,6 +1008,30 @@ TRANSLATIONS = {
         "rule_016_title": "RULE-016 - DTLknowsWhy agent unreachable",
         "rule_016_desc":
             "The agent service may be running locally, but blocked remotely by Windows Firewall.",
+        "rule_rdp_001_title": "RULE-RDP-001 - Account not allowed for RDP",
+        "rule_rdp_001_desc":
+            "The account is not a member of the groups allowed to open a Remote Desktop session.",
+        "rule_rdp_002_title": "RULE-RDP-002 - Microsoft Entra ID workstation",
+        "rule_rdp_002_desc":
+            "AzureAdJoined YES and DomainJoined NO: the workstation uses Entra ID rather than classic AD.",
+        "rule_rdp_003_title": "RULE-RDP-003 - Real account representation",
+        "rule_rdp_003_desc":
+            "Compare whoami, whoami /upn, and local groups to avoid identity confusion.",
+        "rule_rdp_004_title": "RULE-RDP-004 - Real RDP listener state",
+        "rule_rdp_004_desc":
+            "qwinsta should show rdp-tcp listening.",
+        "rule_rdp_005_title": "RULE-RDP-005 - Authorization or authentication",
+        "rule_rdp_005_desc":
+            "Distinguish logon-right refusal from credential refusal.",
+        "rule_rdp_006_title": "RULE-RDP-006 - Local account validation",
+        "rule_rdp_006_desc":
+            "Use runas to eliminate wrong password, nonexistent account, or locked account.",
+        "rule_rdp_007_title": "RULE-RDP-007 - Attempt visible in events",
+        "rule_rdp_007_desc":
+            "After an RDP attempt, check Security event 4625.",
+        "rule_rdp_008_title": "RULE-RDP-008 - Real case SCCF-CZC025814B",
+        "rule_rdp_008_desc":
+            "Validated case: empty Remote Desktop Users group, SC\\benevole.010 added.",
         "rule_012_title": "RULE-012 - BitLocker active",
         "rule_012_desc":
             "Warns before system changes when BitLocker is active on a volume.",
@@ -1356,6 +1479,67 @@ TRANSLATIONS = {
             "On the target, create an inbound rule allowing TCP 5050 for "
             "DTLknowsWhy-Agent.exe. Validation: "
             "Test-NetConnection <IP> -Port 5050 must return TcpTestSucceeded: True.",
+        "rule_rdp_001_message":
+            "CASE RULE-RDP-001 — The account is not allowed to log on through "
+            "Remote Desktop. The user is not a member of Remote Desktop Users "
+            "or another group allowed to open an RDP session.",
+        "rule_rdp_001_remediation":
+            "Check: net localgroup \"Remote Desktop Users\" or "
+            "net localgroup \"Utilisateurs du Bureau à distance\". Fix: "
+            "net localgroup \"Utilisateurs du Bureau à distance\" /add USERNAME. "
+            "Validation: the message changes and authentication is attempted. "
+            "Confidence: 100 % (validated on SCCF-CZC025814B).",
+        "rule_rdp_002_message":
+            "CASE RULE-RDP-002 — Microsoft Entra ID workstation identified: "
+            "AzureAdJoined = YES and DomainJoined = NO. The workstation is not "
+            "joined to a classic Active Directory domain.",
+        "rule_rdp_002_remediation":
+            "Account names may appear in multiple forms depending on the tool: "
+            "SC\\benevole.010 or benevole.010@secours-catholique.org. "
+            "Diagnostic: dsregcmd /status. Confidence: 100 %.",
+        "rule_rdp_003_message":
+            "CASE RULE-RDP-003 — The same Entra ID user may be represented "
+            "differently depending on the Windows component queried.",
+        "rule_rdp_003_remediation":
+            "Do not rely only on whoami. Also check whoami /upn and "
+            "net localgroup Administrators. Confidence: 100 %.",
+        "rule_rdp_004_message":
+            "CASE RULE-RDP-004 — qwinsta shows rdp-tcp listening: Terminal "
+            "Server is listening correctly.",
+        "rule_rdp_004_remediation":
+            "Validation: qwinsta should show rdp-tcp listening. Confidence: 100 %.",
+        "rule_rdp_005_message":
+            "CASE RULE-RDP-005 — Distinguish an RDP authorization problem from "
+            "an authentication problem.",
+        "rule_rdp_005_remediation":
+            "If the message says the account is not authorized to log on remotely, "
+            "check Administrators and Remote Desktop Users. If the message changes "
+            "to credentials did not work, RDP authorization is acquired; continue "
+            "with identity, password, authentication mechanism, and RDP client. "
+            "Confidence: 100 %.",
+        "rule_rdp_006_message":
+            "CASE RULE-RDP-006 — Validate the account locally before continuing "
+            "the RDP investigation.",
+        "rule_rdp_006_remediation":
+            "Test: runas /user:SC\\benevole.010 cmd. If the command is accepted, "
+            "the account exists and the password is valid locally. This quickly "
+            "eliminates wrong password, nonexistent account, or locked account. "
+            "Confidence: 100 %.",
+        "rule_rdp_007_message":
+            "CASE RULE-RDP-007 — Verify that an authentication attempt actually "
+            "reaches Windows after an RDP failure.",
+        "rule_rdp_007_remediation":
+            "After an RDP attempt, check eventvwr.msc or "
+            "Get-WinEvent -LogName Security. Absence of event 4625 suggests "
+            "the failure occurs before the Windows logon stage. Confidence: medium.",
+        "rule_rdp_008_message":
+            "CASE RULE-RDP-008 — Real case SCCF-CZC025814B: AzureAdJoined "
+            "workstation, user SC\\benevole.010 / "
+            "benevole.010@secours-catholique.org, empty Remote Desktop Users group.",
+        "rule_rdp_008_remediation":
+            "Validated fix: add SC\\benevole.010 to Remote Desktop Users. "
+            "Validation: successful RDP connection from Michel's workstation. "
+            "Confidence: 100 %.",
     }
 }
 
