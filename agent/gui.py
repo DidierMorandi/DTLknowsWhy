@@ -66,6 +66,7 @@ LEVEL_COLORS.update({
 
 
 GITSCAN_SELECTED_ID = "GITSCAN"
+RULE_CARD_MARGIN = 6
 SETTINGS_DIR = Path(os.environ.get("APPDATA") or ".") / "DTLknowsWhy"
 SETTINGS_FILE = SETTINGS_DIR / "settings.json"
 
@@ -134,13 +135,15 @@ class DTLknowsWhyGui:
         self.output_queue = queue.Queue()
         self.latest_snapshot = None
         self.discovered_targets = []
+        self.target_discovery_blinking = False
+        self.target_hint_blink_on = False
         self.selected_vars = {}
         self.situation_widgets = []
         self.category_widgets = []
         self.summary_rows = {}
 
         self.root = tk.Tk()
-        self.root.title("DTLknowsWhy")
+        self.root.title(f"DTLknowsWhy {DTLKNOWSWHY_VERSION}")
         self.root.geometry("1080x760")
         self.root.minsize(920, 660)
         self.root.configure(bg=COLORS["bg"])
@@ -274,7 +277,7 @@ class DTLknowsWhyGui:
         container = ttk.Frame(self.root, padding=18, style="App.TFrame")
         container.pack(fill="both", expand=True)
         container.columnconfigure(0, weight=1)
-        container.rowconfigure(3, weight=1)
+        container.rowconfigure(2, weight=1)
 
         banner = ttk.Frame(container, padding=(18, 14), style="Banner.TFrame")
         banner.grid(row=0, column=0, sticky="ew")
@@ -282,7 +285,7 @@ class DTLknowsWhyGui:
 
         self.banner_title_label = ttk.Label(
             banner,
-            text="DTLknowsWhy",
+            text=f"DTLknowsWhy {DTLKNOWSWHY_VERSION}",
             style="BannerTitle.TLabel",
         )
         self.banner_title_label.grid(row=0, column=0, sticky="w")
@@ -295,7 +298,7 @@ class DTLknowsWhyGui:
 
         self.version_label = ttk.Label(
             banner,
-            text=f"Version {DTLKNOWSWHY_VERSION}",
+            text="",
             style="BannerVersion.TLabel",
         )
         self.version_label.grid(row=0, column=1, rowspan=2, sticky="e")
@@ -308,27 +311,36 @@ class DTLknowsWhyGui:
         )
         self.intro_label.grid(row=1, column=0, sticky="w", pady=(12, 14))
 
-        top = ttk.Frame(container, style="App.TFrame")
-        top.grid(row=2, column=0, sticky="nsew")
-        top.columnconfigure(0, weight=2)
-        top.columnconfigure(1, weight=1)
+        grid = ttk.Frame(container, style="App.TFrame")
+        grid.grid(row=2, column=0, sticky="nsew")
+        grid.columnconfigure(0, weight=1, uniform="half")
+        grid.columnconfigure(1, weight=1, uniform="half")
+        grid.rowconfigure(0, weight=1)
+        grid.rowconfigure(1, weight=1)
 
         self.situations_frame = ttk.LabelFrame(
-            top,
+            grid,
             padding=12,
             style="Section.TLabelframe",
         )
-        self.situations_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-        self.situations_frame.columnconfigure(0, weight=1)
+        self.situations_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=(0, 5))
+        self.situations_frame.columnconfigure(0, weight=0)
+        self.situations_frame.bind("<Configure>", self._update_rule_card_wraps)
 
-        for row, category in enumerate(RULE_CATEGORIES):
+        for index, category in enumerate(RULE_CATEGORIES):
             expanded = tk.BooleanVar(value=False)
             category_frame = ttk.Frame(
                 self.situations_frame,
                 padding=(10, 6),
                 style="Card.TFrame",
             )
-            category_frame.grid(row=row, column=0, sticky="ew", pady=(0, 6))
+            category_frame.grid(
+                row=index,
+                column=0,
+                sticky="ew",
+                padx=(0, 0),
+                pady=(0, 6),
+            )
             category_frame.columnconfigure(0, weight=1)
 
             header = ttk.Checkbutton(
@@ -350,6 +362,7 @@ class DTLknowsWhyGui:
 
             self.category_widgets.append({
                 "category": category,
+                "frame": category_frame,
                 "expanded": expanded,
                 "header": header,
                 "rules_frame": rules_frame,
@@ -369,7 +382,7 @@ class DTLknowsWhyGui:
 
                 description = ttk.Label(
                     rules_frame,
-                    wraplength=520,
+                    wraplength=320,
                     style="CardText.TLabel",
                 )
                 description.grid(
@@ -396,11 +409,11 @@ class DTLknowsWhyGui:
                 })
 
         self.target_frame = ttk.LabelFrame(
-            top,
+            grid,
             padding=8,
             style="Section.TLabelframe",
         )
-        self.target_frame.grid(row=0, column=1, sticky="new")
+        self.target_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0), pady=(0, 5))
         self.target_frame.columnconfigure(0, weight=1)
 
         self.language_label = ttk.Label(
@@ -477,14 +490,12 @@ class DTLknowsWhyGui:
         )
         self.open_report_button.grid(row=8, column=0, sticky="ew", pady=(0, 0))
 
-        results = ttk.PanedWindow(container, orient="horizontal")
-        results.grid(row=3, column=0, sticky="nsew", pady=(8, 0))
-
         self.log_frame = ttk.LabelFrame(
-            results,
+            grid,
             padding=8,
             style="Section.TLabelframe",
         )
+        self.log_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 5), pady=(5, 0))
         self.log_text = tk.Text(
             self.log_frame,
             height=10,
@@ -496,13 +507,13 @@ class DTLknowsWhyGui:
             font=("Cascadia Mono", 9),
         )
         self.log_text.pack(fill="both", expand=True)
-        results.add(self.log_frame, weight=1)
 
         self.findings_frame = ttk.LabelFrame(
-            results,
+            grid,
             padding=8,
             style="Section.TLabelframe",
         )
+        self.findings_frame.grid(row=1, column=1, sticky="nsew", padx=(5, 0), pady=(5, 0))
         self.findings_text = tk.Text(
             self.findings_frame,
             height=10,
@@ -516,7 +527,6 @@ class DTLknowsWhyGui:
         )
         self._configure_finding_tags()
         self.findings_text.pack(fill="both", expand=True)
-        results.add(self.findings_frame, weight=2)
 
     def _build_summary_row(self, row, label_key, value_key):
         label = ttk.Label(
@@ -538,6 +548,23 @@ class DTLknowsWhyGui:
         value_label.value_key = value_key
 
         return value_label
+
+    def _update_rule_card_wraps(self, _event=None):
+        frame_width = self.situations_frame.winfo_width()
+
+        if frame_width <= 1:
+            return
+
+        card_width = max(320, int((frame_width - (RULE_CARD_MARGIN * 2)) / 2))
+        text_width = max(220, int(card_width - 64))
+
+        self.situations_frame.columnconfigure(0, minsize=card_width, weight=0)
+
+        for item in self.category_widgets:
+            item["frame"].configure(width=card_width)
+
+        for item in self.situation_widgets:
+            item["description"].configure(wraplength=text_width)
 
     def _configure_finding_tags(self):
         self.findings_text.tag_configure(
@@ -571,7 +598,8 @@ class DTLknowsWhyGui:
 
     def _apply_language(self):
         self.banner_subtitle_label.configure(text=self._t("gui_subtitle"))
-        self.version_label.configure(text=f"Version {DTLKNOWSWHY_VERSION}")
+        self.banner_title_label.configure(text=f"DTLknowsWhy {DTLKNOWSWHY_VERSION}")
+        self.version_label.configure(text="")
         self.intro_label.configure(text=self._t("gui_intro"))
         self.situations_frame.configure(text=self._t("gui_known_situations"))
         self.target_frame.configure(text=self._t("gui_target"))
@@ -684,6 +712,9 @@ class DTLknowsWhyGui:
         ]
 
     def _refresh_target_hint(self):
+        if self.target_discovery_blinking:
+            return
+
         requires_target = any(
             situation["requires_target"]
             for situation in self._selected_situations()
@@ -694,16 +725,40 @@ class DTLknowsWhyGui:
         else:
             text = self._t("gui_target_optional")
 
-        self.target_hint.configure(text=text)
+        self.target_hint.configure(text=text, foreground=COLORS["muted"])
 
     def _start_target_discovery(self):
         self.target_hint.configure(text=self._t("gui_discovering_targets"))
+        self._start_target_hint_blink()
 
         worker = threading.Thread(
             target=self._run_target_discovery,
             daemon=True,
         )
         worker.start()
+
+    def _start_target_hint_blink(self):
+        self.target_discovery_blinking = True
+        self.target_hint_blink_on = False
+        self._blink_target_hint()
+
+    def _stop_target_hint_blink(self):
+        self.target_discovery_blinking = False
+        self.target_hint.configure(foreground=COLORS["muted"])
+
+    def _blink_target_hint(self):
+        if not self.target_discovery_blinking:
+            return
+
+        self.target_hint_blink_on = not self.target_hint_blink_on
+        self.target_hint.configure(
+            foreground=(
+                COLORS["accent"]
+                if self.target_hint_blink_on
+                else COLORS["muted"]
+            )
+        )
+        self.root.after(450, self._blink_target_hint)
 
     def _run_target_discovery(self):
         try:
@@ -713,6 +768,7 @@ class DTLknowsWhyGui:
             self.output_queue.put(("target_discovery_error", str(exc)))
 
     def _apply_discovered_targets(self, targets):
+        self._stop_target_hint_blink()
         self.discovered_targets = targets
         display_values = [target["display"] for target in targets]
         self.target_combo.configure(values=display_values)
@@ -853,6 +909,7 @@ class DTLknowsWhyGui:
                 elif kind == "target_discovery_done":
                     self._apply_discovered_targets(item[1])
                 elif kind == "target_discovery_error":
+                    self._stop_target_hint_blink()
                     self.target_hint.configure(text=item[1])
         except queue.Empty:
             pass

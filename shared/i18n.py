@@ -274,7 +274,7 @@ TRANSLATIONS = {
             "CAS RÈGLE-016 — Agent DTLknowsWhy inaccessible malgré service démarré : "
             "la cible répond au ping, mais le port TCP 5050 n'est pas joignable et "
             "la demande de snapshot échoue. Cause probable : aucune règle pare-feu "
-            "Windows n'autorise DTLknowsWhy-Agent.exe.",
+            "Windows n'autorise DTLknowsWhy-Agent.exe ou l'agent n'est pas installé sur la cible.",
         "rule016_remediation":
             "Créer sur la cible une règle entrante autorisant TCP 5050 pour "
             "DTLknowsWhy-Agent.exe. Validation : "
@@ -1561,7 +1561,7 @@ TRANSLATIONS = {
             "CASE RULE-016 — DTLknowsWhy agent unreachable despite the service running: "
             "the target answers ping, but TCP port 5050 is not reachable and the "
             "snapshot request fails. Likely cause: no Windows Firewall rule allows "
-            "DTLknowsWhy-Agent.exe.",
+            "DTLknowsWhy-Agent.exe or agent not implemented on target.",
         "rule016_remediation":
             "On the target, create an inbound rule allowing TCP 5050 for "
             "DTLknowsWhy-Agent.exe. Validation: "

@@ -85,14 +85,30 @@ def get_mac_address(target):
     return None
 
 
-def enumerate_accessible_shares(target):
+def enumerate_accessible_shares_result(target):
     result = run_command(
         f'net view "\\\\{target}"',
         timeout=SMB_SHARES_TIMEOUT_SECONDS,
     )
+    error_text = "\n".join(
+        value
+        for value in (result.get("stdout"), result.get("stderr"))
+        if value
+    ).strip()
+
+    if result.get("exit_code") not in (0, None):
+        return {
+            "shares": None,
+            "error": error_text,
+            "exit_code": result.get("exit_code"),
+        }
 
     if not result["stdout"]:
-        return None
+        return {
+            "shares": None,
+            "error": error_text,
+            "exit_code": result.get("exit_code"),
+        }
 
     shares = []
 
@@ -121,7 +137,15 @@ def enumerate_accessible_shares(target):
                 "comment": parts[2] if len(parts) > 2 else None
             })
 
-    return shares
+    return {
+        "shares": shares,
+        "error": None if shares else error_text,
+        "exit_code": result.get("exit_code"),
+    }
+
+
+def enumerate_accessible_shares(target):
+    return enumerate_accessible_shares_result(target).get("shares")
 
 
 def classify_target(results):
@@ -161,7 +185,9 @@ def collect_remote_tests(target):
         "tcp_445": False,
         "tcp_5050": False,
         "mac_address": None,
-        "accessible_smb_shares": None
+        "accessible_smb_shares": None,
+        "accessible_smb_error": None,
+        "accessible_smb_exit_code": None
     }
 
     if results["ping_target"]:
@@ -179,7 +205,10 @@ def collect_remote_tests(target):
         results["mac_address"] = get_mac_address(target)
 
         if results["tcp_445"] or results["tcp_139"]:
-            results["accessible_smb_shares"] = enumerate_accessible_shares(target)
+            smb_result = enumerate_accessible_shares_result(target)
+            results["accessible_smb_shares"] = smb_result.get("shares")
+            results["accessible_smb_error"] = smb_result.get("error")
+            results["accessible_smb_exit_code"] = smb_result.get("exit_code")
 
     results["target_type"] = classify_target(results)
 

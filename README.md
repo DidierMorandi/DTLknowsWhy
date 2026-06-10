@@ -1,4 +1,4 @@
-# DTLknowsWhy 2.1
+# DTLknowsWhy v2.2.0
 
 ## Overview
 
@@ -8,18 +8,16 @@ The project combines automated system inventory, configuration analysis, and exp
 
 DTLknowsWhy is intended to evolve from a data collection utility into a true troubleshooting assistant capable of explaining observed symptoms and suggesting probable causes.
 
-Version 2.1.0 7-jun-2026 Didier DTL Morandi www.didiermorandi.com/netdtl
+Version v2.2.0 10-jun-2026 Didier DTL Morandi www.didiermorandi.com/netdtl
 
 ---
 
-## What's New in Version 2.1
+## What's New in Version 2.2
 
-### Recent Development Updates
+Version 2.2 adds several important troubleshooting features on top of the 2.1
+baseline.
 
-The current development branch adds several important troubleshooting features
-on top of the 2.1 baseline.
-
-#### Automatic IP-Based Target Discovery
+### Automatic IP-Based Target Discovery
 
 The graphical interface now discovers reachable devices on the local IPv4
 subnet automatically when the tool starts.
@@ -39,7 +37,7 @@ Diagnostics are still launched against the IP address itself. This avoids
 NetBIOS, DNS, or Windows name-resolution ambiguity when investigating access
 problems.
 
-#### GitScan-Style Automatic Comparison
+### GitScan-Style Automatic Comparison
 
 DTLknowsWhy can now run an automatic comparison between the local reference
 machine and a selected target without requiring the user to manually select a
@@ -49,7 +47,55 @@ This mode is intended for fast support scenarios where the question is:
 
 > "What is different between the reference PC and the target?"
 
-#### Remote Agent Snapshot
+### Remote-to-Remote Comparative Analysis
+
+Version 2.2 also introduces a second-level comparative analysis mode for two
+remote diagnostics.
+
+It compares two client viewpoints toward the same target, for example:
+
+* PC A can enumerate or access a share
+* PC B reaches TCP 445 but receives an authentication failure
+
+The analysis produces:
+
+* probable explanations
+* eliminated causes
+* relevance scores for each difference
+
+Example:
+
+```powershell
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json
+```
+
+The first snapshot should be the viewpoint where access works. The second
+snapshot should be the viewpoint where access fails.
+
+The command writes two report files by default:
+
+```text
+comparative_analysis_<PC-A>_vs_<PC-B>_<timestamp>.txt
+comparative_analysis_<PC-A>_vs_<PC-B>_<timestamp>.html
+```
+
+Useful options:
+
+```powershell
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json --json
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json --output-prefix mon_rapport
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json --no-files
+```
+
+Typical conclusions include:
+
+* target unreachable eliminated
+* TCP 445 blocked eliminated
+* share not published on target eliminated
+* client-specific SMB authentication failure probable
+* identity context mismatch probable
+
+### Remote Agent Snapshot
 
 When the target runs DTLknowsWhy-Agent, the main tool can request a full remote
 snapshot over HTTP port 5050.
@@ -64,7 +110,7 @@ If the remote agent is running locally on the target but cannot be reached from
 the reference machine, DTLknowsWhy can identify the likely missing firewall rule
 for TCP 5050.
 
-#### SMB Share Security Collector
+### SMB Share Security Collector
 
 A dedicated `SMB_SHARE_SECURITY` collector analyzes every local SMB share and
 compares the two Windows permission layers:
@@ -100,7 +146,7 @@ This supports cases where a share is visible from another workstation, but
 access is denied because the NTFS security tab remains more restrictive than
 the share permissions.
 
-#### Expert Engine Status and Confidence
+### Expert Engine Status and Confidence
 
 Expert findings can now distinguish:
 
@@ -118,7 +164,7 @@ Each finding can also carry a confidence level:
 This prevents an old observation from remaining displayed as an active problem
 after a correction has been applied.
 
-#### Report Ordering
+### Report Ordering
 
 When a remote target is analyzed, reports now place the target information and
 diagnostic findings first.
@@ -350,9 +396,9 @@ That distinction is the core objective of the project.
 
 ## Documentation
 
-The DTLknowsWhy Reference Manual v2.1 and User Guide v2.1 are available in our NetDTL documentation repository:
+The DTLknowsWhy Reference Manual v2.2 and User Guide v2.2 are available in our NetDTL documentation repository:
 https://didiermorandi.com/netdtl/doc/
 
 ## Version
 
-Current release: **DTLknowsWhy 2.1**
+Current release: **DTLknowsWhy v2.2.0**
