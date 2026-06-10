@@ -45,8 +45,29 @@ def netbios_enabled(value):
     return None
 
 
+BROAD_SMB_IDENTITIES = {
+    "everyone": ("everyone", "tout le monde"),
+    "users": ("users", "utilisateurs"),
+    "authenticated_users": ("authenticated users", "utilisateurs authentifiés"),
+}
+
+
+WRITE_RIGHT_MARKERS = (
+    "change",
+    "full",
+    "modify",
+    "write",
+    "écriture",
+    "ecriture",
+    "contrôle total",
+    "controle total",
+)
+
+
 def collect_network_info() -> dict:
     structured = collect_structured_network_info()
+    smb_shares = collect_smb_shares()
+    smb_share_security = collect_smb_share_security(smb_shares)
 
     return {
         "active_adapter_profile": structured.get("active_adapter_profile"),
@@ -63,14 +84,15 @@ def collect_network_info() -> dict:
         "adapter_description": structured.get("adapter_description"),
         "adapter_interface_index": structured.get("adapter_interface_index"),
         "netbios_option": structured.get("netbios_option"),
-        "smb_shares": collect_smb_shares(),
+        "smb_shares": smb_shares,
+        "smb_share_security": smb_share_security,
         "smb_client_configuration": collect_smb_configuration(
             "Get-SmbClientConfiguration"
         ),
         "smb_server_configuration": collect_smb_configuration(
             "Get-SmbServerConfiguration"
         ),
-        "accessible_smb_shares": collect_accessible_smb_shares("localhost"),
+        "accessible_smb_shares": collect_accessible_smb_shares("localhost", smb_shares),
     }
 
 
@@ -385,9 +407,61 @@ def collect_smb_configuration(command):
 
 
 def collect_smb_shares():
-    shares = powershell_json(
-        "Get-SmbShare | Select-Object Name,Path,Description,Special",
-        depth=4,
+    shares = powershell_json_script(
+        r"""
+Get-SmbShare | ForEach-Object {
+    $share = $_
+    $shareAccessError = $null
+    $ntfsAccessError = $null
+    $pathExists = $false
+    $shareAccessReadable = $true
+    $ntfsAccessReadable = $true
+    $shareAccess = @(
+        try {
+            Get-SmbShareAccess -Name $share.Name -ErrorAction Stop |
+            Select-Object AccountName,AccessControlType,AccessRight
+        } catch {
+            $shareAccessReadable = $false
+            $shareAccessError = $_.Exception.Message
+        }
+    )
+    $ntfsAccess = @()
+
+    if ($share.Path) {
+        $pathExists = Test-Path -LiteralPath $share.Path
+
+        if ($pathExists) {
+            $ntfsAccess = @(
+                try {
+                    (Get-Acl -LiteralPath $share.Path -ErrorAction Stop).Access |
+                    Select-Object IdentityReference,FileSystemRights,AccessControlType,IsInherited
+                } catch {
+                    $ntfsAccessReadable = $false
+                    $ntfsAccessError = $_.Exception.Message
+                }
+            )
+        } else {
+            $ntfsAccessReadable = $false
+            $ntfsAccessError = "Share path not found"
+        }
+    }
+
+    [pscustomobject]@{
+        Name = $share.Name
+        Path = $share.Path
+        Description = $share.Description
+        Special = $share.Special
+        ShareAccess = $shareAccess
+        NtfsAccess = $ntfsAccess
+        ShareAccessReadable = $shareAccessReadable
+        NtfsAccessReadable = $ntfsAccessReadable
+        PathExists = $pathExists
+        ShareAccessError = $shareAccessError
+        NtfsAccessError = $ntfsAccessError
+    }
+} | ConvertTo-Json -Depth 6
+""",
+        timeout=15,
     )
 
     if isinstance(shares, dict):
@@ -402,17 +476,186 @@ def collect_smb_shares():
             "path": share.get("Path"),
             "description": share.get("Description"),
             "special": bool(share.get("Special", False)),
+            "share_permissions": as_list(share.get("ShareAccess")),
+            "ntfs_permissions": as_list(share.get("NtfsAccess")),
+            "share_acl_readable": share.get("ShareAccessReadable"),
+            "ntfs_acl_readable": share.get("NtfsAccessReadable"),
+            "path_exists": share.get("PathExists"),
+            "share_acl_error": share.get("ShareAccessError"),
+            "ntfs_acl_error": share.get("NtfsAccessError"),
         }
         for share in shares
         if share.get("Name")
     ]
 
 
-def collect_accessible_smb_shares(target):
+def acl_identity(permission):
+    identity = permission.get("AccountName")
+    if identity is None:
+        identity = permission.get("IdentityReference")
+
+    return str(identity or "").lower()
+
+
+def identity_matches(identity, aliases):
+    normalized = (
+        str(identity or "")
+        .lower()
+        .replace("/", "\\")
+        .strip()
+    )
+
+    for alias in aliases:
+        alias = alias.lower()
+
+        if normalized == alias or normalized.endswith("\\" + alias):
+            return True
+
+    return False
+
+
+def acl_right(permission):
+    return str(
+        permission.get("AccessRight")
+        or permission.get("FileSystemRights")
+        or ""
+    ).lower()
+
+
+def is_allow_permission(permission):
+    control = str(permission.get("AccessControlType") or "").lower()
+    return control in {"", "allow", "autoriser"}
+
+
+def detect_broad_principals(permissions):
+    detected = {
+        "everyone": False,
+        "users": False,
+        "authenticated_users": False,
+    }
+
+    for permission in permissions or []:
+        if not is_allow_permission(permission):
+            continue
+
+        identity = acl_identity(permission)
+
+        for key, aliases in BROAD_SMB_IDENTITIES.items():
+            if identity_matches(identity, aliases):
+                detected[key] = True
+
+    return detected
+
+
+def has_broad_principal(presence):
+    return any(presence.values())
+
+
+def has_broad_write(permissions):
+    for permission in permissions or []:
+        if not is_allow_permission(permission):
+            continue
+
+        identity = acl_identity(permission)
+        right = acl_right(permission)
+
+        if (
+            any(
+                identity_matches(identity, aliases)
+                for aliases in BROAD_SMB_IDENTITIES.values()
+            )
+            and any(marker in right for marker in WRITE_RIGHT_MARKERS)
+        ):
+            return True
+
+    return False
+
+
+def analyze_share_security(share):
+    share_acl = share.get("share_permissions") or []
+    ntfs_acl = share.get("ntfs_permissions") or []
+    share_presence = detect_broad_principals(share_acl)
+    ntfs_presence = detect_broad_principals(ntfs_acl)
+    share_open = has_broad_principal(share_presence)
+    ntfs_open = has_broad_principal(ntfs_presence)
+    share_write_open = has_broad_write(share_acl)
+    ntfs_write_open = has_broad_write(ntfs_acl)
+    mismatch_types = []
+
+    if share.get("share_acl_readable") is False:
+        mismatch_types.append("SHARE_ACL_UNREADABLE")
+
+    if share.get("path_exists") is False or share.get("ntfs_acl_readable") is False:
+        mismatch_types.append("SHARE_INACCESSIBLE")
+
+    if share_write_open and not ntfs_open:
+        mismatch_types.append("SHARE_OPEN_NTFS_RESTRICTIVE")
+
+    if ntfs_write_open and not share_open:
+        mismatch_types.append("NTFS_OPEN_SHARE_RESTRICTIVE")
+
+    if (
+        share_open != ntfs_open
+        or share_write_open != ntfs_write_open
+    ):
+        mismatch_types.append("ACL_LAYER_INCONSISTENCY")
+
+    mismatch_types = list(dict.fromkeys(mismatch_types))
+
+    return {
+        "name": share.get("name"),
+        "path": share.get("path"),
+        "special": share.get("special"),
+        "share_acl": share_acl,
+        "ntfs_acl": ntfs_acl,
+        "presence": {
+            "share": share_presence,
+            "ntfs": ntfs_presence,
+        },
+        "share_open": share_open,
+        "ntfs_open": ntfs_open,
+        "share_write_open": share_write_open,
+        "ntfs_write_open": ntfs_write_open,
+        "path_exists": share.get("path_exists"),
+        "share_acl_readable": share.get("share_acl_readable"),
+        "ntfs_acl_readable": share.get("ntfs_acl_readable"),
+        "share_acl_error": share.get("share_acl_error"),
+        "ntfs_acl_error": share.get("ntfs_acl_error"),
+        "indicator": "SMB_ACCESS_MISMATCH" if mismatch_types else None,
+        "mismatch_types": mismatch_types,
+    }
+
+
+def collect_smb_share_security(shares):
+    if shares is None:
+        return None
+
+    analyzed_shares = [
+        analyze_share_security(share)
+        for share in shares
+        if share.get("name") and not share.get("special")
+    ]
+    mismatches = [
+        share
+        for share in analyzed_shares
+        if share.get("indicator") == "SMB_ACCESS_MISMATCH"
+    ]
+
+    return {
+        "collector": "SMB_SHARE_SECURITY",
+        "indicator": "SMB_ACCESS_MISMATCH" if mismatches else None,
+        "mismatch_count": len(mismatches),
+        "shares": analyzed_shares,
+        "mismatches": mismatches,
+    }
+
+
+def collect_accessible_smb_shares(target, shares=None):
     if target.lower() not in {"localhost", "127.0.0.1", "::1"}:
         return None
 
-    shares = collect_smb_shares()
+    if shares is None:
+        shares = collect_smb_shares()
 
     if not shares:
         return None

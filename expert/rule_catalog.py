@@ -22,6 +22,12 @@ RULE_CATEGORIES = [
                 "requires_target": True,
             },
             {
+                "id": "RÈGLE-SMB-010",
+                "title_key": "rule_smb_010_title",
+                "description_key": "rule_smb_010_desc",
+                "requires_target": False,
+            },
+            {
                 "id": "RÈGLE-003",
                 "title_key": "rule_003_title",
                 "description_key": "rule_003_desc",
@@ -141,10 +147,22 @@ RULE_CATEGORIES = [
                 "description_key": "rule_rdp_007_desc",
                 "requires_target": False,
             },
+        ],
+    },
+    {
+        "id": "validated_real_cases",
+        "title_key": "rule_category_validated_real_cases",
+        "rules": [
             {
-                "id": "RÈGLE-RDP-008",
-                "title_key": "rule_rdp_008_title",
-                "description_key": "rule_rdp_008_desc",
+                "id": "CAS-RDP-SCCF-CZC025814B",
+                "title_key": "case_rdp_sccf_czc025814b_title",
+                "description_key": "case_rdp_sccf_czc025814b_desc",
+                "requires_target": False,
+            },
+            {
+                "id": "CAS-SMB-SCCF-71SFS42-CZC025814B",
+                "title_key": "case_smb_sccf_71sfs42_czc025814b_title",
+                "description_key": "case_smb_sccf_71sfs42_czc025814b_desc",
                 "requires_target": False,
             },
         ],

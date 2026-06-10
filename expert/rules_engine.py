@@ -1,6 +1,28 @@
 from expert.rule_translation import translate_findings
 from shared.i18n import tr
 
+STATUS_ACTIVE = "ACTIF"
+STATUS_RESOLVED = "RÉSOLU"
+STATUS_HISTORICAL = "HISTORIQUE"
+STATUS_HYPOTHESIS = "HYPOTHÈSE"
+
+CONFIDENCE_CONFIRMED = "CONFIRMÉ"
+CONFIDENCE_PROBABLE = "PROBABLE"
+CONFIDENCE_LOW = "FAIBLE"
+
+PUBLIC_SHARE_IDENTITIES = (
+    "tout le monde",
+    "everyone",
+)
+PUBLIC_NTFS_IDENTITIES = (
+    "tout le monde",
+    "everyone",
+    "utilisateurs authentifiés",
+    "authenticated users",
+    "utilisateurs",
+    "users",
+)
+
 
 def looks_like_ipv4(value):
     if not value:
@@ -15,6 +37,60 @@ def looks_like_ipv4(value):
         return all(0 <= int(part) <= 255 for part in parts)
     except ValueError:
         return False
+
+
+def normalize_finding(finding):
+    if "status" not in finding:
+        if finding.get("level") == "OK":
+            finding["status"] = STATUS_ACTIVE
+            finding["confidence"] = finding.get("confidence", CONFIDENCE_CONFIRMED)
+        elif finding.get("level") in {"FAIL", "WARN"}:
+            finding["status"] = STATUS_ACTIVE
+            finding["confidence"] = finding.get("confidence", CONFIDENCE_PROBABLE)
+        else:
+            finding["status"] = STATUS_HYPOTHESIS
+            finding["confidence"] = finding.get("confidence", CONFIDENCE_PROBABLE)
+
+    finding.setdefault("confidence", CONFIDENCE_PROBABLE)
+    return finding
+
+
+def permission_identity(permission):
+    identity = permission.get("AccountName")
+    if identity is None:
+        identity = permission.get("IdentityReference")
+
+    return str(identity or "").lower()
+
+
+def has_public_share_write(share):
+    for permission in share.get("share_permissions") or []:
+        identity = permission_identity(permission)
+        right = str(permission.get("AccessRight") or "").lower()
+        control = str(permission.get("AccessControlType") or "").lower()
+
+        if (
+            any(name in identity for name in PUBLIC_SHARE_IDENTITIES)
+            and control in {"allow", "autoriser", ""}
+            and any(value in right for value in ("change", "full", "modify", "écriture", "ecriture"))
+        ):
+            return True
+
+    return False
+
+
+def has_public_ntfs_permission(share):
+    for permission in share.get("ntfs_permissions") or []:
+        identity = permission_identity(permission)
+        control = str(permission.get("AccessControlType") or "").lower()
+
+        if (
+            any(name in identity for name in PUBLIC_NTFS_IDENTITIES)
+            and control in {"allow", "autoriser", ""}
+        ):
+            return True
+
+    return False
 
 
 def analyze(snapshot, lang="fr"):
@@ -74,6 +150,87 @@ def analyze(snapshot, lang="fr"):
             )
         })
 
+    smb_security = network.get("smb_share_security") or {}
+    smb_mismatches = smb_security.get("mismatches") or []
+    smb_acl_suspects = [
+        share
+        for share in smb_mismatches
+        if "SHARE_OPEN_NTFS_RESTRICTIVE" in (share.get("mismatch_types") or [])
+    ]
+
+    if not smb_acl_suspects:
+        smb_acl_suspects = [
+            share
+            for share in network.get("smb_shares") or []
+            if (
+                not share.get("special")
+                and has_public_share_write(share)
+                and not has_public_ntfs_permission(share)
+            )
+        ]
+
+    for share in smb_acl_suspects:
+        ntfs_acl = share.get("ntfs_acl") or share.get("ntfs_permissions") or []
+        ntfs_identities = [
+            str(permission.get("IdentityReference") or "")
+            for permission in ntfs_acl
+            if permission.get("IdentityReference")
+        ]
+        findings.append({
+            "case": "RÈGLE-SMB-010",
+            "level": "WARN",
+            "status": STATUS_HYPOTHESIS,
+            "confidence": CONFIDENCE_PROBABLE,
+            "message": tr("rule_smb_010_message", lang),
+            "remediation": tr("rule_smb_010_remediation", lang),
+            "evidence": [
+                f"Partage : {share.get('name')} -> {share.get('path')}",
+                "Indice moteur : SMB_ACCESS_MISMATCH",
+                "Autorisations de partage : Tout le monde/Everyone avec écriture ou contrôle",
+                "Autorisations NTFS larges : absentes",
+                f"Incohérences : {', '.join(share.get('mismatch_types') or []) or 'non détaillées'}",
+                f"ACL NTFS observée : {', '.join(ntfs_identities) or 'inconnue'}",
+            ],
+        })
+
+    for share in smb_mismatches:
+        mismatch_types = share.get("mismatch_types") or []
+
+        if "SHARE_OPEN_NTFS_RESTRICTIVE" in mismatch_types:
+            continue
+
+        findings.append({
+            "case": "SMB_ACCESS_MISMATCH",
+            "level": "WARN",
+            "status": STATUS_HYPOTHESIS,
+            "confidence": CONFIDENCE_PROBABLE,
+            "message": tr("smb_access_mismatch_message", lang),
+            "remediation": tr("smb_access_mismatch_remediation", lang),
+            "evidence": [
+                f"Partage : {share.get('name')} -> {share.get('path')}",
+                "Indice moteur : SMB_ACCESS_MISMATCH",
+                f"Incohérences : {', '.join(mismatch_types)}",
+            ],
+        })
+
+    if (
+        str(system.get("hostname") or "").upper() == "SCCF-71SFS42"
+        or smb_acl_suspects
+    ):
+        findings.append({
+            "case": "CAS-SMB-SCCF-71SFS42-CZC025814B",
+            "level": "INFO",
+            "status": STATUS_HISTORICAL,
+            "confidence": CONFIDENCE_CONFIRMED,
+            "message": tr("case_smb_sccf_71sfs42_czc025814b_message", lang),
+            "remediation": tr("case_smb_sccf_71sfs42_czc025814b_remediation", lang),
+            "evidence": [
+                "Serveur : SCCF-71SFS42",
+                "Client : SCCF-CZC025814B",
+                "Validation : accès rétabli après ajout de Tout le monde dans les autorisations NTFS",
+            ],
+        })
+
     if (
         system.get("azure_ad_joined") is True
         and system.get("domain_joined") is False
@@ -81,6 +238,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-002",
             "level": "INFO",
+            "status": STATUS_ACTIVE,
+            "confidence": CONFIDENCE_CONFIRMED,
             "message": tr("rule_rdp_002_message", lang),
             "remediation": tr("rule_rdp_002_remediation", lang),
             "evidence": [
@@ -97,6 +256,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-003",
             "level": "INFO",
+            "status": STATUS_ACTIVE,
+            "confidence": CONFIDENCE_CONFIRMED,
             "message": tr("rule_rdp_003_message", lang),
             "remediation": tr("rule_rdp_003_remediation", lang),
             "evidence": [
@@ -109,6 +270,15 @@ def analyze(snapshot, lang="fr"):
         rdp.get("listener_active") is True
         and rdp.get("remote_desktop_users") == []
     )
+    has_rdp_members = (
+        rdp.get("listener_active") is True
+        and isinstance(rdp.get("remote_desktop_users"), list)
+        and len(rdp.get("remote_desktop_users")) > 0
+    )
+    has_benevole_010 = any(
+        "benevole.010" in str(member).lower()
+        for member in (rdp.get("remote_desktop_users") or [])
+    )
     rdp_case_context = (
         rdp_group_empty
         or str(system.get("hostname") or "").upper() == "SCCF-CZC025814B"
@@ -118,6 +288,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-004",
             "level": "OK",
+            "status": STATUS_ACTIVE,
+            "confidence": CONFIDENCE_CONFIRMED,
             "message": tr("rule_rdp_004_message", lang),
             "remediation": tr("rule_rdp_004_remediation", lang),
             "evidence": ["qwinsta : rdp-tcp écouter/listen"],
@@ -127,6 +299,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-005",
             "level": "INFO",
+            "status": STATUS_HYPOTHESIS,
+            "confidence": CONFIDENCE_PROBABLE,
             "message": tr("rule_rdp_005_message", lang),
             "remediation": tr("rule_rdp_005_remediation", lang),
         })
@@ -134,6 +308,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-006",
             "level": "INFO",
+            "status": STATUS_HYPOTHESIS,
+            "confidence": CONFIDENCE_PROBABLE,
             "message": tr("rule_rdp_006_message", lang),
             "remediation": tr("rule_rdp_006_remediation", lang),
         })
@@ -141,6 +317,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-007",
             "level": "INFO",
+            "status": STATUS_HYPOTHESIS,
+            "confidence": CONFIDENCE_LOW,
             "message": tr("rule_rdp_007_message", lang),
             "remediation": tr("rule_rdp_007_remediation", lang),
         })
@@ -149,6 +327,8 @@ def analyze(snapshot, lang="fr"):
         findings.append({
             "case": "RÈGLE-RDP-001",
             "level": "WARN",
+            "status": STATUS_ACTIVE,
+            "confidence": CONFIDENCE_CONFIRMED,
             "message": tr("rule_rdp_001_message", lang),
             "remediation": tr("rule_rdp_001_remediation", lang),
             "evidence": [
@@ -157,12 +337,36 @@ def analyze(snapshot, lang="fr"):
         })
 
     if (
-        str(system.get("hostname") or "").upper() == "SCCF-CZC025814B"
-        or (system.get("azure_ad_joined") is True and rdp_group_empty)
+        rdp.get("listener_active") is True
+        and has_rdp_members
+        and (
+            str(system.get("hostname") or "").upper() == "SCCF-CZC025814B"
+            or has_benevole_010
+        )
     ):
         findings.append({
-            "case": "RÈGLE-RDP-008",
+            "case": "RÈGLE-RDP-001",
+            "level": "OK",
+            "status": STATUS_RESOLVED,
+            "confidence": CONFIDENCE_CONFIRMED,
+            "message": tr("rule_rdp_001_resolved_message", lang),
+            "remediation": tr("rule_rdp_001_resolved_remediation", lang),
+            "evidence": [
+                "Groupe Utilisateurs du Bureau à distance : non vide",
+                f"Membres : {', '.join(rdp.get('remote_desktop_users') or [])}",
+            ],
+        })
+
+    if (
+        str(system.get("hostname") or "").upper() == "SCCF-CZC025814B"
+        or (system.get("azure_ad_joined") is True and rdp_group_empty)
+        or has_benevole_010
+    ):
+        findings.append({
+            "case": "CAS-RDP-SCCF-CZC025814B",
             "level": "INFO",
+            "status": STATUS_HISTORICAL,
+            "confidence": CONFIDENCE_CONFIRMED,
             "message": tr("rule_rdp_008_message", lang),
             "remediation": tr("rule_rdp_008_remediation", lang),
             "evidence": [
@@ -670,4 +874,4 @@ def analyze(snapshot, lang="fr"):
             )
         })
 
-    return translate_findings(findings, lang)
+    return translate_findings([normalize_finding(finding) for finding in findings], lang)

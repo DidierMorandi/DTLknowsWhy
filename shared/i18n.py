@@ -41,6 +41,15 @@ TRANSLATIONS = {
         "tests": "Tests",
         "cause": "Cause",
         "action": "Action",
+        "status": "Statut",
+        "confidence": "Confiance",
+        "status_actif": "ACTIF",
+        "status_resolu": "RÉSOLU",
+        "status_historique": "HISTORIQUE",
+        "status_hypothese": "HYPOTHÈSE",
+        "confidence_confirme": "CONFIRMÉ",
+        "confidence_probable": "PROBABLE",
+        "confidence_faible": "FAIBLE",
         "summary_local_ok": "La connectivité locale est correcte.",
         "summary_local_warn": "La connectivité locale doit être vérifiée.",
         "summary_dns_ok": "La configuration DNS est présente.",
@@ -61,6 +70,9 @@ TRANSLATIONS = {
         "local_administrators": "Administrateurs locaux",
         "smb_shares": "Partages SMB exportés",
         "no_smb_shares": "Aucun partage SMB exporté",
+        "smb_share_security": "Sécurité SMB",
+        "smb_share_security_ok": "Aucune incohérence entre ACL de partage et ACL NTFS.",
+        "smb_access_mismatch": "SMB_ACCESS_MISMATCH",
         "special_share": "partage spécial",
         "normal_share": "partage standard",
         "administrator": "Administrateur",
@@ -267,6 +279,33 @@ TRANSLATIONS = {
             "Créer sur la cible une règle entrante autorisant TCP 5050 pour "
             "DTLknowsWhy-Agent.exe. Validation : "
             "Test-NetConnection <IP> -Port 5050 doit retourner TcpTestSucceeded : True.",
+        "rule_smb_010_message":
+            "CAS RÈGLE-SMB-010 — Partage SMB visible mais accès refusé malgré "
+            "« Tout le monde » sur le partage. Sous Windows, les droits effectifs "
+            "sont l'intersection des autorisations de partage et des autorisations "
+            "NTFS ; le refus le plus restrictif l'emporte.",
+        "rule_smb_010_remediation":
+            "Vérifier les deux niveaux : autorisations de partage et onglet "
+            "Sécurité du dossier. Sur le dossier partagé, ajouter Tout le monde "
+            "ou Utilisateurs authentifiés, puis accorder Modification ou Contrôle "
+            "total selon le besoin. Valider en rouvrant \\\\MACHINE\\PARTAGE depuis "
+            "le poste distant.",
+        "case_smb_sccf_71sfs42_czc025814b_message":
+            "CAS RÉEL VALIDÉ — SCCF-71SFS42 vers SCCF-CZC025814B : le partage "
+            "était visible et ouvert à Tout le monde en lecture/écriture, mais "
+            "le dossier NTFS n'autorisait que michel.poncin, Administrateurs et "
+            "Système.",
+        "case_smb_sccf_71sfs42_czc025814b_remediation":
+            "Correctif validé : ajout de Tout le monde dans les autorisations "
+            "NTFS du dossier partagé. Résultat : accès rétabli immédiatement "
+            "depuis le poste distant. Confiance : CONFIRMÉE.",
+        "smb_access_mismatch_message":
+            "Indice SMB_ACCESS_MISMATCH — incohérence détectée entre les "
+            "autorisations de partage et les autorisations NTFS.",
+        "smb_access_mismatch_remediation":
+            "Comparer les deux couches de droits du partage. Les droits effectifs "
+            "sont l'intersection des autorisations de partage et des autorisations "
+            "NTFS ; aligner les deux couches selon l'accès attendu.",
         "rule_rdp_001_message":
             "CAS RÈGLE-RDP-001 — Le compte n'est pas autorisé à ouvrir une "
             "session Bureau à distance. L'utilisateur n'est membre ni du groupe "
@@ -278,6 +317,14 @@ TRANSLATIONS = {
             "/add NOM_UTILISATEUR. Validation : le message change et "
             "l'authentification est désormais tentée. Confiance : 100 % "
             "(cas validé sur SCCF-CZC025814B).",
+        "rule_rdp_001_resolved_message":
+            "CAS RÈGLE-RDP-001 — Cause éliminée : le groupe Utilisateurs du "
+            "Bureau à distance contient désormais des membres. L'ancien symptôme "
+            "d'autorisation RDP ne doit plus être présenté comme actif.",
+        "rule_rdp_001_resolved_remediation":
+            "Poursuivre le diagnostic sur l'identité utilisée, le mot de passe, "
+            "le mécanisme d'authentification ou le client RDP si le message "
+            "actuel est « Vos informations d'identification n'ont pas fonctionné ».",
         "rule_rdp_002_message":
             "CAS RÈGLE-RDP-002 — Poste Microsoft Entra ID identifié : "
             "AzureAdJoined = YES et DomainJoined = NO. Le poste n'est pas "
@@ -382,6 +429,7 @@ TRANSLATIONS = {
         "rule_category_smb_authentication": "Authentification SMB",
         "rule_category_remote_target": "Cible distante",
         "rule_category_remote_desktop": "Bureau à distance / RDP",
+        "rule_category_validated_real_cases": "Cas réels validés",
         "rule_category_system_security": "Sécurité système",
 
         "rule_smb_001_title": "SMB-001 - Machine invisible dans Réseau",
@@ -393,6 +441,9 @@ TRANSLATIONS = {
         "rule_smb_002_title": "SMB-002 - Accès par IP possible, accès par nom défaillant",
         "rule_smb_002_desc":
             "La résolution du nom peut être défaillante alors que SMB fonctionne par adresse IP.",
+        "rule_smb_010_title": "RÈGLE-SMB-010 - Partage visible, accès refusé",
+        "rule_smb_010_desc":
+            "Le partage est visible, mais les droits NTFS du dossier restent plus restrictifs que les droits de partage.",
         "rule_003_title": "RÈGLE-003 - Règles pare-feu Découverte du réseau",
         "rule_003_desc":
             "Le profil est privé, mais les règles pare-feu de découverte peuvent être absentes ou neutralisées.",
@@ -447,6 +498,13 @@ TRANSLATIONS = {
         "rule_rdp_008_title": "RÈGLE-RDP-008 - Cas réel SCCF-CZC025814B",
         "rule_rdp_008_desc":
             "Cas validé : groupe Utilisateurs du Bureau à distance vide, ajout de SC\\benevole.010.",
+        "case_rdp_sccf_czc025814b_title": "CAS-RDP-SCCF-CZC025814B - Autorisation RDP corrigée",
+        "case_rdp_sccf_czc025814b_desc":
+            "Symptôme initial, diagnostic, correctif, validation et leçon retenue du cas SCCF-CZC025814B.",
+        "case_smb_sccf_71sfs42_czc025814b_title":
+            "CAS-SMB-SCCF-71SFS42-CZC025814B - Droits NTFS du partage corrigés",
+        "case_smb_sccf_71sfs42_czc025814b_desc":
+            "Cas validé : partage ouvert, dossier NTFS limité, accès rétabli après ajout de Tout le monde.",
         "rule_012_title": "RÈGLE-012 - BitLocker actif",
         "rule_012_desc":
             "Avertit avant modification système lorsque BitLocker est actif sur un volume.",
@@ -456,7 +514,10 @@ TRANSLATIONS = {
 
         # Zone cible
         "gui_target":               "Cible",
-        "gui_target_label":         "Adresse IP ou nom d'hôte de la machine cible",
+        "gui_target_label":         "Adresse IP de la machine cible",
+        "gui_discovering_targets":  "Découverte réseau automatique par adresses IP...",
+        "gui_targets_found":        "{count} adresse(s) IP détectée(s). Les noms connus sont affichés à côté des IP.",
+        "gui_no_targets_found":     "Aucune adresse IP détectée. Saisir l'adresse IP cible manuellement.",
         "gui_target_badge":         "CIBLE REQUISE",
         "gui_target_required_suffix": " ★",
         "gui_target_required_hint": "⚠ Une machine cible est requise pour la situation sélectionnée.",
@@ -507,10 +568,10 @@ TRANSLATIONS = {
         "gui_missing_target_title":      "Cible manquante",
         "gui_missing_target_message":
             "La situation sélectionnée nécessite une machine cible. "
-            "Renseignez une adresse IP ou un nom d'hôte.",
+            "Choisissez ou saisissez une adresse IP cible.",
         "gui_gitscan_missing_target_message":
             "GitScan compare le PC local avec une cible. "
-            "Renseignez une adresse IP ou un nom d'hôte cible.",
+            "Choisissez ou saisissez une adresse IP cible.",
         "gui_diagnosis_failed":     "Erreur de diagnostic",
         "gui_report_missing_title": "Rapport introuvable",
         "gui_report_missing_message":
@@ -817,6 +878,15 @@ TRANSLATIONS = {
         "tests": "Tests",
         "cause": "Cause",
         "action": "Action",
+        "status": "Status",
+        "confidence": "Confidence",
+        "status_actif": "ACTIVE",
+        "status_resolu": "RESOLVED",
+        "status_historique": "HISTORICAL",
+        "status_hypothese": "HYPOTHESIS",
+        "confidence_confirme": "CONFIRMED",
+        "confidence_probable": "PROBABLE",
+        "confidence_faible": "LOW",
         "summary_local_ok": "Local connectivity is correct.",
         "summary_local_warn": "Local connectivity needs attention.",
         "summary_dns_ok": "DNS configuration is present.",
@@ -837,6 +907,9 @@ TRANSLATIONS = {
         "local_administrators": "Local administrators",
         "smb_shares": "Exported SMB shares",
         "no_smb_shares": "No exported SMB share",
+        "smb_share_security": "SMB security",
+        "smb_share_security_ok": "No inconsistency between share ACL and NTFS ACL.",
+        "smb_access_mismatch": "SMB_ACCESS_MISMATCH",
         "special_share": "special share",
         "normal_share": "standard share",
         "administrator": "Administrator",
@@ -967,6 +1040,7 @@ TRANSLATIONS = {
         "rule_category_smb_authentication": "SMB authentication",
         "rule_category_remote_target": "Remote target",
         "rule_category_remote_desktop": "Remote Desktop / RDP",
+        "rule_category_validated_real_cases": "Validated real cases",
         "rule_category_system_security": "System security",
 
         "rule_smb_001_title": "SMB-001 - Machine invisible in Network",
@@ -978,6 +1052,9 @@ TRANSLATIONS = {
         "rule_smb_002_title": "SMB-002 - Access by IP works, access by name fails",
         "rule_smb_002_desc":
             "Name resolution may be failing even though SMB works by IP address.",
+        "rule_smb_010_title": "RULE-SMB-010 - Share visible, access denied",
+        "rule_smb_010_desc":
+            "The share is visible, but the folder NTFS permissions are more restrictive than the share permissions.",
         "rule_003_title": "RULE-003 - Network Discovery firewall rules",
         "rule_003_desc":
             "The profile is Private, but discovery firewall rules may be missing or disabled.",
@@ -1032,6 +1109,13 @@ TRANSLATIONS = {
         "rule_rdp_008_title": "RULE-RDP-008 - Real case SCCF-CZC025814B",
         "rule_rdp_008_desc":
             "Validated case: empty Remote Desktop Users group, SC\\benevole.010 added.",
+        "case_rdp_sccf_czc025814b_title": "CASE-RDP-SCCF-CZC025814B - RDP authorization fixed",
+        "case_rdp_sccf_czc025814b_desc":
+            "Initial symptom, diagnosis, fix, validation, and lesson learned from case SCCF-CZC025814B.",
+        "case_smb_sccf_71sfs42_czc025814b_title":
+            "CASE-SMB-SCCF-71SFS42-CZC025814B - Share NTFS permissions fixed",
+        "case_smb_sccf_71sfs42_czc025814b_desc":
+            "Validated case: open share, restricted NTFS folder, access restored after adding Everyone.",
         "rule_012_title": "RULE-012 - BitLocker active",
         "rule_012_desc":
             "Warns before system changes when BitLocker is active on a volume.",
@@ -1041,7 +1125,10 @@ TRANSLATIONS = {
 
         # Target area
         "gui_target":               "Target",
-        "gui_target_label":         "IP address or hostname of the target machine",
+        "gui_target_label":         "Target machine IP address",
+        "gui_discovering_targets":  "Automatically discovering network targets by IP address...",
+        "gui_targets_found":        "{count} IP address(es) detected. Known host names are shown next to IPs.",
+        "gui_no_targets_found":     "No IP address detected. Enter the target IP address manually.",
         "gui_target_badge":         "TARGET REQUIRED",
         "gui_target_required_suffix": " ★",
         "gui_target_required_hint": "⚠ A target machine is required for the selected situation.",
@@ -1092,10 +1179,10 @@ TRANSLATIONS = {
         "gui_missing_target_title":      "Target missing",
         "gui_missing_target_message":
             "The selected situation requires a target machine. "
-            "Enter an IP address or hostname.",
+            "Choose or enter a target IP address.",
         "gui_gitscan_missing_target_message":
             "GitScan compares the local PC with a target. "
-            "Enter a target IP address or hostname.",
+            "Choose or enter a target IP address.",
         "gui_diagnosis_failed":     "Diagnosis error",
         "gui_report_missing_title": "Report not found",
         "gui_report_missing_message":
@@ -1479,6 +1566,28 @@ TRANSLATIONS = {
             "On the target, create an inbound rule allowing TCP 5050 for "
             "DTLknowsWhy-Agent.exe. Validation: "
             "Test-NetConnection <IP> -Port 5050 must return TcpTestSucceeded: True.",
+        "rule_smb_010_message":
+            "CASE RULE-SMB-010 - SMB share visible but access denied despite Everyone on the share. "
+            "On Windows, effective rights are the intersection of share permissions and NTFS permissions; "
+            "the most restrictive denial wins.",
+        "rule_smb_010_remediation":
+            "Check both levels: share permissions and the folder Security tab. On the shared folder, "
+            "add Everyone or Authenticated Users, then grant Modify or Full Control as appropriate. "
+            "Validate by reopening \\\\MACHINE\\SHARE from the remote workstation.",
+        "case_smb_sccf_71sfs42_czc025814b_message":
+            "VALIDATED REAL CASE - SCCF-71SFS42 to SCCF-CZC025814B: the share was visible and open "
+            "to Everyone for read/write, but the NTFS folder only allowed michel.poncin, "
+            "Administrators, and SYSTEM.",
+        "case_smb_sccf_71sfs42_czc025814b_remediation":
+            "Validated fix: add Everyone to the NTFS permissions of the shared folder. "
+            "Result: access restored immediately from the remote workstation. Confidence: CONFIRMED.",
+        "smb_access_mismatch_message":
+            "SMB_ACCESS_MISMATCH indicator - inconsistency detected between "
+            "share permissions and NTFS permissions.",
+        "smb_access_mismatch_remediation":
+            "Compare both permission layers for the share. Effective rights are "
+            "the intersection of share permissions and NTFS permissions; align "
+            "both layers with the expected access.",
         "rule_rdp_001_message":
             "CASE RULE-RDP-001 — The account is not allowed to log on through "
             "Remote Desktop. The user is not a member of Remote Desktop Users "
@@ -1489,6 +1598,14 @@ TRANSLATIONS = {
             "net localgroup \"Utilisateurs du Bureau à distance\" /add USERNAME. "
             "Validation: the message changes and authentication is attempted. "
             "Confidence: 100 % (validated on SCCF-CZC025814B).",
+        "rule_rdp_001_resolved_message":
+            "CASE RULE-RDP-001 — Eliminated cause: the Remote Desktop Users "
+            "group now contains members. The former RDP authorization symptom "
+            "must no longer be presented as active.",
+        "rule_rdp_001_resolved_remediation":
+            "Continue diagnosis on the identity used, password, authentication "
+            "mechanism, or RDP client if the current message is credentials did "
+            "not work.",
         "rule_rdp_002_message":
             "CASE RULE-RDP-002 — Microsoft Entra ID workstation identified: "
             "AzureAdJoined = YES and DomainJoined = NO. The workstation is not "

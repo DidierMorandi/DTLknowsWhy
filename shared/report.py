@@ -100,6 +100,55 @@ def dns_source_label(value, lang):
     return tr(mapping.get(value, "unknown"), lang)
 
 
+def status_label(value, lang):
+    mapping = {
+        "ACTIF": "status_actif",
+        "RÉSOLU": "status_resolu",
+        "HISTORIQUE": "status_historique",
+        "HYPOTHÈSE": "status_hypothese",
+    }
+    return tr(mapping.get(value, "unknown"), lang)
+
+
+def confidence_label(value, lang):
+    mapping = {
+        "CONFIRMÉ": "confidence_confirme",
+        "PROBABLE": "confidence_probable",
+        "FAIBLE": "confidence_faible",
+    }
+    return tr(mapping.get(value, "unknown"), lang)
+
+
+def finding_meta(item, lang):
+    parts = []
+
+    if item.get("status"):
+        parts.append(f"{tr('status', lang)} : {status_label(item.get('status'), lang)}")
+
+    if item.get("confidence"):
+        parts.append(
+            f"{tr('confidence', lang)} : "
+            f"{confidence_label(item.get('confidence'), lang)}"
+        )
+
+    return " | ".join(parts)
+
+
+def grouped_findings(findings):
+    order = ("ACTIF", "HISTORIQUE", "RÉSOLU", "HYPOTHÈSE")
+    remaining = list(findings)
+
+    for status in order:
+        group = [item for item in remaining if item.get("status") == status]
+
+        if group:
+            yield status, group
+            remaining = [item for item in remaining if item.get("status") != status]
+
+    if remaining:
+        yield None, remaining
+
+
 def translate_share_detail(value, lang):
     if not value or lang != "en":
         return value
@@ -154,6 +203,28 @@ def format_accessible_shares(shares, lang):
             if value
         )
         lines.append(f"- {name}" + (f" ({suffix})" if suffix else ""))
+
+    return lines
+
+
+def format_smb_share_security(security, lang):
+    if security is None:
+        return [tr("unknown", lang)]
+
+    mismatches = security.get("mismatches") or []
+
+    if not mismatches:
+        return [tr("smb_share_security_ok", lang)]
+
+    lines = [
+        f"{tr('smb_access_mismatch', lang)} ({len(mismatches)})"
+    ]
+
+    for share in mismatches:
+        name = share.get("name") or tr("unknown", lang)
+        path = share.get("path") or tr("unknown", lang)
+        mismatch_types = ", ".join(share.get("mismatch_types") or [])
+        lines.append(f"- {name} -> {path}: {mismatch_types}")
 
     return lines
 
@@ -323,6 +394,7 @@ def generate_text_report(snapshot, lang="fr"):
     lines.extend(build_executive_summary(snapshot, lang))
     lines.append("")
 
+    local_section_start = len(lines)
     lines.append("=" * 50)
     lines.append(f"{T('local_machine')} : {machine_label(snapshot)}")
     lines.append("=" * 50)
@@ -408,6 +480,12 @@ def generate_text_report(snapshot, lang="fr"):
     )
     lines.append(f"{T('accessible_shares'):<18} :")
     lines.extend(f"  {line}" for line in accessible_local)
+    smb_security_lines = format_smb_share_security(
+        network.get("smb_share_security"),
+        lang
+    )
+    lines.append(f"{T('smb_share_security'):<18} :")
+    lines.extend(f"  {line}" for line in smb_security_lines)
 
     lines.append("")
 
@@ -461,6 +539,11 @@ def generate_text_report(snapshot, lang="fr"):
         lines.append(f"{name:<18} : {state(result, lang)}")
 
     lines.append("")
+
+    local_section = None
+    if remote:
+        local_section = lines[local_section_start:]
+        del lines[local_section_start:]
 
     if remote:
         lines.append("=" * 50)
@@ -577,6 +660,9 @@ def generate_text_report(snapshot, lang="fr"):
 
         for item in causal_comparison:
             lines.append(f"[{item.get('level', T('unknown'))}]")
+            meta = finding_meta(item, lang)
+            if meta:
+                lines.append(meta)
             lines.append(T("cmp_observed_difference"))
             lines.append("-" * len(T("cmp_observed_difference")))
             lines.append(str(item.get("title") or T("unknown")))
@@ -603,21 +689,33 @@ def generate_text_report(snapshot, lang="fr"):
         lines.append("=" * 50)
         lines.append("")
 
-        for item in diagnosis:
-            case = item.get("case")
-            prefix = f"[{item.get('level', T('unknown'))}]"
+        for status, items in grouped_findings(diagnosis):
+            if status:
+                lines.append(f"[{status_label(status, lang)}]")
+                lines.append("-" * (len(status_label(status, lang)) + 2))
 
-            if case:
-                prefix = f"{prefix} {case}"
+            for item in items:
+                case = item.get("case")
+                prefix = f"[{item.get('level', T('unknown'))}]"
 
-            lines.append(f"{prefix} {item.get('message')}")
+                if case:
+                    prefix = f"{prefix} {case}"
 
-            for evidence in item.get("evidence", []):
-                lines.append(f"  - {evidence}")
+                lines.append(f"{prefix} {item.get('message')}")
+                meta = finding_meta(item, lang)
+                if meta:
+                    lines.append(f"  {meta}")
 
-            if item.get("remediation"):
-                lines.append(f"{T('action')} : {item.get('remediation')}")
+                for evidence in item.get("evidence", []):
+                    lines.append(f"  - {evidence}")
 
-            lines.append("")
+                if item.get("remediation"):
+                    lines.append(f"{T('action')} : {item.get('remediation')}")
+
+                lines.append("")
+
+    if local_section:
+        lines.append("")
+        lines.extend(local_section)
 
     return "\n".join(lines)

@@ -198,9 +198,22 @@ def dns_source_name(value, lang="fr"):
     return "Inconnu" if lang == "fr" else "Unknown"
 
 
+def default_status_for_level(level):
+    if level in {"CAUSE CERTAINE", "CONFIRMED CAUSE"}:
+        return "ACTIF", "CONFIRMÉ"
+
+    if level in {"CAUSE PROBABLE", "PROBABLE CAUSE"}:
+        return "ACTIF", "PROBABLE"
+
+    return "HYPOTHÈSE", "PROBABLE"
+
+
 def add_cause(findings, level, title, evidence, cause, remediation=None):
+    status, confidence = default_status_for_level(level)
     findings.append({
         "level": level,
+        "status": status,
+        "confidence": confidence,
         "title": title,
         "evidence": evidence,
         "cause": cause,
@@ -764,6 +777,11 @@ def format_findings(reference, target, findings, lang="fr"):
 
     for finding in findings:
         lines.append(f"[{finding['level']}]")
+        if finding.get("status") or finding.get("confidence"):
+            lines.append(
+                f"Statut : {finding.get('status', 'INCONNU')} | "
+                f"Confiance : {finding.get('confidence', 'INCONNUE')}"
+            )
         lines.append(T("cmp_observed_difference"))
         lines.append("-" * len(T("cmp_observed_difference")))
         lines.append(finding["title"])

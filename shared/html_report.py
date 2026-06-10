@@ -103,6 +103,56 @@ def dns_source_label(value, lang):
     return tr(mapping.get(value, "unknown"), lang)
 
 
+def status_label(value, lang):
+    mapping = {
+        "ACTIF": "status_actif",
+        "RÉSOLU": "status_resolu",
+        "HISTORIQUE": "status_historique",
+        "HYPOTHÈSE": "status_hypothese",
+    }
+    return tr(mapping.get(value, "unknown"), lang)
+
+
+def confidence_label(value, lang):
+    mapping = {
+        "CONFIRMÉ": "confidence_confirme",
+        "PROBABLE": "confidence_probable",
+        "FAIBLE": "confidence_faible",
+    }
+    return tr(mapping.get(value, "unknown"), lang)
+
+
+def finding_meta_html(item, lang):
+    parts = []
+
+    if item.get("status"):
+        parts.append(
+            f'<span class="finding-case">{escape(status_label(item.get("status"), lang))}</span>'
+        )
+
+    if item.get("confidence"):
+        parts.append(
+            f'<span class="finding-case">{escape(confidence_label(item.get("confidence"), lang))}</span>'
+        )
+
+    return "".join(parts)
+
+
+def grouped_findings(findings):
+    order = ("ACTIF", "HISTORIQUE", "RÉSOLU", "HYPOTHÈSE")
+    remaining = list(findings)
+
+    for status in order:
+        group = [item for item in remaining if item.get("status") == status]
+
+        if group:
+            yield status, group
+            remaining = [item for item in remaining if item.get("status") != status]
+
+    if remaining:
+        yield None, remaining
+
+
 def optional_dns_rows(network, lang):
     rows = []
 
@@ -245,6 +295,31 @@ def format_accessible_shares_html(shares, lang):
         )
 
     return '<ul class="share-list">' + "".join(items) + "</ul>"
+
+
+def format_smb_share_security_html(security, lang):
+    if security is None:
+        return f'<span class="val-unknown">{tr("unknown", lang)}</span>'
+
+    mismatches = security.get("mismatches") or []
+
+    if not mismatches:
+        return escape(tr("smb_share_security_ok", lang))
+
+    items = []
+
+    for share in mismatches:
+        name = escape(str(share.get("name") or tr("unknown", lang)))
+        path = escape(str(share.get("path") or tr("unknown", lang)))
+        mismatch_types = escape(", ".join(share.get("mismatch_types") or []))
+        items.append(
+            f"<li><strong>{name}</strong> -> {path}: {mismatch_types}</li>"
+        )
+
+    return (
+        f"<p><strong>{escape(tr('smb_access_mismatch', lang))}</strong></p>"
+        '<ul class="share-list">' + "".join(items) + "</ul>"
+    )
 
 
 def format_antivirus_html(products, lang):
@@ -820,7 +895,10 @@ summary:hover {{
 <h2>{T('executive_summary')}</h2>
 {format_executive_summary_html(snapshot, lang)}
 </div>
+"""
 
+    local_section_start = len(html)
+    html += f"""
 <div class="section section-local">
 <h2>{T('local_machine')} : {escape(machine_label(snapshot))}</h2>
 <p><strong>{T('role')} :</strong> {T('local_role')}</p>
@@ -866,6 +944,8 @@ summary:hover {{
 <td>{format_smb_shares_html(network.get('smb_shares'), lang)}</td></tr>
 <tr><td>{T('accessible_shares')}</td>
 <td>{format_accessible_shares_html(network.get('accessible_smb_shares'), lang)}</td></tr>
+<tr><td>{T('smb_share_security')}</td>
+<td>{format_smb_share_security_html(network.get('smb_share_security'), lang)}</td></tr>
 </table>
 </div>
 
@@ -917,6 +997,11 @@ summary:hover {{
 </details>
 </div>
 """
+
+    local_section_html = ""
+    if remote:
+        local_section_html = html[local_section_start:]
+        html = html[:local_section_start]
 
     if remote:
         html += f"""
@@ -997,6 +1082,7 @@ summary:hover {{
 <div class="finding {finding_class(level)}">
     <div class="finding-meta">
         <span class="finding-level">{escape(level)}</span>
+        {finding_meta_html(item, lang)}
     </div>
     <div class="causal-block">
         <span class="causal-label">{T('cmp_observed_difference')}</span>
@@ -1021,35 +1107,41 @@ summary:hover {{
 <h2>{T('expert_diagnosis')}</h2>
 """
 
-        for item in diagnosis:
-            level = str(item.get("level") or T("unknown"))
-            case = item.get("case")
-            message = escape(str(item.get("message") or ""))
-            remediation = item.get("remediation")
-            css_class = finding_class(level)
-            evidence_html = "".join(
-                f"<li>{escape(str(evidence))}</li>"
-                for evidence in item.get("evidence", [])
-            )
-            evidence_block = (
-                f'<ul class="share-list">{evidence_html}</ul>'
-                if evidence_html else ""
-            )
-            case_html = (
-                f'<span class="finding-case">{escape(str(case))}</span>'
-                if case else ""
-            )
-            remediation_html = (
-                f'<p class="finding-remediation"><strong>{T("action")} :</strong> '
-                f'{escape(str(remediation))}</p>'
-                if remediation else ""
-            )
+        for status, items in grouped_findings(diagnosis):
+            if status:
+                html += f"<h3>[{escape(status_label(status, lang))}]</h3>"
 
-            html += f"""
+            for item in items:
+                level = str(item.get("level") or T("unknown"))
+                case = item.get("case")
+                message = escape(str(item.get("message") or ""))
+                remediation = item.get("remediation")
+                css_class = finding_class(level)
+                evidence_html = "".join(
+                    f"<li>{escape(str(evidence))}</li>"
+                    for evidence in item.get("evidence", [])
+                )
+                evidence_block = (
+                    f'<ul class="share-list">{evidence_html}</ul>'
+                    if evidence_html else ""
+                )
+                case_html = (
+                    f'<span class="finding-case">{escape(str(case))}</span>'
+                    if case else ""
+                )
+                meta_html = finding_meta_html(item, lang)
+                remediation_html = (
+                    f'<p class="finding-remediation"><strong>{T("action")} :</strong> '
+                    f'{escape(str(remediation))}</p>'
+                    if remediation else ""
+                )
+
+                html += f"""
 <div class="finding {css_class}">
     <div class="finding-meta">
         <span class="finding-level">{escape(level)}</span>
         {case_html}
+        {meta_html}
     </div>
     <p class="finding-message">{message}</p>
     {evidence_block}
@@ -1060,6 +1152,9 @@ summary:hover {{
         html += """
 </div>
 """
+
+    if local_section_html:
+        html += local_section_html
 
     html += """
 </body>

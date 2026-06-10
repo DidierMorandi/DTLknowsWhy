@@ -2,17 +2,23 @@
 
 import contextlib
 import io
+import ipaddress
 import json
 import os
 import queue
+import re
+import subprocess
 import threading
 import tkinter as tk
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from tkinter import messagebox
 from tkinter import ttk
 
+from agent.collectors.network import collect_structured_network_info
 from agent.collectors.system import is_admin
 from expert.rule_catalog import RULE_CATEGORIES, RULES
+from shared.commands import NO_WINDOW_FLAGS
 from shared.i18n import tr
 from shared.version import DTLKNOWSWHY_VERSION
 
@@ -127,6 +133,7 @@ class DTLknowsWhyGui:
         self.lang = lang if lang in ("fr", "en") else load_default_language("en")
         self.output_queue = queue.Queue()
         self.latest_snapshot = None
+        self.discovered_targets = []
         self.selected_vars = {}
         self.situation_widgets = []
         self.category_widgets = []
@@ -143,6 +150,7 @@ class DTLknowsWhyGui:
         self._apply_language()
         self._apply_startup_options()
         self.root.after(100, self._poll_queue)
+        self.root.after(400, self._start_target_discovery)
 
     def _t(self, key):
         return tr(key, self.lang)
@@ -155,6 +163,23 @@ class DTLknowsWhyGui:
 
     def _language_code_to_label(self, lang):
         return tr("gui_lang_fr", lang) if lang == "fr" else tr("gui_lang_en", lang)
+
+    def _status_label(self, value):
+        mapping = {
+            "ACTIF": "status_actif",
+            "RÉSOLU": "status_resolu",
+            "HISTORIQUE": "status_historique",
+            "HYPOTHÈSE": "status_hypothese",
+        }
+        return self._t(mapping.get(value, "unknown"))
+
+    def _confidence_label(self, value):
+        mapping = {
+            "CONFIRMÉ": "confidence_confirme",
+            "PROBABLE": "confidence_probable",
+            "FAIBLE": "confidence_faible",
+        }
+        return self._t(mapping.get(value, "unknown"))
 
     def _build_styles(self):
         style = ttk.Style(self.root)
@@ -403,17 +428,18 @@ class DTLknowsWhyGui:
         self.target_label.grid(row=2, column=0, sticky="w")
 
         self.target_var = tk.StringVar()
-        ttk.Entry(
+        self.target_combo = ttk.Combobox(
             self.target_frame,
             textvariable=self.target_var,
-        ).grid(row=3, column=0, sticky="ew", pady=(2, 4))
+            values=(),
+        )
+        self.target_combo.grid(row=3, column=0, sticky="ew", pady=(2, 4))
 
         self.target_hint = ttk.Label(
             self.target_frame,
-            wraplength=260,
             style="Hint.TLabel",
         )
-        self.target_hint.grid(row=4, column=0, sticky="w")
+        self.target_hint.grid(row=4, column=0, sticky="ew")
 
         self.summary_frame = ttk.LabelFrame(
             self.target_frame,
@@ -670,6 +696,56 @@ class DTLknowsWhyGui:
 
         self.target_hint.configure(text=text)
 
+    def _start_target_discovery(self):
+        self.target_hint.configure(text=self._t("gui_discovering_targets"))
+
+        worker = threading.Thread(
+            target=self._run_target_discovery,
+            daemon=True,
+        )
+        worker.start()
+
+    def _run_target_discovery(self):
+        try:
+            targets = discover_ipv4_targets()
+            self.output_queue.put(("target_discovery_done", targets))
+        except Exception as exc:
+            self.output_queue.put(("target_discovery_error", str(exc)))
+
+    def _apply_discovered_targets(self, targets):
+        self.discovered_targets = targets
+        display_values = [target["display"] for target in targets]
+        self.target_combo.configure(values=display_values)
+
+        current_target = self._selected_target_ip()
+        current_values = {target["ip"] for target in targets}
+
+        if current_target in current_values:
+            for target in targets:
+                if target["ip"] == current_target:
+                    self.target_var.set(target["display"])
+                    break
+
+        if targets:
+            self.target_hint.configure(
+                text=self._format("gui_targets_found", count=len(targets))
+            )
+        else:
+            self.target_hint.configure(text=self._t("gui_no_targets_found"))
+
+    def _selected_target_ip(self):
+        value = self.target_var.get().strip()
+
+        if not value:
+            return None
+
+        match = re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", value)
+
+        if match:
+            return match.group(0)
+
+        return value
+
     def _start_diagnosis(self):
         selected = self._selected_situations()
 
@@ -680,7 +756,7 @@ class DTLknowsWhyGui:
             )
             return
 
-        target = self.target_var.get().strip() or None
+        target = self._selected_target_ip()
 
         if any(situation["requires_target"] for situation in selected) and not target:
             messagebox.showwarning(
@@ -699,7 +775,7 @@ class DTLknowsWhyGui:
         )
 
     def _start_gitscan(self):
-        target = self.target_var.get().strip() or None
+        target = self._selected_target_ip()
 
         if not target:
             messagebox.showwarning(
@@ -774,6 +850,10 @@ class DTLknowsWhyGui:
                     self.run_button.configure(state="normal")
                     self.gitscan_button.configure(state="normal")
                     messagebox.showerror(self._t("gui_diagnosis_failed"), item[1])
+                elif kind == "target_discovery_done":
+                    self._apply_discovered_targets(item[1])
+                elif kind == "target_discovery_error":
+                    self.target_hint.configure(text=item[1])
         except queue.Empty:
             pass
 
@@ -799,6 +879,7 @@ class DTLknowsWhyGui:
                 item
                 for item in diagnosis + causal
                 if item.get("level") not in {"OK", "OBSERVE", "OBSERVED"}
+                and item.get("status") != "HISTORIQUE"
             ]
 
             if not focused:
@@ -833,9 +914,15 @@ class DTLknowsWhyGui:
         for item in focused:
             level = item.get("level", "INFO")
             case = f" {item.get('case')}" if item.get("case") else ""
+            meta = []
+            if item.get("status"):
+                meta.append(self._status_label(item.get("status")))
+            if item.get("confidence"):
+                meta.append(self._confidence_label(item.get("confidence")))
+            meta_text = f" ({' / '.join(meta)})" if meta else ""
             self.findings_text.insert(
                 "end",
-                f"[{level}]{case}\n",
+                f"[{level}]{case}{meta_text}\n",
                 level if level in LEVEL_COLORS else "INFO",
             )
             self.findings_text.insert(
@@ -933,6 +1020,194 @@ class DTLknowsWhyGui:
             return
 
         os.startfile(os.path.abspath(reports[0]))
+
+
+def local_ipv4_network():
+    network = collect_structured_network_info()
+    local_ip = network.get("ipv4")
+    subnet_mask = network.get("subnet_mask") or "255.255.255.0"
+
+    if not local_ip:
+        return None, None
+
+    try:
+        ip_network = ipaddress.ip_network(
+            f"{local_ip}/{subnet_mask}",
+            strict=False,
+        )
+    except ValueError:
+        ip_network = ipaddress.ip_network(f"{local_ip}/24", strict=False)
+
+    if ip_network.num_addresses > 512:
+        ip_network = ipaddress.ip_network(f"{local_ip}/24", strict=False)
+
+    return ipaddress.ip_address(local_ip), ip_network
+
+
+def ping_ipv4(ip):
+    try:
+        completed = subprocess.run(
+            ["ping", "-n", "1", "-w", "250", str(ip)],
+            capture_output=True,
+            timeout=1,
+            creationflags=NO_WINDOW_FLAGS,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+    return completed.returncode == 0
+
+
+def name_from_ping_output(text, ip):
+    first_line = (text or "").splitlines()[0:1]
+
+    if not first_line:
+        return None
+
+    match = re.search(
+        rf"(?:Ping|Pinging)\s+(.+?)\s+\[{re.escape(str(ip))}\]",
+        first_line[0],
+        flags=re.IGNORECASE,
+    )
+
+    if not match:
+        return None
+
+    name = match.group(1).strip()
+    return name if name and name != str(ip) else None
+
+
+def name_from_nbtstat_output(text):
+    for line in (text or "").splitlines():
+        if "<00>" not in line or "UNIQUE" not in line.upper():
+            continue
+
+        name = line.split("<00>", 1)[0].strip()
+
+        if name and name.upper() not in {"WORKGROUP", "MSBROWSE"}:
+            return name
+
+    return None
+
+
+def resolve_ipv4_name(ip):
+    try:
+        completed = subprocess.run(
+            ["ping", "-a", "-n", "1", "-w", "250", str(ip)],
+            capture_output=True,
+            timeout=1,
+            creationflags=NO_WINDOW_FLAGS,
+        )
+        name = name_from_ping_output(
+            completed.stdout.decode(errors="ignore"),
+            ip,
+        )
+
+        if name:
+            return name
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+    try:
+        completed = subprocess.run(
+            ["nbtstat", "-A", str(ip)],
+            capture_output=True,
+            timeout=2,
+            creationflags=NO_WINDOW_FLAGS,
+        )
+        return name_from_nbtstat_output(completed.stdout.decode(errors="ignore"))
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def target_display(ip, name=None):
+    return f"{ip} - {name}" if name else str(ip)
+
+
+def arp_ipv4_addresses(ip_network):
+    try:
+        completed = subprocess.run(
+            ["arp", "-a"],
+            capture_output=True,
+            timeout=3,
+            creationflags=NO_WINDOW_FLAGS,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return set()
+
+    text = completed.stdout.decode(errors="ignore")
+    addresses = set()
+
+    for value in re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text):
+        try:
+            address = ipaddress.ip_address(value)
+        except ValueError:
+            continue
+
+        if address in ip_network and address not in {ip_network.network_address, ip_network.broadcast_address}:
+            addresses.add(address)
+
+    return addresses
+
+
+def discover_ipv4_targets():
+    local_ip, ip_network = local_ipv4_network()
+
+    if not local_ip or not ip_network:
+        return []
+
+    hosts = [
+        host
+        for host in ip_network.hosts()
+        if host != local_ip
+    ]
+    found = set()
+
+    with ThreadPoolExecutor(max_workers=64) as executor:
+        future_to_host = {
+            executor.submit(ping_ipv4, host): host
+            for host in hosts
+        }
+
+        for future in as_completed(future_to_host):
+            host = future_to_host[future]
+
+            try:
+                if future.result():
+                    found.add(host)
+            except Exception:
+                continue
+
+    found.update(arp_ipv4_addresses(ip_network))
+    found.discard(local_ip)
+    found.discard(ip_network.network_address)
+    found.discard(ip_network.broadcast_address)
+
+    addresses = sorted(found)
+    names = {}
+
+    with ThreadPoolExecutor(max_workers=32) as executor:
+        future_to_host = {
+            executor.submit(resolve_ipv4_name, address): address
+            for address in addresses
+        }
+
+        for future in as_completed(future_to_host):
+            host = future_to_host[future]
+
+            try:
+                names[host] = future.result()
+            except Exception:
+                names[host] = None
+
+    return [
+        {
+            "ip": str(address),
+            "hostname": names.get(address),
+            "display": target_display(address, names.get(address)),
+        }
+        for address in addresses
+    ]
 
 
 def run_gui(
