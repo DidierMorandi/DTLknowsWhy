@@ -39,6 +39,33 @@ def looks_like_ipv4(value):
         return False
 
 
+def normalized_text_set(value):
+    values = value if isinstance(value, list) else [value]
+    normalized = set()
+
+    for item in values:
+        if item is None:
+            continue
+
+        if isinstance(item, dict):
+            for key in ("IPAddress", "Address", "Server", "Value", "value"):
+                if item.get(key):
+                    normalized.add(str(item[key]).strip())
+                    break
+            else:
+                for part in item.values():
+                    if part:
+                        normalized.add(str(part).strip())
+            continue
+
+        text = str(item).strip()
+        if text:
+            normalized.add(text)
+
+    normalized.discard("")
+    return normalized
+
+
 def normalize_finding(finding):
     if "status" not in finding:
         if finding.get("level") == "OK":
@@ -114,8 +141,8 @@ def analyze(snapshot, lang="fr"):
         elif netbios_opt in (0, 1):
             netbios_enabled = True
 
-    manual_dns = set(network.get("manual_dns_servers") or [])
-    dhcp_dns = set(network.get("dhcp_dns_servers") or [])
+    manual_dns = normalized_text_set(network.get("manual_dns_servers") or [])
+    dhcp_dns = normalized_text_set(network.get("dhcp_dns_servers") or [])
 
     if (
         network.get("dhcp_enabled") is True

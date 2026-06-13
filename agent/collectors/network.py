@@ -30,6 +30,29 @@ def as_list(value):
     return [value]
 
 
+def as_text_list(value):
+    values = []
+
+    for item in as_list(value):
+        if item is None:
+            continue
+
+        if isinstance(item, dict):
+            for key in ("IPAddress", "Address", "Server", "Value", "value"):
+                if item.get(key):
+                    values.append(str(item[key]))
+                    break
+            else:
+                values.extend(str(part) for part in item.values() if part)
+            continue
+
+        text = str(item).strip()
+        if text:
+            values.append(text)
+
+    return values
+
+
 def first_value(value):
     values = as_list(value)
     return values[0] if values else None
@@ -265,9 +288,9 @@ $profiles = @(
         "ipv4": first_value(adapter.get("IPv4")),
         "subnet_mask": first_value(adapter.get("SubnetMask")),
         "default_gateway": first_value(adapter.get("DefaultGateway")),
-        "dns_servers": as_list(adapter.get("DnsServers")),
-        "manual_dns_servers": as_list(adapter.get("ManualDnsServers")),
-        "dhcp_dns_servers": as_list(adapter.get("DhcpDnsServers")),
+        "dns_servers": as_text_list(adapter.get("DnsServers")),
+        "manual_dns_servers": as_text_list(adapter.get("ManualDnsServers")),
+        "dhcp_dns_servers": as_text_list(adapter.get("DhcpDnsServers")),
         "dns_source": adapter.get("DnsSource"),
         "dhcp_enabled": adapter.get("DhcpEnabled"),
         "netbios_enabled": netbios_enabled(adapter.get("TcpipNetbiosOptions")),
