@@ -1,78 +1,207 @@
-# DTLknowsWhy 2.1
+# DTLknowsWhy v2.2.0
 
 ## Présentation
 
-DTLknowsWhy est un outil de diagnostic et d'analyse experte pour Windows conçu pour aider les administrateurs, techniciens et ingénieurs support à comprendre non seulement **ce qui** se passe sur un système, mais également **pourquoi** cela se produit.
+DTLknowsWhy est un outil Windows de diagnostic et d'analyse experte conçu pour aider les administrateurs, techniciens et équipes support à comprendre non seulement **ce qui** se passe sur un système, mais aussi **pourquoi** cela se produit.
 
-Le projet combine l'inventaire automatisé du système, l'analyse de configuration et une base de connaissances experte afin d'identifier les causes probables des problèmes Windows courants liés au réseau, aux services, aux partages SMB, à la résolution de noms, aux produits de sécurité et à la configuration système.
+Le projet combine inventaire automatique, analyse de configuration et connaissances expertes pour identifier des causes probables de problèmes Windows courants : réseau, services, partage SMB, résolution de noms, produits de sécurité et configuration système.
 
-DTLknowsWhy a vocation à évoluer d'un simple outil de collecte d'informations vers un véritable assistant de dépannage capable d'expliquer les symptômes observés et de suggérer les causes les plus probables.
+DTLknowsWhy évolue d'un collecteur de données vers un véritable assistant de dépannage capable d'expliquer des symptômes observés et de proposer des causes probables.
 
-Version 2.1.0 - 7 juin 2026
-Didier DTL Morandi
-[www.didiermorandi.com/netdtl](http://www.didiermorandi.com/netdtl)
+Version v2.2.0 - 10 juin 2026 - Didier DTL Morandi - www.didiermorandi.com/netdtl
 
 ---
 
-## Nouveautés de la version 2.1
+## Nouveautés de la version 2.2
+
+La version 2.2 ajoute plusieurs fonctions importantes par rapport à la base 2.1.
+
+### Découverte automatique des cibles par adresse IP
+
+L'interface graphique découvre automatiquement les équipements joignables sur le sous-réseau IPv4 local au démarrage.
+
+Le sélecteur de cible est alimenté par des adresses IP, pas par des noms de machines. Quand un nom peut être résolu, il est affiché à côté de l'adresse :
+
+```text
+172.17.7.19 - SCCF-71SFS42
+172.17.7.22 - SCCF-2C49F63
+172.17.7.23 - SCCF-6V5FS42
+```
+
+Si aucun nom n'est connu, seule l'adresse IP est affichée.
+
+Les diagnostics sont lancés contre l'adresse IP elle-même. Cela évite les ambiguïtés NetBIOS, DNS ou de résolution de noms Windows lors de l'analyse de problèmes d'accès.
+
+### Comparaison automatique de type GitScan
+
+DTLknowsWhy peut lancer une comparaison automatique entre la machine locale de référence et une cible sélectionnée, sans que l'utilisateur choisisse manuellement une règle de diagnostic.
+
+Ce mode est destiné aux situations de support rapides où la question est :
+
+> « Qu'est-ce qui diffère entre le PC de référence et la cible ? »
+
+### Analyse comparative distant-vers-distant
+
+La version 2.2 introduit aussi une analyse comparative de second niveau entre deux diagnostics distants.
+
+Elle compare deux points de vue clients vers la même cible, par exemple :
+
+- le PC A peut énumérer ou accéder à un partage ;
+- le PC B atteint TCP 445 mais reçoit une erreur d'authentification.
+
+L'analyse produit :
+
+- des explications probables ;
+- des causes éliminées ;
+- des scores de pertinence pour chaque différence.
+
+Exemple :
+
+```powershell
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json
+```
+
+Le premier snapshot doit représenter le point de vue où l'accès fonctionne. Le second doit représenter le point de vue où l'accès échoue.
+
+La commande écrit par défaut :
+
+```text
+comparative_analysis_<PC-A>_vs_<PC-B>_<timestamp>.txt
+comparative_analysis_<PC-A>_vs_<PC-B>_<timestamp>.html
+```
+
+Options utiles :
+
+```powershell
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json --json
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json --output-prefix mon_rapport
+py -m expert.comparative_analysis PC-A_snapshot.json PC-B_snapshot.json --no-files
+```
+
+Conclusions typiques :
+
+- cible injoignable éliminée ;
+- blocage TCP 445 éliminé ;
+- partage absent sur la cible éliminé ;
+- échec SMB propre au client probable ;
+- contexte d'identité différent probable.
+
+### Snapshot d'agent distant
+
+Quand la cible exécute DTLknowsWhy-Agent, l'outil principal peut demander un snapshot distant complet via HTTP sur le port 5050.
+
+Le rapport peut alors comparer :
+
+- le PC local de référence ;
+- les tests de connectivité distants légers ;
+- le snapshot complet de la cible distante, s'il est disponible.
+
+Si l'agent distant fonctionne localement sur la cible mais n'est pas joignable depuis la machine de référence, DTLknowsWhy peut identifier la règle pare-feu TCP 5050 probablement manquante.
+
+### Collecteur de sécurité des partages SMB
+
+Le collecteur `SMB_SHARE_SECURITY` analyse chaque partage SMB local et compare les deux couches de droits Windows :
+
+- ACL du partage ;
+- ACL NTFS.
+
+Pour chaque partage, il enregistre :
+
+- nom du partage ;
+- chemin local ;
+- droits du partage ;
+- droits NTFS ;
+- présence de principaux larges comme `Everyone`, `Users` ou `Authenticated Users`.
+
+Le collecteur peut produire l'indicateur :
+
+```text
+SMB_ACCESS_MISMATCH
+```
+
+Situations détectées :
+
+- partage ouvert mais NTFS restrictif ;
+- NTFS ouvert mais partage restrictif ;
+- chemin de partage inaccessible ou ACL illisible ;
+- incohérence entre droits de partage et droits NTFS.
+
+Cela aide à analyser les cas où un partage est visible depuis un autre poste mais où l'accès est refusé parce que l'onglet Sécurité NTFS reste plus restrictif que les permissions du partage.
+
+### Statut et confiance du moteur expert
+
+Les constats experts peuvent désormais distinguer :
+
+- observations actives ;
+- causes résolues ;
+- observations historiques ;
+- hypothèses.
+
+Chaque constat peut aussi porter un niveau de confiance :
+
+- confirmé ;
+- probable ;
+- faible.
+
+Cela évite qu'une ancienne observation reste affichée comme un problème actif après correction.
+
+### Ordre des rapports
+
+Lorsqu'une cible distante est analysée, les rapports placent désormais les informations de la cible et les constats de diagnostic en premier.
+
+Les données de la machine locale sont placées en fin de rapport, car elles servent surtout de référence de comparaison.
 
 ### Collecte réseau internationalisée
 
-Les versions précédentes reposaient sur l'analyse du résultat de :
+Les versions précédentes analysaient la sortie de :
 
 ```text
 ipconfig /all
 ```
 
-Cette approche dépendait des libellés localisés de Windows et ne fonctionnait donc de manière fiable que sur les installations Windows françaises.
+Cette méthode dépendait des libellés localisés de Windows et ne fonctionnait de manière fiable que sur les installations françaises.
 
-La version 2.1 introduit un tout nouveau moteur de collecte réseau basé sur des données PowerShell et CIM structurées.
+La version 2.1 introduit un moteur de collecte réseau fondé sur PowerShell et les données CIM structurées.
 
 Avantages :
 
-* Fonctionnement indépendant de la langue du système
-* Compatible avec les éditions Windows françaises, anglaises et autres
-* Collecte des informations réseau plus fiable
-* Suppression des analyses textuelles fragiles
-* Meilleure compatibilité avec les futures évolutions de Windows
+- fonctionnement indépendant de la langue ;
+- compatibilité avec Windows en français, anglais et autres langues ;
+- collecte réseau plus fiable ;
+- suppression de l'analyse fragile de texte ;
+- meilleure compatibilité avec les futures mises à jour Windows.
 
-Les informations réseau sont désormais obtenues à partir d'objets Windows structurés plutôt qu'à partir de la sortie localisée de commandes système.
+### Choix de langue dans l'interface graphique
 
-### Sélection de la langue dans l'interface graphique
-
-À partir de la version 2.1, l'interface graphique permet à l'utilisateur de choisir sa langue au démarrage.
+Depuis la version 2.1, l'interface permet de choisir la langue au démarrage.
 
 La langue sélectionnée est utilisée pour :
 
-* Les éléments de l'interface utilisateur
-* Les menus et boîtes de dialogue
-* Les rapports générés
-* Les messages de diagnostic
-* Les futures explications du moteur expert
+- les éléments d'interface ;
+- les menus et boîtes de dialogue ;
+- les rapports générés ;
+- les messages de diagnostic ;
+- les futures explications du système expert.
 
-Les langues actuellement prises en charge sont :
+Langues actuellement prises en charge :
 
-* Français
-* Anglais
+- français ;
+- anglais.
 
-L'infrastructure d'internationalisation a été conçue afin de permettre l'ajout de nouvelles langues avec un minimum de modifications du code.
-
-Cette fonctionnalité est indépendante de la langue du système d'exploitation. Il est ainsi possible d'exécuter DTLknowsWhy en anglais sur un Windows français, ou en français sur un Windows anglais.
-
-Associée au nouveau moteur de collecte réseau indépendant de la langue, cette évolution permet à DTLknowsWhy de fonctionner de manière cohérente dans des environnements Windows multilingues.
+Cette fonction est indépendante de la langue du système d'exploitation.
 
 ---
 
-### Compatibilité ascendante
+## Compatibilité ascendante
 
-Bien que le mécanisme de collecte ait été entièrement repensé, la structure JSON générée reste inchangée.
+Même si le mécanisme de collecte a été remanié, la structure JSON produite reste compatible.
 
-Les éléments suivants continuent donc de fonctionner sans modification :
+Les éléments suivants continuent à fonctionner sans modification :
 
-* Règles expertes
-* Rapports HTML
-* Rapports PDF
-* Modules d'analyse
+- règles expertes ;
+- rapports HTML ;
+- rapports PDF ;
+- modules d'analyse.
 
 ---
 
@@ -80,60 +209,69 @@ Les éléments suivants continuent donc de fonctionner sans modification :
 
 ### Inventaire système
 
-Collecte des informations détaillées concernant :
+Collecte d'informations détaillées sur :
 
-* Le système d'exploitation
-* La configuration matérielle
-* Les logiciels installés
-* Les services
-* La configuration réseau
-* Les ressources partagées
-* Les produits de sécurité
-* Les périphériques de stockage
-* Les événements système
+- système d'exploitation ;
+- matériel ;
+- logiciels installés ;
+- services ;
+- configuration réseau ;
+- ressources partagées ;
+- produits de sécurité ;
+- stockage ;
+- événements.
 
-### Diagnostic réseau
+### Diagnostics réseau
 
 Collecte et analyse :
 
-* Configuration IPv4
-* Masques de sous-réseau
-* Passerelles par défaut
-* Serveurs DNS
-* État DHCP
-* Paramètres NetBIOS
-* Interfaces réseau actives
+- configuration IPv4 ;
+- masques de sous-réseau ;
+- passerelles par défaut ;
+- serveurs DNS ;
+- état DHCP ;
+- paramètres NetBIOS ;
+- interfaces réseau actives ;
+- découverte automatique des cibles IPv4 locales ;
+- joignabilité TCP distante sur les ports utiles au diagnostic.
 
-### Détection des produits de sécurité
+### Détection sécurité
 
 Détection :
 
-* Des antivirus enregistrés
-* Des entrées du Centre de sécurité Windows
-* Des inscriptions antivirus orphelines
-* De l'état de Windows Defender
+- antivirus enregistrés ;
+- entrées du Centre de sécurité Windows ;
+- inscriptions antivirus potentiellement orphelines ;
+- état Windows Defender ;
+- pilotes de filtre système via `fltmc`.
 
 ### Analyse SMB et partage de fichiers
 
 Aide à identifier les problèmes liés à :
 
-* Dossiers partagés
-* Résolution de noms
-* Accessibilité SMB
-* Découverte réseau
-* Function Discovery Resource Publication (FDResPub)
+- dossiers partagés ;
+- droits de partage ;
+- droits NTFS ;
+- incohérences partage/NTFS ;
+- résolution de noms ;
+- accessibilité SMB ;
+- découverte réseau ;
+- service Function Discovery Resource Publication (FDResPub).
 
-### Moteur de connaissances expert
+### Moteur de connaissances expertes
 
-DTLknowsWhy est conçu pour mettre en relation les informations collectées avec des cas de dépannage connus et des bonnes pratiques.
+DTLknowsWhy corrèle les données collectées avec des cas de dépannage connus et des bonnes pratiques.
 
 Exemples :
 
-* Accès SMB rapide par IP mais lent par nom
-* Machine absente du voisinage réseau alors que SMB fonctionne
-* Problèmes de configuration DNS
-* Inscriptions antivirus orphelines
-* Mauvaises configurations de services Windows
+- accès SMB lent par nom d'hôte mais rapide par IP ;
+- équipements réseau manquants malgré un accès SMB réussi ;
+- partage SMB visible mais accès refusé à cause de droits NTFS restrictifs ;
+- agent DTLknowsWhy distant injoignable alors que le service tourne ;
+- autorisation RDP et représentation d'identité Microsoft Entra ID ;
+- problèmes DNS ;
+- antivirus orphelins ;
+- mauvaise configuration de services Windows.
 
 ---
 
@@ -143,79 +281,85 @@ Exemples :
 Système Windows
        |
        v
-Collecte des données
+Collecte de données
        |
        v
 Inventaire JSON structuré
        |
        v
-Moteur d'analyse expert
+Moteur d'analyse experte
        |
        v
-Diagnostic compréhensible par l'humain
+Diagnostics lisibles
 ```
 
-L'objectif n'est pas simplement de présenter des données système, mais de transformer les observations en explications exploitables.
+L'objectif n'est pas seulement de rapporter des données système, mais de transformer les observations en explications exploitables.
 
 ---
 
 ## Prérequis
 
-* Windows 10
-* Windows 11
-* PowerShell 5.1 ou supérieur
-* Droits administrateur recommandés pour un diagnostic complet
+- Windows 10
+- Windows 11
+- PowerShell 5.1 ou plus récent
+- Droits administrateur recommandés pour un diagnostic complet
 
 ---
 
-## Cas d'utilisation typiques
+## Cas d'usage typiques
 
-* Dépannage de postes de travail
-* Diagnostic réseau
-* Problèmes d'accès SMB
-* Investigations DNS
-* Vérification des produits de sécurité
-* Audits de configuration Windows
-* Préparation d'escalades vers le support
-
----
-
-## Feuille de route
-
-Améliorations prévues :
-
-* Extension de la base de règles expertes
-* Moteur de corrélation avancé
-* Prise en charge de langues supplémentaires
-* Intégration d'une base de connaissances
-* Recommandations de remédiation enrichies
-* Capacités de reporting améliorées
+- Dépannage poste de travail
+- Diagnostic réseau
+- Problèmes d'accès SMB
+- Investigations DNS
+- Vérification des produits de sécurité
+- Audit de configuration Windows
+- Préparation d'une escalade support
 
 ---
 
-## Philosophie
+## Build
 
-La plupart des outils de diagnostic répondent à la question :
+Regénérer l'application graphique principale :
 
-> « Quelle est la configuration de cette machine ? »
+```powershell
+py -m PyInstaller --clean DTLknowsWhy.spec
+```
 
-L'objectif du projet est d'identifier les causes des problèmes plutôt que de simplement constater leurs symptômes.
+Regénérer l'agent distant :
 
-DTLknowsWhy cherche à répondre à la question :
+```powershell
+py -m PyInstaller --clean DTLknowsWhy-Agent.spec
+```
 
-> « Pourquoi ce problème se produit-il ? »
-
-Cette différence constitue l'objectif fondamental du projet.
+L'agent doit être reconstruit lorsque les collecteurs, le serveur distant, la logique de service ou les formats de rapport évoluent.
 
 ---
 
 ## Documentation
 
-Les documents DTLknowsWhy Manuel de référence v2.1 et Guide Utilisateur v2.1 sont disponibles dans notre dépôt documentaire NetDTL à l'adresse : https://didiermorandi.com/netdtl/doc/
+Le guide utilisateur et le manuel de référence DTLknowsWhy v2.2 sont disponibles dans la documentation NetDTL :
 
----
+https://didiermorandi.com/netdtl/doc/
 
 ## Version
 
-Version actuelle : **DTLknowsWhy 2.1**
+Version courante : **DTLknowsWhy v2.2.0**
 
+## Mise à jour - 14 juin 2026
+
+Le code courant indique `DTLKNOWSWHY_VERSION = "v2.2-2"` dans `shared/version.py`.
+
+Composants présents et confirmés :
+
+- Interface graphique Tkinter avec choix de langue, sélection de cible et bouton d'ouverture du dernier rapport HTML.
+- Découverte automatique des cibles IPv4 locales avec affichage `IP - nom` quand un nom peut être résolu.
+- Mode `--snapshot` pour générer un snapshot local.
+- Mode `--target` pour lancer des diagnostics contre une machine distante.
+- Mode `--gitscan TARGET` pour lancer une comparaison automatique sans choisir manuellement les règles de diagnostic.
+- Mode `--listen` pour exposer un petit serveur HTTP de snapshot distant, avec `--once` pour les tests.
+- Commandes de service Windows via `--service`, par exemple pour installer l'agent au démarrage.
+- Collecteurs séparés pour système, réseau, services, GLPI, tests locaux et tests distants.
+- Rapports texte, HTML et JSON avec sérialisation de snapshot.
+- Moteur expert enrichi : comparaison causale, règles, traduction et analyse des différences SMB/RDP/DNS/sécurité.
+- Documentation locale bilingue : guides utilisateur et manuels de référence en français et en anglais.
