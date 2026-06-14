@@ -402,3 +402,21 @@ https://didiermorandi.com/netdtl/doc/
 ## Version
 
 Current release: **DTLknowsWhy v2.2.0**
+
+## Update - 14 June 2026
+
+The current code reports `DTLKNOWSWHY_VERSION = "v2.2-2"` in `shared/version.py`.
+
+New and present components:
+
+- Tkinter GUI with language selection, target selection, and a button to open the latest HTML report.
+- Automatic discovery of local IPv4 targets, displayed as `IP - name` when a name can be resolved.
+- `--snapshot` mode to generate a local machine snapshot.
+- `--target` mode to run diagnostics against a remote machine.
+- `--gitscan TARGET` mode to run automatic comparison without manually selecting diagnostic rules.
+- `--listen` mode to expose a small remote snapshot HTTP server, with `--once` for tests.
+- Windows service commands through `--service`, for example to install the agent at startup.
+- Separate collectors for system, network, services, GLPI, local tests, and remote tests.
+- Text, HTML, and JSON reports with snapshot serialization.
+- Enriched expert engine: causal comparison, rules, translation, and SMB/RDP/DNS/security difference analysis.
+- Local bilingual documentation: user guides and reference manuals in French and English.
