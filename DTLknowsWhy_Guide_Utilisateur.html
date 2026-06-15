@@ -390,7 +390,7 @@
 
   <div class="doc-header">
     <h1><span class="accent">DTLknowsWhy</span> &mdash; Guide utilisateur v2.1</h1>
-    <p style="color:var(--text-muted);font-size:13px;margin-top:10px;">Guide pratique pour installer, exécuter et interpréter DTLknowsWhy 2.1 &mdash; du premier snapshot local à la comparaison causale complète entre deux machines.</p>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:10px;">Guide pratique pour installér, exécuter et interpréter DTLknowsWhy 2.1 &mdash; du premier snapshot local à la comparaison causale complète entre deux machines.</p>
     <div class="meta-pills">
       <span class="pill"><span class="k">version</span>2.1.0</span>
       <span class="pill"><span class="k">date</span>7 juin 2026</span>
@@ -402,7 +402,7 @@
   </div>
 
   <h2 id="preface">Préface</h2>
-  <p>Ce guide explique comment utiliser DTLknowsWhy pour diagnostiquer des problèmes réseau et SMB sous Windows. Il couvre l'interface graphique, tous les modes en ligne de commande, les trois formats de fichiers de sortie, les outils de diagnostic expert et d'analyse comparative, ainsi qu'un ensemble de procédures pas à pas pour les scénarios de dépannage les plus courants.</p>
+  <p>Ce guide explique comment utilisér DTLknowsWhy pour diagnostiquer des problèmes réseau et SMB sous Windows. Il couvre l'interface graphique, tous les modes en ligne de commande, les trois formats de fichiers de sortie, les outils de diagnostic expert et d'analyse comparative, ainsi qu'un ensemble de procédures pas à pas pour les scénarios de dépannage les plus courants.</p>
   <p>Pour la documentation complète des modules et de l'API, consultez le <em>Manuel de référence DTLknowsWhy</em>.</p>
 
   <h3 id="audience">Audience visée</h3>
@@ -436,7 +436,7 @@
 
   <h2 id="overview">1.1 Vue d'ensemble</h2>
   <p>DTLknowsWhy est un outil de diagnostic et d'analyse experte pour Windows. La plupart des outils de diagnostic répondent à la question : <em>« Quelle est la configuration de cette machine ? »</em> DTLknowsWhy est conçu pour répondre à : <em>« Pourquoi ce problème se produit-il ? »</em></p>
-  <p>Exécutez-le sur une machine pour obtenir immédiatement une image complète de sa configuration : version du système d'exploitation, profil réseau, paramètres IP, services Windows clés et connectivité de base. Pointez-le optionnellement vers une seconde machine pour récupérer son snapshot complet via l'agent intégré, puis comparez les deux configurations pour identifier la cause probable de la différence.</p>
+  <p>Exécutez-le sur une machine pour obtenir immédiatement une image complète de sa configuration : version du système d'exploitation, profil réseau, paramètrès IP, services Windows clés et connectivité de base. Pointez-le optionnellement vers une seconde machine pour récupérer son snapshot complet via l'agent intégré, puis comparez les deux configurations pour identifier la cause probable de la différence.</p>
   <table>
     <thead><tr><th>Outil</th><th>Objectif</th></tr></thead>
     <tbody>
@@ -467,7 +467,7 @@
   <div class="callout"><strong>Aucune dépendance :</strong> copiez le dossier du projet sur n'importe quelle machine Windows avec Python et exécutez immédiatement. Aucun environnement virtuel, aucun accès internet requis.</div>
 
   <h3 id="installation">1.4 Installation</h3>
-  <p>Aucun installeur n'est nécessaire. Copiez le dossier du projet sur la machine cible. Les exécutables compilés peuvent être lancés directement. Les fichiers sources Python nécessitent l'installation de Python 3.10+.</p>
+  <p>Aucun installéur n'est nécessaire. Copiez le dossier du projet sur la machine cible. Les exécutables compilés peuvent être lancés directement. Les fichiers sources Python nécessitent l'installation de Python 3.10+.</p>
   <p>Tous les fichiers de sortie sont écrits dans le répertoire depuis lequel l'outil est invoqué. Utilisez un répertoire de travail dédié pour garder les snapshots et rapports organisés.</p>
 
   <h3 id="quickstart">1.5 Démarrage rapide</h3>
@@ -503,7 +503,7 @@
       <li>Sélectionner la <strong>langue</strong> de l'interface et des rapports</li>
       <li>Cliquer sur <strong>Lancer le diagnostic</strong></li>
       <li>Suivre le <strong>journal de progression</strong> à gauche ; les résultats apparaissent dans le <strong>volet des résultats</strong> à droite à la fin</li>
-      <li>Cliquer sur <strong>Ouvrir le rapport HTML</strong> pour afficher le rapport complet dans un navigateur</li>
+      <li>Cliquer sur <strong>Ouvrir le rapport HTML</strong> pour affichér le rapport complet dans un navigateur</li>
     </ul>
     <div class="label">Situations</div>
     <table>
@@ -545,7 +545,7 @@
     <pre><code>python agent.py --target {IP|nom_hôte} [--lang {fr,en}]</code></pre>
     <div class="label">Ce qui est testé sur la cible</div>
     <ul>
-      <li><strong>Ping :</strong> accessibilité ICMP de base</li>
+      <li><strong>Ping :</strong> accèssibilité ICMP de base</li>
       <li><strong>Résolution du nom d'hôte :</strong> recherche de nom depuis l'adresse IP</li>
       <li><strong>Sondages TCP :</strong> ports 80 (HTTP), 139 (NetBIOS), 443 (HTTPS), 445 (SMB)</li>
       <li><strong>Adresse MAC :</strong> depuis la table ARP locale</li>
@@ -556,12 +556,12 @@
     <p>Mêmes trois fichiers qu'un snapshot local. Si un snapshot de l'agent distant a été récupéré, il est également sauvegardé comme fichier JSON séparé et la comparaison causale est intégrée dans le rapport principal.</p>
     <div class="callout"><strong>Conseil :</strong> <code>--target</code> exécute toujours un snapshot local en premier ; inutile de passer aussi <code>--snapshot</code>.</div>
     <div class="warn"><strong>Adresse MAC :</strong> la MAC est lue depuis la table ARP locale et ne se résout que si la cible est sur le même segment Layer 2 et a été contactée récemment.</div>
-    <div class="warn"><strong>Performance :</strong> chaque sondage TCP utilise PowerShell <code>Test-NetConnection</code> avec un délai de 15 secondes. Si les quatre ports expirent, les tests distants prennent jusqu'à 60 secondes.</div>
+    <div class="warn"><strong>Performance :</strong> chaque sondage TCP utilisé PowerShell <code>Test-NetConnection</code> avec un délai de 15 secondes. Si les quatre ports expirent, les tests distants prennent jusqu'à 60 secondes.</div>
   </div>
 
   <div class="section-block" id="mode-listen">
     <h3>2.4 &mdash; Mode serveur</h3>
-    <div class="desc">Démarre un serveur HTTP léger sur le port TCP 5050. Utilisé pour déclencher à distance un snapshot sur cette machine depuis une autre machine (ou depuis l'application d'inventaire NetDTL) sans lancer de commande interactive.</div>
+    <div class="desc">Démarre un serveur HTTP léger sur le port TCP 5050. Utilisé pour décléncher à distance un snapshot sur cette machine depuis une autre machine (ou depuis l'application d'inventaire NetDTL) sans lancer de commande interactive.</div>
     <div class="label">Commande</div>
     <pre><code>python agent.py --listen</code></pre>
     <div class="label">Point d'accès HTTP</div>
@@ -581,7 +581,7 @@ DTLknowsWhy-Agent.exe start
 
 DTLknowsWhy-Agent.exe stop
 DTLknowsWhy-Agent.exe remove</code></pre>
-    <div class="label">Quand utiliser chaque mode</div>
+    <div class="label">Quand utilisér chaque mode</div>
     <table>
       <thead><tr><th>Mode</th><th>Adapté pour</th></tr></thead>
       <tbody>
@@ -672,7 +672,7 @@ NetBIOS             : Oui (via DHCP)</code></pre>
       <li>Snapshot de l'agent distant (si récupéré) : données complètes de la seconde machine en disposition symétrique</li>
       <li>Comparaison causale (résultats avec cause et remédiation)</li>
     </ul>
-    <div class="callout"><strong>Logo :</strong> le rapport charge <code>netdtl_logo.png</code> depuis le même répertoire via un chemin relatif. Placer le logo à côté du rapport pour qu'il s'affiche correctement.</div>
+    <div class="callout"><strong>Logo :</strong> le rapport charge <code>netdtl_logo.png</code> depuis le même répertoire via un chemin relatif. Placer le logo à côté du rapport pour qu'il s'affiché correctement.</div>
   </div>
 
   <h2 id="chapter4">Chapitre 4 &mdash; Outils experts</h2>
@@ -702,13 +702,13 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
     <div class="label">Ce qui est analysé</div>
     <ul>
       <li>Droits administrateur</li>
-      <li>Accessibilité de la passerelle (connectivité locale)</li>
+      <li>Accèssibilité de la passerelle (connectivité locale)</li>
       <li>Profil réseau (Public bloque SMB et la découverte réseau)</li>
       <li>État des services LanmanServer et LanmanWorkstation</li>
       <li>État de FDResPub (SMB-001 : machine invisible dans le voisinage réseau)</li>
       <li>Valeur de LmCompatibilityLevel (0 = risque de sécurité ; 5 = peut bloquer SMB en Workgroup)</li>
       <li>État BitLocker (lecteurs actifs : avertissement avant toute modification de configuration système)</li>
-      <li>Classification de la cible distante et accessibilité SMB (si <code>remote_tests</code> est dans le snapshot)</li>
+      <li>Classification de la cible distante et accèssibilité SMB (si <code>remote_tests</code> est dans le snapshot)</li>
       <li>Guidance erreur d'authentification pour les cibles probable_windows avec TCP 445 ouvert (erreur 86/1326)</li>
     </ul>
   </div>
@@ -719,7 +719,7 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
     <div class="label">Commande</div>
     <pre><code>python compare.py REF_snap.json CIBLE_snap.json [--lang {fr,en}]</code></pre>
     <div class="label">Workflow typique</div>
-    <p>Le PC B ne peut pas accéder aux partages réseau que le PC A atteint sans difficulté. Collecter un snapshot sur chaque machine, copier les deux fichiers JSON dans le même répertoire et exécuter <code>compare.py</code>. La sortie indiquera si la cause est un profil réseau Public, un service SMB arrêté, un problème de connectivité de passerelle, une différence de produit de sécurité ou un écart de paramètre de configuration.</p>
+    <p>Le PC B ne peut pas accéder aux partages réseau que le PC A atteint sans difficulté. Collecter un snapshot sur chaque machine, copier les deux fichiers JSON dans le même répertoire et exécuter <code>compare.py</code>. La sortie indiquéra si la cause est un profil réseau Public, un service SMB arrêté, un problème de connectivité de passerelle, une différence de produit de sécurité ou un écart de paramètre de configuration.</p>
     <div class="label">Tags de résultat</div>
     <table>
       <thead><tr><th>Tag (français)</th><th>Signification</th></tr></thead>
@@ -734,13 +734,13 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
     </table>
     <div class="label">Ce qui est comparé</div>
     <ul>
-      <li>Profil réseau et accessibilité de la passerelle</li>
+      <li>Profil réseau et accèssibilité de la passerelle</li>
       <li>État des services LanmanServer, LanmanWorkstation, FDResPub, fdPHost</li>
       <li>Option NetBIOS et serveurs DNS</li>
       <li>Topologie IP (passerelle et masque de sous-réseau)</li>
-      <li>Accessibilité TCP 445</li>
+      <li>Accèssibilité TCP 445</li>
       <li>Produits de sécurité (présence de Bitdefender et pile de filtres fltmc)</li>
-      <li>Paramètres de configuration SMB client et serveur</li>
+      <li>Paramètrès de configuration SMB cliént et serveur</li>
       <li>Partages SMB accessibles</li>
       <li>Contexte d'identité (compte local, domaine, AzureAD Joined)</li>
     </ul>
@@ -776,7 +776,7 @@ nbtstat -A ADRESSE_IP</code></pre>
       <li>NetBIOS désactivé sur l'une ou les deux machines</li>
       <li>Le DNS ne contient pas d'entrée pour la machine</li>
       <li>LLMNR désactivé par stratégie</li>
-      <li>FDResPub arrêté (la machine ne publie pas sa présence)</li>
+      <li>FDResPub arrêté (la machine ne publié pas sa présence)</li>
     </ul>
     <div class="label">Résolution</div>
     <p>Si le ping par nom fonctionne mais que l'accès SMB par nom est toujours lent : le délai est généralement causé par Windows qui énumère tous les partages quand on parcourt <code>\\NOM</code> plutôt que d'aller directement vers un partage spécifique. Mapper les partages directement au démarrage pour éviter le délai d'énumération :</p>
@@ -786,15 +786,15 @@ nbtstat -A ADRESSE_IP</code></pre>
 
   <div class="section-block" id="ts-smb003">
     <h3>5.3 &mdash; SMB-003 : Authentification refusée (Erreur 86 ou 1326)</h3>
-    <div class="desc">Après une réinstallation Windows, les identifiants sont refusés avec « Le mot de passe réseau spécifié est incorrect » (erreur 86) ou « Le nom d'utilisateur ou le mot de passe est incorrect » (erreur 1326), alors que les mêmes identifiants fonctionnent depuis d'autres machines.</div>
+    <div class="desc">Après une réinstallation Windows, les identifiants sont refusés avec « Le mot de passe réseau spécifié est incorrect » (erreur 86) ou « Le nom d'utilisateur ou le mot de passe est incorrect » (erreur 1326), alors que les mêmes identifiants fonctionnent depuis d'autrès machines.</div>
     <div class="label">Étape 1 : effacer les identifiants mémorisés</div>
     <pre><code>net use * /delete /y</code></pre>
     <p>Puis ouvrir Panneau de configuration &rarr; Gestionnaire d'identification &rarr; Informations d'identification Windows et supprimer toutes les entrées liées à la machine cible (y compris les entrées <code>MicrosoftAccount:target=...</code>). Après une réinstallation avec un compte Microsoft, Windows peut mémoriser un jeton MSA qui prend la priorité sur les identifiants locaux ou de domaine.</p>
-    <div class="label">Étape 2 : utiliser le bon format de compte</div>
+    <div class="label">Étape 2 : utilisér le bon format de compte</div>
     <pre><code>net use \\MACHINE\IPC$ /user:DOMAINE\prenom.nom</code></pre>
     <p>Utiliser le nom de domaine (ex. <code>SC\anne.honnyme</code>), pas le nom de la machine locale (<code>MACHINE\anne</code>). Après une réinstallation en Workgroup, la machine ne résout plus automatiquement le contexte de domaine.</p>
     <div class="label">Étape 3 : vérifier LmCompatibilityLevel</div>
-    <p>Si l'erreur 1326 persiste avec le bon format de compte, vérifier si <code>LmCompatibilityLevel</code> est absent du registre (DTLknowsWhy affichera <code>null</code> dans le snapshot). Une nouvelle installation Windows avec la clé absente utilise le défaut système (NTLMv2 uniquement), que certains serveurs ou configurations Workgroup anciens peuvent rejeter.</p>
+    <p>Si l'erreur 1326 persiste avec le bon format de compte, vérifier si <code>LmCompatibilityLevel</code> est absent du registre (DTLknowsWhy affichéra <code>null</code> dans le snapshot). Une nouvelle installation Windows avec la clé absente utilisé le défaut système (NTLMv2 uniquement), que certains serveurs ou configurations Workgroup anciens peuvent rejeter.</p>
     <pre><code>Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" `
   -Name LmCompatibilityLevel -Value 1 -Type DWord
 # Redémarrage requis</code></pre>
@@ -818,7 +818,7 @@ nbtstat -A ADRESSE_IP</code></pre>
 
   <div class="section-block" id="ts-discovery">
     <h3>5.5 &mdash; La découverte réseau se désactive toute seule</h3>
-    <div class="desc">Le profil réseau est Privé et tous les services de découverte (FDResPub, fdPHost, SSDPSRV, upnphost, Dnscache) sont Running, mais la case « Découverte du réseau » dans les paramètres Windows repasse à désactivée immédiatement après l'avoir cochée.</div>
+    <div class="desc">Le profil réseau est Privé et tous les services de découverte (FDResPub, fdPHost, SSDPSRV, upnphost, Dnscaché) sont Running, mais la case « Découverte du réseau » dans les paramètrès Windows repasse à désactivée immédiatement après l'avoir cochée.</div>
     <div class="label">Vérifier les règles pare-feu</div>
     <pre><code>Get-NetFirewallRule | Where-Object {
     $_.DisplayGroup -like '*Network Discovery*' -or
@@ -831,21 +831,21 @@ netsh advfirewall firewall set rule group="Découverte du réseau" new enable=Ye
 
 # Windows en anglais
 netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes</code></pre>
-    <p>Si la commande signale « Aucune règle ne correspond aux critères spécifiés », les règles ont été entièrement supprimées. Réinitialiser le pare-feu aux paramètres par défaut ou importer les règles depuis une machine saine. Si les règles réapparaissent mais que la case repasse à désactivée au bout de quelques minutes, un outil de sécurité tiers (ex. un EDR ou antivirus) réapplique une stratégie. Identifier l'outil et configurer une exception.</p>
+    <p>Si la commande signale « Aucune règle ne correspond aux critères spécifiés », les règles ont été entièrement supprimées. Réinitialiser le pare-feu aux paramètrès par défaut ou importer les règles depuis une machine saine. Si les règles réapparaissent mais que la case repasse à désactivée au bout de quelques minutes, un outil de sécurité tiers (ex. un EDR ou antivirus) réapplique une stratégie. Identifier l'outil et configurer une exception.</p>
     <div class="label">Vérification GPO</div>
-    <p>Exécuter <code>gpresult /r</code>. Si « Type de domaine » affiche « Windows NT 4 » ou « Station de travail autonome » sans GPO listée, le problème n'est pas la Stratégie de groupe &mdash; c'est le pare-feu local ou un outil de sécurité.</p>
+    <p>Exécuter <code>gpresult /r</code>. Si « Type de domaine » affiché « Windows NT 4 » ou « Station de travail autonome » sans GPO listée, le problème n'est pas la Stratégie de groupe &mdash; c'est le pare-feu local ou un outil de sécurité.</p>
   </div>
 
   <h2 id="appendices">Annexes</h2>
 
   <h2 id="admin">Annexe A &mdash; Droits administrateur</h2>
-  <p>DTLknowsWhy fonctionne sans droits administrateur, mais certaines données seront incomplètes. Le tableau suivant indique ce qui est affecté.</p>
+  <p>DTLknowsWhy fonctionne sans droits administrateur, mais certaines données seront incomplètes. Le tableau suivant indiqué ce qui est affecté.</p>
   <table>
     <thead><tr><th>Fonctionnalité</th><th>Sans droits admin</th><th>Avec droits admin</th></tr></thead>
     <tbody>
       <tr><td>Infos système, réseau, tests locaux</td><td>Données complètes</td><td>Données complètes</td></tr>
       <tr><td>Requêtes d'état des services</td><td>Habituellement complet ; peut être partiel sur les machines durcies</td><td>Complet</td></tr>
-      <tr><td>Configuration SMB client/serveur</td><td>Peut être inaccessible</td><td>Complet</td></tr>
+      <tr><td>Configuration SMB cliént/serveur</td><td>Peut être inaccessible</td><td>Complet</td></tr>
       <tr><td>État BitLocker</td><td><code>null</code> dans le snapshot</td><td>Complet</td></tr>
       <tr><td>Requêtes Security Center</td><td>Peut nécessiter une élévation</td><td>Complet</td></tr>
       <tr><td>Champ <code>is_admin</code></td><td><code>false</code> &mdash; le moteur expert émet un [WARN]</td><td><code>true</code></td></tr>
@@ -874,10 +874,10 @@ netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes</co
   <p>Créer la règle depuis une invite de commandes élevée sur la machine cible :</p>
   <pre><code>netsh advfirewall firewall add rule name="DTLknowsWhy Agent" ^
   dir=in action=allow protocol=TCP localport=5050</code></pre>
-  <p>Ou via l'interface graphique : Pare-feu Windows Defender &rarr; Paramètres avancés &rarr; Règles de trafic entrant &rarr; Nouvelle règle &rarr; Port &rarr; TCP &rarr; 5050 &rarr; Autoriser la connexion.</p>
+  <p>Où via l'interface graphique : Pare-feu Windows Defender &rarr; Paramètrès avancés &rarr; Règles de trafic entrant &rarr; Nouvelle règle &rarr; Port &rarr; TCP &rarr; 5050 &rarr; Autoriser la connexion.</p>
 
   <h2 id="smartscreen">Annexe D &mdash; Avertissement SmartScreen</h2>
-  <p>Au premier lancement, Windows Defender SmartScreen peut afficher :</p>
+  <p>Au premier lancement, Windows Defender SmartScreen peut affichér :</p>
   <pre><code>Windows a protégé votre PC.
 Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.</code></pre>
   <p>Ce comportement est attendu pour les exécutables non signés numériquement. Pour continuer :</p>
@@ -892,12 +892,12 @@ Microsoft Defender SmartScreen a empêché le démarrage d'une application non r
     <li><strong>Windows uniquement.</strong> L'outil ne fonctionnera pas sous Linux ou macOS.</li>
     <li><strong>Adaptateur unique.</strong> Sur les machines multi-adaptateurs, seules les valeurs du premier adaptateur correspondant sont collectées.</li>
     <li><strong>La recherche MAC par ARP requiert l'adjacence Layer 2.</strong> La cible doit être sur le même segment réseau ou avoir été contactée récemment.</li>
-    <li><strong>Les tests distants peuvent être lents.</strong> Chaque sondage TCP a un délai de 15 secondes. Jusqu'à 60 secondes si les quatre ports expirent.</li>
-    <li><strong>Le mode serveur écrit des fichiers à chaque requête.</strong> Chaque <code>GET /snapshot</code> déclenche une collecte complète et écrit de nouveaux fichiers de sortie localement.</li>
+    <li><strong>Les tests distants peuvent être lents.</strong> Chaque sondage TCP à un délai de 15 secondes. Jusqu'à 60 secondes si les quatre ports expirent.</li>
+    <li><strong>Le mode serveur écrit des fichiers à chaque requête.</strong> Chaque <code>GET /snapshot</code> déclénche une collecte complète et écrit de nouveaux fichiers de sortie localement.</li>
     <li><strong>La collecte BitLocker requiert les droits administrateur.</strong> Sans droits admin, <code>bitlocker_status</code> sera <code>null</code>.</li>
     <li><strong>compare.py est directionnel.</strong> Seules les déviations de la cible par rapport à la référence sont signalées. Exécuter <code>expert.py</code> sur chaque snapshot séparément pour une analyse indépendante.</li>
     <li><strong>Le chemin du logo du rapport HTML est relatif.</strong> Placer <code>netdtl_logo.png</code> dans le même répertoire que le rapport HTML.</li>
-    <li><strong>Fichier journal dans le répertoire courant.</strong> <code>dtlknowswhy.log</code> est écrit dans le répertoire d'exécution ; la journalisation échoue silencieusement sans permission d'écriture.</li>
+    <li><strong>Fichier journal dans le répertoire courant.</strong> <code>dtlknowswhy.log</code> est écrit dans le répertoire d'exécution ; là journalisation échoue silencieusement sans permission d'écriture.</li>
   </ul>
 
   <h2 id="history">Annexe F &mdash; Historique des versions</h2>

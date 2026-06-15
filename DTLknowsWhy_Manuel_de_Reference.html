@@ -408,8 +408,8 @@
   <table>
     <thead><tr><th>Convention</th><th>Signification</th></tr></thead>
     <tbody>
-      <tr><td><code>monospace</code></td><td>Texte de commande, noms de fichiers, noms de fonctions, paramètres et littéraux de sortie</td></tr>
-      <tr><td><em>italique</em></td><td>Variables et paramètres fictifs &mdash; substituer la valeur réelle lors de la saisie</td></tr>
+      <tr><td><code>monospace</code></td><td>Texte de commande, noms de fichiers, noms de fonctions, paramètrès et littéraux de sortie</td></tr>
+      <tr><td><em>italique</em></td><td>Variables et paramètrès fictifs &mdash; substituer la valeur réelle lors de la saisie</td></tr>
       <tr><td><strong>Gras</strong></td><td>Nouveau terme introduit ou point critique mis en évidence</td></tr>
       <tr><td><code>[option]</code></td><td>Argument facultatif ; ne pas saisir les crochets</td></tr>
       <tr><td><code>{a|b}</code></td><td>Choix mutuellement exclusifs ; choisir exactement l'un ; ne pas saisir les accolades ni la barre verticale</td></tr>
@@ -432,7 +432,7 @@
   <h2 id="chapter1">Chapitre 1 &mdash; Introduction</h2>
 
   <h2 id="overview">1.1 Vue d'ensemble</h2>
-  <p>DTLknowsWhy est un outil de diagnostic et d'analyse experte pour Windows. Exécutez-le sur une machine pour obtenir immédiatement une image complète de sa configuration : version du système d'exploitation, profil réseau, paramètres IP, services Windows clés et connectivité de base. Pointez-le optionnellement vers une seconde machine pour récupérer son snapshot complet via l'agent intégré, puis comparez les deux configurations pour identifier la cause probable de la différence.</p>
+  <p>DTLknowsWhy est un outil de diagnostic et d'analyse experte pour Windows. Exécutez-le sur une machine pour obtenir immédiatement une image complète de sa configuration : version du système d'exploitation, profil réseau, paramètrès IP, services Windows clés et connectivité de base. Pointez-le optionnellement vers une seconde machine pour récupérer son snapshot complet via l'agent intégré, puis comparez les deux configurations pour identifier la cause probable de la différence.</p>
   <table>
     <thead><tr><th>Composant</th><th>Rôle</th></tr></thead>
     <tbody>
@@ -504,7 +504,7 @@ Fichiers JSON + TXT + HTML        Résultats de diagnostic (stdout)</code></pre>
   </table>
 
   <h3 id="installation">1.5 Installation</h3>
-  <p>Aucun installeur n'est nécessaire. Copiez le dossier du projet sur la machine cible et exécutez depuis la racine du projet. La structure de répertoires est :</p>
+  <p>Aucun installéur n'est nécessaire. Copiez le dossier du projet sur la machine cible et exécutez depuis la racine du projet. La structure de répertoires est :</p>
   <pre><code>DTLknowsWhy/
 ├── agent.py                   ← point d'entrée principal
 ├── expert.py                  ← point d'entrée analyse expert
@@ -537,14 +537,14 @@ Fichiers JSON + TXT + HTML        Résultats de diagnostic (stdout)</code></pre>
     └── logger.py</code></pre>
 
   <h2 id="chapter2">Chapitre 2 &mdash; Descriptions des commandes</h2>
-  <p>Ce chapitre décrit chaque point d'entrée exécutable : syntaxe, paramètres, options, comportement et exemples. Pour les modules internes, voir le Chapitre 3.</p>
+  <p>Ce chapitre décrit chaque point d'entrée exécutable : syntaxe, paramètrès, options, comportement et exemples. Pour les modules internes, voir le Chapitre 3.</p>
 
   <div class="page-block" id="cmd-agent">
     <h3>agent.py</h3>
     <div class="desc">Point d'entrée principal. Analyse les arguments CLI, détermine le mode de fonctionnement (GUI ou CLI) et répartit en conséquence. Contient <code>create_snapshot()</code>, la fonction d'orchestration centrale.</div>
     <div class="label">Format</div>
     <pre><code>python agent.py [--snapshot] [--target IP_OU_HÔTE] [--listen] [--once] [--lang {fr,en}]</code></pre>
-    <div class="label">Paramètres</div>
+    <div class="label">Paramètrès</div>
     <table>
       <thead><tr><th>Paramètre</th><th>Requis</th><th>Description</th></tr></thead>
       <tbody>
@@ -583,7 +583,7 @@ python agent.py --listen</code></pre>
     <div class="desc">Exécutable CLI compilé. Source identique à <code>agent.py</code> ; le flag <code>console=True</code> conserve la fenêtre console. Se comporte en CLI car <code>is_cli_executable()</code> retourne <code>True</code> pour les noms contenant <code>cli</code>.</div>
     <div class="label">Format</div>
     <pre><code>DTLknowsWhy-CLI.exe [--snapshot] [--target IP_OU_HÔTE] [--listen] [--lang {fr,en}]</code></pre>
-    <p>Mêmes paramètres et comportement que <code>agent.py</code> en mode CLI. Requiert des droits administrateur ; affiche un avertissement formaté et quitte si non élevé.</p>
+    <p>Mêmes paramètrès et comportement que <code>agent.py</code> en mode CLI. Requiert des droits administrateur ; affiche un avertissement formaté et quitte si non élevé.</p>
   </div>
 
   <div class="page-block" id="cmd-server">
@@ -595,7 +595,7 @@ DTLknowsWhy-Agent.exe install
 DTLknowsWhy-Agent.exe start
 DTLknowsWhy-Agent.exe stop
 DTLknowsWhy-Agent.exe remove</code></pre>
-    <div class="label">Paramètres</div>
+    <div class="label">Paramètrès</div>
     <table>
       <thead><tr><th>Paramètre</th><th>Description</th></tr></thead>
       <tbody>
@@ -630,7 +630,7 @@ DTLknowsWhy-Agent.exe start</code></pre>
     <div class="desc">Moteur d'analyse expert. Charge un fichier JSON de snapshot, le soumet au moteur de règles et affiche un rapport de résultats structuré sur stdout. Sélectionne automatiquement le snapshot le plus récent si aucun n'est spécifié.</div>
     <div class="label">Format</div>
     <pre><code>python expert.py [snapshot.json] [--lang {fr,en}]</code></pre>
-    <div class="label">Paramètres</div>
+    <div class="label">Paramètrès</div>
     <table>
       <thead><tr><th>Paramètre</th><th>Requis</th><th>Description</th></tr></thead>
       <tbody>
@@ -661,14 +661,14 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
     <div class="desc">Analyseur comparatif. Compare deux snapshots (référence et cible) pour identifier les différences de configuration qui expliquent pourquoi une fonctionnalité fonctionne sur une machine et pas sur l'autre. Entièrement internationalisé via <code>--lang</code>.</div>
     <div class="label">Format</div>
     <pre><code>python compare.py snapshot_ref.json snapshot_cible.json [--lang {fr,en}]</code></pre>
-    <div class="label">Paramètres</div>
+    <div class="label">Paramètrès</div>
     <table>
       <thead><tr><th>Paramètre</th><th>Requis</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td><em>snapshot_ref.json</em></td><td>Oui</td><td>Snapshot de référence (la machine qui fonctionne correctement &mdash; PC A)</td></tr>
         <tr><td><em>snapshot_cible.json</em></td><td>Oui</td><td>Snapshot de la machine sous investigation &mdash; PC B</td></tr>
         <tr><td>--lang {fr|en}</td><td>Facultatif</td><td>Langue de sortie. Défaut : <code>fr</code>.</td></tr>
-        <tr><td>--ben-reference</td><td>Facultatif</td><td>Utilise automatiquement le dernier <code>PC-BEN-001_snapshot_*.json</code> comme référence</td></tr>
+        <tr><td>--ben-référence</td><td>Facultatif</td><td>Utilise automatiquement le dernier <code>PC-BEN-001_snapshot_*.json</code> comme référence</td></tr>
       </tbody>
     </table>
     <div class="label">Tags de résultat (français)</div>
@@ -689,7 +689,7 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
   </div>
 
   <h2 id="chapter3">Chapitre 3 &mdash; Référence des modules</h2>
-  <p>Ce chapitre décrit chaque module Python : objectif, fonctions publiques, paramètres et clés de sortie. Pour les points d'entrée CLI, voir le Chapitre 2.</p>
+  <p>Ce chapitre décrit chaque module Python : objectif, fonctions publiques, paramètrès et clés de sortie. Pour les points d'entrée CLI, voir le Chapitre 2.</p>
 
   <div class="page-block" id="mod-entrypoint">
     <h3>Point d'entrée</h3>
@@ -759,8 +759,8 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
       <tbody>
         <tr><td>hostname</td><td><code>socket.gethostname()</code></td><td>Nom d'hôte NetBIOS / DNS</td></tr>
         <tr><td>username</td><td><code>getpass.getuser()</code></td><td>Nom d'utilisateur Windows connecté</td></tr>
-        <tr><td>is_admin</td><td><code>ctypes.windll</code></td><td>Booléen &mdash; le processus a les droits administrateur</td></tr>
-        <tr><td>windows_product_name</td><td>Registre + normalisation</td><td>Nom du système d'exploitation corrigé pour l'anomalie de signalement Windows 10/11</td></tr>
+        <tr><td>is_admin</td><td><code>ctypes.windll</code></td><td>Booléen &mdash; le processus à les droits administrateur</td></tr>
+        <tr><td>windows_product_name</td><td>Registre + normalisation</td><td>Nom du système d'exploitation corrigé pour l'anomalié de signalement Windows 10/11</td></tr>
         <tr><td>windows_version</td><td>Registre <code>DisplayVersion</code></td><td>Chaîne de version de mise à jour fonctionnelle, ex. <em>23H2</em></td></tr>
         <tr><td>windows_build</td><td>Registre <code>CurrentBuild</code></td><td>Numéro de build, ex. <em>22631</em></td></tr>
         <tr><td>lm_compatibility_level</td><td>Registre <code>HKLM\...\Lsa\LmCompatibilityLevel</code></td><td>Entier 0&ndash;5, ou <code>null</code> si la clé est absente (défaut Windows)</td></tr>
@@ -768,7 +768,7 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
       </tbody>
     </table>
     <div class="callout"><strong>Normalisation Windows 11 :</strong> Windows 11 se signale comme « Windows 10 » dans le registre <code>ProductName</code> sur certaines versions. Le collecteur corrige cela en vérifiant si le numéro de build est &ge; 22000.</div>
-    <div class="callout"><strong>LmCompatibilityLevel :</strong> une valeur <code>null</code> signifie que la clé de registre est absente et que Windows utilise son défaut compilé (NTLMv2 uniquement sur Windows 10/11 1903+). Voir <a href="#lm-compat">Annexe E</a> pour le tableau d'interprétation complet.</div>
+    <div class="callout"><strong>LmCompatibilityLevel :</strong> une valeur <code>null</code> signifie que la clé de registre est absente et que Windows utilisé son défaut compilé (NTLMv2 uniquement sur Windows 10/11 1903+). Voir <a href="#lm-compat">Annexe E</a> pour le tableau d'interprétation complet.</div>
   </div>
 
   <div class="page-block" id="col-network">
@@ -795,14 +795,14 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
   <div class="page-block" id="col-tests">
     <h3>Collecteur de tests locaux</h3>
     <div class="file">agent/collectors/tests.py</div>
-    <div class="desc">Exécute trois tests ping pour vérifier la santé de la pile IP locale. Chaque test utilise <code>ping -n 1</code> avec un délai d'attente de 10 secondes et retourne <code>True</code> si le code de retour est 0.</div>
+    <div class="desc">Exécute trois tests ping pour vérifier la santé de la pile IP locale. Chaque test utilisé <code>ping -n 1</code> avec un délai d'attente de 10 secondes et retourne <code>True</code> si le code de retour est 0.</div>
     <div class="label">Clés de sortie</div>
     <table>
       <thead><tr><th>Clé</th><th>Cible</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td>ping_localhost</td><td>127.0.0.1</td><td>Vérifie que la pile IP est fonctionnelle</td></tr>
         <tr><td>ping_self</td><td>IPv4 locale</td><td>Vérifie que la carte réseau est joignable ; ignoré (<code>False</code>) si aucune IPv4 n'a été collectée</td></tr>
-        <tr><td>ping_gateway</td><td>Passerelle par défaut</td><td>Vérifie l'accessibilité du réseau local ; ignoré (<code>False</code>) si aucune passerelle n'a été collectée</td></tr>
+        <tr><td>ping_gateway</td><td>Passerelle par défaut</td><td>Vérifie l'accèssibilité du réseau local ; ignoré (<code>False</code>) si aucune passerelle n'a été collectée</td></tr>
       </tbody>
     </table>
   </div>
@@ -834,7 +834,7 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
       <thead><tr><th>Service</th><th>Rôle</th><th>Impact à l'arrêt</th></tr></thead>
       <tbody>
         <tr><td>LanmanServer</td><td>Serveur SMB</td><td>Partage de fichiers et d'imprimantes indisponible</td></tr>
-        <tr><td>LanmanWorkstation</td><td>Client SMB (Workstation)</td><td>Impossible d'accéder aux partages distants</td></tr>
+        <tr><td>LanmanWorkstation</td><td>Cliént SMB (Workstation)</td><td>Impossible d'accéder aux partages distants</td></tr>
         <tr><td>FDResPub</td><td>Publication de ressources de découverte (Function Discovery)</td><td>Machine invisible dans le voisinage réseau</td></tr>
         <tr><td>fdPHost</td><td>Hôte fournisseur de découverte (Function Discovery)</td><td>Découverte d'équipements dégradée</td></tr>
         <tr><td>lmhosts</td><td>Assistance NetBIOS TCP/IP</td><td>La résolution de noms NetBIOS peut échouer</td></tr>
@@ -944,7 +944,7 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
         <tr><td>RÈGLE-008-013</td><td>FAIL</td><td>Ping OK mais TCP 445 fermé sur la cible</td></tr>
         <tr><td>RÈGLE-009</td><td>INFO</td><td>Ping OK, pas de TCP, pas de MAC &mdash; possible résolution IPv6 uniquement</td></tr>
         <tr><td>RÈGLE-010</td><td>INFO</td><td>TCP 445 ouvert mais pas de nom résolu &mdash; énumération lente par nom d'hôte</td></tr>
-        <tr><td>RÈGLE-011</td><td>INFO</td><td>HTTP/HTTPS ouvert mais pas de SMB &mdash; TTL peut indiquer un équipement</td></tr>
+        <tr><td>RÈGLE-011</td><td>INFO</td><td>HTTP/HTTPS ouvert mais pas de SMB &mdash; TTL peut indiquér un équipement</td></tr>
         <tr><td>RÈGLE-012</td><td>WARN</td><td>BitLocker actif sur un ou plusieurs lecteurs</td></tr>
         <tr><td>&mdash;</td><td>FAIL / INFO</td><td>Règles de type de cible distante (injoignable, mobile, équipement, etc.)</td></tr>
       </tbody>
@@ -964,13 +964,13 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
       <li>Profil réseau (Public sur la cible)</li>
       <li>État des services LanmanServer et LanmanWorkstation</li>
       <li>État des services FDResPub et fdPHost</li>
-      <li>Accessibilité de la passerelle</li>
+      <li>Accèssibilité de la passerelle</li>
       <li>Option NetBIOS</li>
       <li>Serveurs DNS</li>
       <li>Topologie IP (passerelle et masque de sous-réseau)</li>
-      <li>Accessibilité TCP 445</li>
+      <li>Accèssibilité TCP 445</li>
       <li>Présence de Bitdefender et pile de filtres fltmc</li>
-      <li>Paramètres de configuration SMB client et serveur</li>
+      <li>Paramètrès de configuration SMB cliént et serveur</li>
       <li>Partages SMB accessibles</li>
       <li>Contexte d'identité (local, domaine, AzureAD Joined)</li>
     </ul>
@@ -979,7 +979,7 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
   <h2 id="appendices">Annexes</h2>
 
   <h2 id="snapshot-format">Annexe A &mdash; Format du snapshot</h2>
-  <p>Le snapshot JSON produit par <code>export_snapshot()</code> a la structure de niveau supérieur suivante en v2.1 :</p>
+  <p>Le snapshot JSON produit par <code>export_snapshot()</code> à la structure de niveau supérieur suivante en v2.1 :</p>
   <pre><code>{
   "metadata": {
     "generated_at":       "2026-06-07T09:34:42",
@@ -1043,18 +1043,18 @@ python expert.py PC-BEN-002_snapshot_20260607_093442.json --lang fr</code></pre>
   <p>DTLknowsWhy-Agent écoute sur TCP 5050. Créer la règle entrante sur la machine cible depuis une invite de commandes élevée :</p>
   <pre><code>netsh advfirewall firewall add rule name="DTLknowsWhy Agent" ^
   dir=in action=allow protocol=TCP localport=5050</code></pre>
-  <p>Alternativement, via Pare-feu Windows Defender &rarr; Paramètres avancés &rarr; Règles de trafic entrant &rarr; Nouvelle règle &rarr; Port &rarr; TCP 5050 &rarr; Autoriser la connexion.</p>
+  <p>Alternativement, via Pare-feu Windows Defender &rarr; Paramètrès avancés &rarr; Règles de trafic entrant &rarr; Nouvelle règle &rarr; Port &rarr; TCP 5050 &rarr; Autoriser la connexion.</p>
 
   <h2 id="smartscreen">Annexe D &mdash; Avertissement SmartScreen</h2>
-  <p>Au premier lancement, Windows Defender SmartScreen peut afficher :</p>
+  <p>Au premier lancement, Windows Defender SmartScreen peut affichér :</p>
   <pre><code>Windows a protégé votre PC.
 Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.</code></pre>
   <p>Ce comportement est attendu pour les exécutables non signés numériquement. Pour continuer : vérifier que le fichier provient du dépôt officiel DTLknowsWhy ; cliquer sur <strong>Informations complémentaires</strong> ; cliquer sur <strong>Exécuter quand même</strong>. En environnement d'entreprise, demander la signature numérique ou l'approbation explicite de l'équipe de sécurité avant tout déploiement étendu.</p>
 
   <h2 id="lm-compat">Annexe E &mdash; LmCompatibilityLevel</h2>
-  <p>Cette valeur de registre contrôle le niveau de négociation d'authentification NTLM. Une clé absente (<code>null</code> dans le snapshot) signifie que Windows utilise son défaut compilé.</p>
+  <p>Cette valeur de registre contrôle le niveau de négociation d'authentification NTLM. Une clé absente (<code>null</code> dans le snapshot) signifie que Windows utilisé son défaut compilé.</p>
   <table>
-    <thead><tr><th>Valeur</th><th>Client envoie</th><th>Serveur accepte</th><th>Résultat expert</th></tr></thead>
+    <thead><tr><th>Valeur</th><th>Cliént envoie</th><th>Serveur accepte</th><th>Résultat expert</th></tr></thead>
     <tbody>
       <tr><td><code>null</code> (absent)</td><td>NTLMv2 uniquement (défaut W10/11)</td><td>NTLMv2</td><td>INFO (aucun résultat)</td></tr>
       <tr><td>0</td><td>LM et NTLM</td><td>LM, NTLM, NTLMv2</td><td>WARN &mdash; risque de sécurité</td></tr>
@@ -1074,12 +1074,12 @@ Microsoft Defender SmartScreen a empêché le démarrage d'une application non r
     <li><strong>Windows uniquement.</strong> L'outil importe <code>ctypes.windll</code> et appelle des commandes spécifiques à Windows. Il ne fonctionnera pas sous Linux ou macOS.</li>
     <li><strong>Adaptateur unique.</strong> Les collecteurs retournent les valeurs du premier adaptateur correspondant. Sur les machines multi-adaptateurs, les adaptateurs secondaires sont ignorés.</li>
     <li><strong>La recherche MAC par ARP requiert l'adjacence Layer 2.</strong> La cible doit être sur le même segment réseau ou avoir été contactée récemment.</li>
-    <li><strong>Les tests distants peuvent être lents.</strong> Chaque sondage TCP a un délai de 15 s via PowerShell. Jusqu'à 60 s si les quatre ports expirent.</li>
-    <li><strong>Le mode serveur écrit des fichiers à chaque requête.</strong> Chaque <code>GET /snapshot</code> déclenche une collecte complète et écrit de nouveaux fichiers JSON, TXT et HTML sur la machine agent.</li>
+    <li><strong>Les tests distants peuvent être lents.</strong> Chaque sondage TCP à un délai de 15 s via PowerShell. Jusqu'à 60 s si les quatre ports expirent.</li>
+    <li><strong>Le mode serveur écrit des fichiers à chaque requête.</strong> Chaque <code>GET /snapshot</code> déclénche une collecte complète et écrit de nouveaux fichiers JSON, TXT et HTML sur la machine agent.</li>
     <li><strong>La collecte BitLocker requiert les droits administrateur.</strong> Sans droits admin, <code>bitlocker_status</code> sera <code>null</code>.</li>
     <li><strong>compare.py est directionnel.</strong> Seules les déviations du PC B par rapport au PC A sont signalées. Intervertir les arguments pour la comparaison inverse.</li>
     <li><strong>Le chemin du logo du rapport HTML est relatif.</strong> Placer <code>netdtl_logo.png</code> dans le même répertoire que le rapport HTML.</li>
-    <li><strong>Fichier journal dans le répertoire courant.</strong> <code>dtlknowswhy.log</code> est écrit dans le répertoire d'exécution ; la journalisation échoue silencieusement sans permission d'écriture.</li>
+    <li><strong>Fichier journal dans le répertoire courant.</strong> <code>dtlknowswhy.log</code> est écrit dans le répertoire d'exécution ; là journalisation échoue silencieusement sans permission d'écriture.</li>
   </ul>
 
   <h2 id="history">Annexe G &mdash; Historique des versions</h2>
