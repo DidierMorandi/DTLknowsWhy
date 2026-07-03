@@ -486,7 +486,7 @@ def compare_causal(reference, target, lang="fr"):
                 "Un filtre de fichiers Bitdefender peut intercepter les accès "
                 "au système de fichiers et modifier le comportement SMB."
             ),
-            "Comparer fltmc filters et tester avec les protections Bitdefender adaptees."
+                "Comparer fltmc filters et tester avec les protections Bitdefender adaptées."
         )
 
     smb_config_pairs = (
@@ -494,7 +494,7 @@ def compare_causal(reference, target, lang="fr"):
             "network.smb_client_configuration.RequireSecuritySignature",
             "Signature SMB client obligatoire",
             (
-                "La signature SMB obligatoire cote client peut changer la "
+                "La signature SMB obligatoire côté client peut changer la "
                 "négociation avec certains serveurs."
             )
         ),
@@ -502,7 +502,7 @@ def compare_causal(reference, target, lang="fr"):
             "network.smb_client_configuration.EnableInsecureGuestLogons",
             "Accès invité SMB client",
             (
-                "Une difference sur les connexions invite peut expliquer "
+                "Une différence sur les connexions invité peut expliquer "
                 "qu'un partage public soit accessible depuis un poste et pas l'autre."
             )
         ),
@@ -590,7 +590,7 @@ def compare_causal(reference, target, lang="fr"):
                 f"{target_name} : aucun partage local accessible détecté"
             ],
             (
-                "La machine cible peut publier des partages differemment, "
+                "La machine cible peut publier des partages différemment, "
                 "ou refuser l'énumération locale."
             ),
             "Comparer Get-SmbShare, net view \\\\localhost et les droits de partage."

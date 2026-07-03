@@ -31,3 +31,5 @@ agent/dist/
 
 # Generated executables
 *.exe
+
+/Erreurs_frequentes_et_solutions.docx
