@@ -381,6 +381,8 @@ TRANSLATIONS = {
             "réussie depuis le poste de Michel. Confiance : 100 %.",
 
         # ── Interface graphique (GUI) ─────────────────────────────────────────
+        "gui_suite": "Un outil de la suite NetDTL",
+        "gui_website": "www.netdtl.com",
         "gui_subtitle":
             "Moteur de diagnostic réseau et d'analyse causale Windows",
         "gui_intro":
@@ -992,6 +994,8 @@ TRANSLATIONS = {
             "Target type could not be determined.",
 
         # ── Graphical user interface (GUI) ───────────────────────────────────
+        "gui_suite": "A tool from the NetDTL suite",
+        "gui_website": "www.netdtl.com",
         "gui_subtitle":
             "Windows network diagnostic and causal analysis engine",
         "gui_intro":

@@ -8,6 +8,7 @@ import os
 import queue
 import re
 import subprocess
+import sys
 import threading
 import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -24,7 +25,7 @@ from shared.version import DTLKNOWSWHY_VERSION
 
 
 COLORS = {
-    "bg": "#f3f6fa",
+    "bg": "#000000",
     "surface": "#ffffff",
     "surface_alt": "#eef3f8",
     "border": "#c8d4e3",
@@ -37,6 +38,12 @@ COLORS = {
     "fail": "#d13438",
     "info": "#0078d4",
 }
+
+
+def resource_path(filename):
+    """Return an asset path both from sources and from a PyInstaller build."""
+    bundle_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    return bundle_dir / filename
 
 
 LEVEL_COLORS = {
@@ -192,6 +199,7 @@ class DTLknowsWhyGui:
         style.configure("App.TFrame", background=COLORS["bg"])
         style.configure("Surface.TFrame", background=COLORS["surface"])
         style.configure("Banner.TFrame", background=COLORS["accent_dark"])
+        style.configure("BannerLogo.TLabel", background=COLORS["accent_dark"])
         style.configure(
             "BannerTitle.TLabel",
             background=COLORS["accent_dark"],
@@ -205,10 +213,10 @@ class DTLknowsWhyGui:
             font=("Segoe UI", 11),
         )
         style.configure(
-            "BannerVersion.TLabel",
+            "BannerBrand.TLabel",
             background=COLORS["accent_dark"],
             foreground="#ffffff",
-            font=("Segoe UI Semibold", 10),
+            font=("Segoe UI", 10),
         )
         style.configure(
             "Section.TLabelframe",
@@ -290,18 +298,26 @@ class DTLknowsWhyGui:
         )
         self.banner_title_label.grid(row=0, column=0, sticky="w")
 
+        self.banner_brand_label = ttk.Label(
+            banner,
+            style="BannerBrand.TLabel",
+            justify="left",
+        )
+        self.banner_brand_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+
         self.banner_subtitle_label = ttk.Label(
             banner,
             style="BannerSubtitle.TLabel",
         )
-        self.banner_subtitle_label.grid(row=1, column=0, sticky="w", pady=(2, 0))
+        self.banner_subtitle_label.grid(row=2, column=0, sticky="w", pady=(10, 0))
 
-        self.version_label = ttk.Label(
+        self.logo_image = tk.PhotoImage(file=str(resource_path("netdtl_logo_small.png")))
+        self.logo_label = ttk.Label(
             banner,
-            text="",
-            style="BannerVersion.TLabel",
+            image=self.logo_image,
+            style="BannerLogo.TLabel",
         )
-        self.version_label.grid(row=0, column=1, rowspan=2, sticky="e")
+        self.logo_label.grid(row=0, column=1, rowspan=3, sticky="ne", padx=(18, 0))
 
         self.intro_label = ttk.Label(
             container,
@@ -598,8 +614,10 @@ class DTLknowsWhyGui:
 
     def _apply_language(self):
         self.banner_subtitle_label.configure(text=self._t("gui_subtitle"))
+        self.banner_brand_label.configure(
+            text=f"{self._t('gui_suite')}\n{self._t('gui_website')}"
+        )
         self.banner_title_label.configure(text=f"DTLknowsWhy {DTLKNOWSWHY_VERSION}")
-        self.version_label.configure(text="")
         self.intro_label.configure(text=self._t("gui_intro"))
         self.situations_frame.configure(text=self._t("gui_known_situations"))
         self.target_frame.configure(text=self._t("gui_target"))

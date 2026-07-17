@@ -5,7 +5,7 @@ a = Analysis(
     ['agent.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('..\\netdtl_logo_small.png', '.')],
     hiddenimports=[
         'agent.gui',
         'agent.server',

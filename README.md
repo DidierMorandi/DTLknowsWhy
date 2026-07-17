@@ -401,15 +401,16 @@ https://didiermorandi.com/netdtl/doc/
 
 ## Version
 
-Current release: **DTLknowsWhy v2.2.0**
+Current release: **DTLknowsWhy v2.2.3**
 
-## Update - 14 June 2026
+## Update - 17 July 2026
 
-The current code reports `DTLKNOWSWHY_VERSION = "v2.2-2"` in `shared/version.py`.
+The current code reports `DTLKNOWSWHY_VERSION = "v2.2-3"` in `shared/version.py`.
 
 New and present components:
 
 - Tkinter GUI with language selection, target selection, and a button to open the latest HTML report.
+- Black application background and NetDTL-branded title banner with the NetDTL logo.
 - Automatic discovery of local IPv4 targets, displayed as `IP - name` when a name can be resolved.
 - `--snapshot` mode to generate a local machine snapshot.
 - `--target` mode to run diagnostics against a remote machine.
